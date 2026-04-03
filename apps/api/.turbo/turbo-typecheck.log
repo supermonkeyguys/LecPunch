@@ -1,0 +1,4 @@
+
+> @lecpunch/api@0.1.0 typecheck D:\react\LecPunch\apps\api
+> tsc -b tsconfig.build.json
+

@@ -1,0 +1,14 @@
+
+> @lecpunch/web@0.1.0 build D:\react\LecPunch\apps\web
+> tsc -b && vite build
+
+[2m00:30:39[22m [33m[1m[vite][22m[39m [33mwarning: `esbuild` option was specified by "vite:react-swc" plugin. This option is deprecated, please use `oxc` instead.[39m
+[36mvite v8.0.3 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...✓ 104 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.39 kB │ gzip:   0.27 kB
+dist/assets/index-DcseBMXu.css    2.29 kB │ gzip:   0.99 kB
+dist/assets/index-D9mWx5Z6.js   365.48 kB │ gzip: 117.62 kB
+
+[32m✓ built in 517ms[39m

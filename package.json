@@ -1,0 +1,19 @@
+{
+  "name": "lecpunch",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.4",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "ttypescript": "^1.5.15",
+    "turbo": "^2.0.4",
+    "typescript": "^5.5.4",
+    "typescript-transform-paths": "^3.5.6"
+  }
+}

@@ -1,0 +1,53 @@
+# LecPunch 后续执行计划（更新：2026-04-02）
+
+> 目的：交接给下一位 AI/工程师，聚焦剩余 P0/P1 功能落地、联调与测试。
+
+---
+
+## 阶段 4 补完（前端 features/widgets）
+1. **Auth + 路由守卫**
+   - 在 `features/auth` 中实现 register/login API 封装、`useAuth` hook。
+   - 登录成功写入 Zustand + localStorage，并将受保护路径重定向到 `/login`。
+   - 退出登录（清 token）以及 token 失效自动跳转逻辑。
+2. **Dashboard Widgets**
+   - `widgets/dashboard-checkin-panel`: 绑定 `/attendance/current`、`/attendance/check-in/out`，实现按钮状态、4.5h/4.9h 警示（UI.md P1 需求）。
+   - `widgets/dashboard-week-summary`: 根据 `/stats/me/weekly` 渲染热力图/统计条。
+   - `widgets/team-overview`: 接 `/stats/team/current-week`，标记在线状态（根据 active session）。
+3. **Records / Members 页面**
+   - `HistoryTable` + 分页控件，接 `/records/me`、`/records/member/:id`。
+   - `TeamRankTable`：排序 + hover 操作列，点击进入成员详情（写入 `selectedMember` 或导航）。
+   - `MemberDetail` 视图：顶部信息条 + `HistoryTable` 复用。
+4. **Shared/UI**
+   - 完成 `packages/ui` 中 Button/Card/Table/Badge 等基础组件或直接在 web 内部实现。
+   - 统一 Loading/Error 反馈（toast/modal），可接入 Radix Dialog/Toast。
+
+## 阶段 5：前后端联调 + 业务闭环
+1. **Attendance & Network**
+   - 在 `.env` 中关闭 `ALLOW_ANY_NETWORK`，模拟真实 IP 白名单场景并打通 403 提示策略。
+   - 增加 mock 数据或脚本，确保至少 1 个 team/user，方便前端演示。
+2. **统计 & 排行**
+   - 校验 Mongo 聚合输出格式，必要时增加 DTO/Mapper，以便前端无需直接消费 `_id`。
+3. **联调脚本**
+   - 用 `docs/superpowers/specs` 中 API 契约编写 Thunder Client / Postman collection，留给前端或 QA。
+
+## 阶段 6：测试 & 文档
+1. **后端 Jest**
+   - 核心用例：
+     - 成功上/下卡；重复上卡拒绝；5h 自动作废；跨团队访问拒绝；网络限制（mock NetworkPolicyService）。
+   - 目录：`apps/api/test/*.spec.ts` or `src/modules/**/tests`。
+2. **前端 Vitest + RTL**
+   - 路由守卫；CheckinCard 状态切换；Records 表格渲染；Members → MemberDetail flow。
+3. **E2E（可选）**
+   - Playwright：登录 → Dashboard → 上卡/下卡 → 查看记录。
+4. **文档/命令**
+   - 更新 README 或 CLAUDE.md：安装、启动、种子、测试指令。
+   - `.env.example`（web/api）补充说明，提示如何设置白名单。
+
+## 尚未开始/需确认的事项
+- **网络白名单管理 UI**：当前仅 `.env` 配置，若后续需要后台录入需补充 CRUD。
+- **团队成员种子/邀请机制**：现阶段注册开放，后续如需限制需 product 明确。
+- **部署/Turbo pipeline**：暂无 build/test CI；需在 Phase 6 统一到 GitHub Actions 或其他平台。
+
+---
+
+> 建议下一位 AI 按“前端 features → 后端校验 → 测试/文档”顺序推进，保持 README/CLAUDE 同步更新，避免交接信息丢失。

@@ -1,0 +1,21 @@
+{
+  "extends": "../../packages/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "CommonJS",
+    "target": "ES2019",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "paths": {
+      "@lecpunch/shared": ["../../packages/shared/src"],
+      "@lecpunch/shared/*": ["../../packages/shared/src/*"],
+      "@lecpunch/ui": ["../../packages/ui/src"],
+      "@lecpunch/ui/*": ["../../packages/ui/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../../packages/shared/tsconfig.json" }
+  ]
+}

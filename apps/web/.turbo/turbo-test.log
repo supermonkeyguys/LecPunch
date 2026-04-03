@@ -1,0 +1,21 @@
+
+> @lecpunch/web@0.1.0 test D:\react\LecPunch\apps\web
+> vitest run
+
+[vite:react-swc] We recommend switching to `@vitejs/plugin-react` for improved performance as no swc plugins are used. More information at https://vite.dev/rolldown
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mD:/react/LecPunch/apps/web[39m
+
+ [32m✓[39m src/pages/dashboard/DashboardPage.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 189[2mms[22m[39m
+ [32m✓[39m src/pages/weekly-history/WeeklyHistoryPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 38[2mms[22m[39m
+ [32m✓[39m src/shared/http/api-client.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 75[2mms[22m[39m
+ [32m✓[39m src/pages/members/MembersPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m src/pages/member-records/MemberRecordsPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m src/pages/records/RecordsPage.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/pages/login/LoginPage.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 15[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m7 passed[39m[22m[90m (7)[39m
+[2m      Tests [22m [1m[32m20 passed[39m[22m[90m (20)[39m
+[2m   Start at [22m 00:30:30
+[2m   Duration [22m 2.36s[2m (transform 143ms, setup 95ms, collect 590ms, tests 377ms, environment 541ms, prepare 112ms)[22m
+

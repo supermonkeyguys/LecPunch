@@ -1,0 +1,2 @@
+"use strict";
+// entities layer�������ȶ�����չʾ�����UserAvatar��AttendanceStatusBadge �ȣ���
