@@ -29,6 +29,7 @@ interface RootState {
   setSelectedMember: (member: SelectedMember | null) => void;
   updateCheckinState: (patch: Partial<CheckinState>) => void;
   setAuth: (payload: AuthState) => void;
+  updateUser: (patch: Partial<User>) => void;
 }
 
 export const useRootStore = create<RootState>((set) => ({
@@ -53,5 +54,12 @@ export const useRootStore = create<RootState>((set) => ({
         ...patch
       }
     })),
-  setAuth: (payload) => set({ auth: payload })
+  setAuth: (payload) => set({ auth: payload }),
+  updateUser: (patch) =>
+    set((state) => ({
+      auth: {
+        ...state.auth,
+        user: state.auth.user ? { ...state.auth.user, ...patch } : null
+      }
+    }))
 }));
