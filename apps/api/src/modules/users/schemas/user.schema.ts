@@ -31,6 +31,24 @@ export class User {
     default: 'active'
   })
   status!: UserStatus;
+
+  @Prop({ required: true, type: Number })
+  enrollYear!: number;
+
+  @Prop({ sparse: true, unique: true, index: true })
+  studentId?: string;
+
+  @Prop()
+  realName?: string;
+
+  @Prop()
+  avatarBase64?: string;
+
+  @Prop()
+  avatarColor?: string;
+
+  @Prop()
+  avatarEmoji?: string;
 }
 
 export type UserDocument = HydratedDocument<User>;
