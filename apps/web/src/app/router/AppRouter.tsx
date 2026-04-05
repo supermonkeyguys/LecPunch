@@ -1,4 +1,6 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { AppProviders } from '../providers/AppProviders';
+import { ToastContainer } from '@/shared/ui/toast';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -8,31 +10,43 @@ import { RecordsPage } from '@/pages/records/RecordsPage';
 import { MembersPage } from '@/pages/members/MembersPage';
 import { MemberRecordsPage } from '@/pages/member-records/MemberRecordsPage';
 import { WeeklyHistoryPage } from '@/pages/weekly-history/WeeklyHistoryPage';
+import { ProfilePage } from '@/pages/profile/ProfilePage';
+
+// Root wrapper inside the router context — safe to use useNavigate here
+const Root = () => (
+  <AppProviders>
+    <Outlet />
+    <ToastContainer />
+  </AppProviders>
+);
 
 const router = createBrowserRouter([
   {
-    path: '/login',
-    element: (
-      <AuthLayout>
-        <LoginPage />
-      </AuthLayout>
-    )
-  },
-  {
-    element: <ProtectedRoute />,
+    element: <Root />,
     children: [
       {
-        path: '/',
-        element: <MainLayout />,
+        path: '/login',
+        element: (
+          <AuthLayout>
+            <LoginPage />
+          </AuthLayout>
+        )
+      },
+      {
+        element: <ProtectedRoute />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'records', element: <RecordsPage /> },
-          { path: 'members', element: <MembersPage /> },
           {
-            path: 'members/:userId/records',
-            element: <MemberRecordsPage />
-          },
-          { path: 'weekly-history', element: <WeeklyHistoryPage /> }
+            path: '/',
+            element: <MainLayout />,
+            children: [
+              { index: true, element: <DashboardPage /> },
+              { path: 'records', element: <RecordsPage /> },
+              { path: 'members', element: <MembersPage /> },
+              { path: 'members/:userId/records', element: <MemberRecordsPage /> },
+              { path: 'weekly-history', element: <WeeklyHistoryPage /> },
+              { path: 'profile', element: <ProfilePage /> }
+            ]
+          }
         ]
       }
     ]
