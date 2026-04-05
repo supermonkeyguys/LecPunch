@@ -9,7 +9,8 @@ const user: AuthUser = {
   teamId: 'team-1',
   role: 'member',
   username: 'alice',
-  displayName: 'Alice'
+  displayName: 'Alice',
+  enrollYear: 2024
 };
 
 describe('AttendanceService', () => {
