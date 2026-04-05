@@ -4,13 +4,13 @@ import { UserRole, UserStatus } from '@lecpunch/shared';
 
 @Schema({ timestamps: true, collection: 'users' })
 export class User {
-  @Prop({ required: true, unique: true, index: true })
+  @Prop({ required: true, type: String, unique: true, index: true })
   username!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   passwordHash!: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   displayName!: string;
 
   @Prop({ required: true, type: String, index: true })
@@ -35,19 +35,19 @@ export class User {
   @Prop({ required: true, type: Number })
   enrollYear!: number;
 
-  @Prop({ sparse: true, unique: true, index: true })
+  @Prop({ type: String, sparse: true, unique: true, index: true })
   studentId?: string;
 
-  @Prop()
+  @Prop({ type: String })
   realName?: string;
 
-  @Prop()
+  @Prop({ type: String })
   avatarBase64?: string;
 
-  @Prop()
+  @Prop({ type: String })
   avatarColor?: string;
 
-  @Prop()
+  @Prop({ type: String })
   avatarEmoji?: string;
 }
 
