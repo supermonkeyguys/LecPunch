@@ -10,15 +10,19 @@ interface LoginInput {
   username: string;
   password: string;
   displayName?: string;
+  studentId?: string;
+  realName?: string;
   mode?: 'login' | 'register';
 }
 
-export const login = async ({ username, password, displayName, mode = 'login' }: LoginInput) => {
+export const login = async ({ username, password, displayName, studentId, realName, mode = 'login' }: LoginInput) => {
   if (mode === 'register') {
     const response = await apiClient.post<AuthPayload>('/auth/register', {
       username,
       password,
-      displayName: displayName?.trim() || username
+      displayName: (displayName?.trim() || username).trim(),
+      studentId,
+      realName,
     });
     return response.data;
   }
