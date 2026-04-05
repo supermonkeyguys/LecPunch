@@ -8,6 +8,13 @@ export interface User {
   displayName: string;
   role: UserRole;
   status: UserStatus;
+  enrollYear: number;
   createdAt: string;
   updatedAt: string;
+  studentId?: string;
+  realName?: string;
+  avatarBase64?: string;
+  avatarColor?: string;
+  avatarEmoji?: string;
 }
+
