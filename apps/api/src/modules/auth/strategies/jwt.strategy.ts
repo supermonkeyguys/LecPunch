@@ -38,12 +38,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       });
     }
 
+    if (user.status !== 'active') {
+      throw new UnauthorizedException({
+        code: ERROR_CODES.USER_DISABLED,
+        message: 'User is disabled'
+      });
+    }
+
     return {
       userId: user.id,
       teamId: user.teamId,
       role: user.role,
       username: user.username,
-      displayName: user.displayName
+      displayName: user.displayName,
+      enrollYear: user.enrollYear
     };
   }
 }

@@ -42,6 +42,15 @@ export class AuthService {
       });
     }
 
+    const existingByStudentId = await this.usersService.findByStudentId(payload.studentId);
+    if (existingByStudentId) {
+      throw new ConflictException({
+        code: 'STUDENT_ID_TAKEN',
+        message: 'Student ID already in use'
+      });
+    }
+
+    const enrollYear = parseInt(payload.studentId.slice(0, 4), 10);
     const defaultTeamName = this.configService.get<string>('DEFAULT_TEAM_NAME', 'FocusTeam');
     const team = await this.teamsService.ensureDefaultTeam(defaultTeamName);
     const passwordHash = await bcrypt.hash(payload.password, 10);
@@ -50,7 +59,10 @@ export class AuthService {
       username: normalizedUsername,
       passwordHash,
       displayName: payload.displayName.trim(),
-      teamId: team.id
+      teamId: team.id,
+      enrollYear,
+      studentId: payload.studentId,
+      realName: payload.realName.trim(),
     });
 
     return this.buildAuthResponse(user);
@@ -116,7 +128,13 @@ export class AuthService {
       displayName: user.displayName,
       teamId: user.teamId,
       role: user.role,
-      status: user.status as UserStatus
+      status: user.status as UserStatus,
+      enrollYear: user.enrollYear,
+      studentId: user.studentId,
+      realName: user.realName,
+      avatarBase64: user.avatarBase64,
+      avatarColor: user.avatarColor,
+      avatarEmoji: user.avatarEmoji,
     };
   }
 }

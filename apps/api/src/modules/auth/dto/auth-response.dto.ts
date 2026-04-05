@@ -7,6 +7,12 @@ export interface AuthUserResponse {
   teamId: string;
   role: UserRole;
   status: UserStatus;
+  enrollYear: number;
+  studentId?: string;
+  realName?: string;
+  avatarBase64?: string;
+  avatarColor?: string;
+  avatarEmoji?: string;
 }
 
 export interface AuthResponse {

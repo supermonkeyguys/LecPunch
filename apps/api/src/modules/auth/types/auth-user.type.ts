@@ -6,4 +6,5 @@ export interface AuthUser {
   role: UserRole;
   username: string;
   displayName: string;
+  enrollYear: number;
 }
