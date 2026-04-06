@@ -29,6 +29,7 @@ export const LoginPage = () => {
       if (!/^\d{12}$/.test(studentId)) { setError('学号必须为 12 位数字'); return; }
     }
 
+    console.log('submit state:', { username, password, displayName, studentId, realName, mode });
     setSubmitting(true);
     try {
       const payload =

@@ -11,14 +11,15 @@ describe('LoginPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole('heading', { name: /登录/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /欢迎回来/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/用户名/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/密码/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /注册/i })).toBeInTheDocument();
 
     const loginButtons = screen.getAllByRole('button', { name: '登录' });
-    expect(loginButtons).toHaveLength(2);
+    expect(loginButtons).toHaveLength(1);
     expect(loginButtons[0]).toHaveAttribute('type', 'button');
-    expect(loginButtons[1]).toHaveAttribute('type', 'submit');
+
+    expect(screen.getByRole('button', { name: /登录系统/i })).toBeInTheDocument();
   });
 });

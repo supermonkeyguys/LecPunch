@@ -5,7 +5,27 @@
       "Bash(pnpm test:*)",
       "Bash(pnpm typecheck:*)",
       "Bash(pnpm build:*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(gtimeout 15 pnpm --filter api dev)",
+      "Bash(kill %1)",
+      "Bash(wait)",
+      "Read(//tmp/**)",
+      "Bash(sed -i '' 's|正在加载打卡记录|正在加载|' apps/web/src/pages/records/RecordsPage.test.tsx)",
+      "Bash(sed -i '' 's|正在加载成员统计|正在加载|' apps/web/src/pages/members/MembersPage.test.tsx)",
+      "Bash(sed -i '' 's|正在加载周历史统计|正在加载|' apps/web/src/pages/weekly-history/WeeklyHistoryPage.test.tsx)",
+      "mcp__chrome-devtools__take_screenshot",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "mcp__chrome-devtools__list_console_messages",
+      "mcp__chrome-devtools__evaluate_script",
+      "mcp__chrome-devtools__navigate_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__chrome-devtools__fill_form",
+      "mcp__chrome-devtools__click",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__plugin_everything-claude-code_context7__resolve-library-id",
+      "mcp__plugin_everything-claude-code_context7__query-docs",
+      "mcp__chrome-devtools__hover"
     ]
   }
 }

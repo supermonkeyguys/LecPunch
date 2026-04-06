@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card } from '@/shared/ui/card';
+import { DataTable, Progress, type ColumnDef } from '@lecpunch/ui';
 import { formatDuration } from '@/shared/lib/time';
 import { getMyWeeklyStats } from '@/features/stats/stats.api';
 import type { WeeklyStatItem } from '@lecpunch/shared';
@@ -14,52 +14,61 @@ export const WeeklyHistoryPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getMyWeeklyStats();
-        setWeeklyStats(data);
+        const result = await getMyWeeklyStats();
+        setWeeklyStats(result.items);
       } catch {
         setError('加载周历史统计失败');
       } finally {
         setLoading(false);
       }
     };
-
     void load();
   }, []);
 
+  const maxDuration = Math.max(...weeklyStats.map((s) => s.totalDurationSeconds), 1);
+
+  const columns: ColumnDef<WeeklyStatItem>[] = [
+    { key: 'weekKey', header: '周标识', cellClassName: 'font-medium text-gray-900' },
+    {
+      key: 'totalDurationSeconds',
+      header: '累计时长',
+      cellClassName: 'font-mono font-bold text-gray-800 text-base',
+      render: (v) => formatDuration(v),
+    },
+    { key: 'sessionsCount', header: '打卡次数', render: (v) => `${v} 次` },
+    {
+      key: '_progress',
+      header: '进度',
+      headerClassName: 'w-48',
+      render: (_, row) => (
+        <Progress
+          value={(row.totalDurationSeconds / maxDuration) * 100}
+          className="w-40"
+        />
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-gray-900">周历史统计</h1>
-      <Card className="overflow-hidden">
-        {loading ? <div className="px-4 py-6 text-center text-slate-500">正在加载周历史统计...</div> : null}
-        {error ? <div className="px-4 py-6 text-center text-red-600">{error}</div> : null}
-        {!loading && !error ? (
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-left text-slate-500">
-              <tr>
-                <th className="px-4 py-3">周标识</th>
-                <th className="px-4 py-3">累计时长</th>
-                <th className="px-4 py-3">打卡次数</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
-              {weeklyStats.map((item) => (
-                <tr key={item.weekKey}>
-                  <td className="px-4 py-3">{item.weekKey}</td>
-                  <td className="px-4 py-3">{formatDuration(item.totalDurationSeconds)}</td>
-                  <td className="px-4 py-3">{item.sessionsCount}</td>
-                </tr>
-              ))}
-              {weeklyStats.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
-                    暂无周历史统计
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        ) : null}
-      </Card>
+    <div className="p-8 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">周历史统计</h1>
+        <p className="text-gray-500 text-sm mt-1">查看您近期各周的打卡累计情况。</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {error ? (
+          <div className="px-6 py-12 text-center text-red-500">{error}</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={weeklyStats.map((s) => ({ ...s, _progress: null }))}
+            loading={loading}
+            emptyText="暂无周历史统计"
+            rowKey={(r) => r.weekKey}
+          />
+        )}
+      </div>
     </div>
   );
 };

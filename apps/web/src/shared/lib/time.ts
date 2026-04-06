@@ -11,3 +11,47 @@ export const formatDuration = (seconds: number) => {
     .padStart(2, '0');
   return `${hours}:${minutes}:${secs}`;
 };
+
+/** Format an ISO date string to a readable local time */
+export const formatDateTime = (iso: string) => {
+  const d = new Date(iso);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${mm}-${dd} ${hh}:${min}:${ss}`;
+};
+
+/**
+ * Convert a selectedWeek key to the Monday-based weekKey string (yyyy-MM-dd).
+ * 'current' → this week's Monday, 'prev1' → last Monday, etc.
+ */
+export const weekKeyFromOffset = (offset: number): string => {
+  const now = new Date();
+  // Shift to Asia/Shanghai by adding UTC+8 offset
+  const shanghaiOffset = 8 * 60;
+  const localOffset = now.getTimezoneOffset(); // minutes behind UTC
+  const shanghaiMs = now.getTime() + (shanghaiOffset + localOffset) * 60 * 1000;
+  const sh = new Date(shanghaiMs);
+
+  // Day of week: 0=Sun, 1=Mon … shift so Mon=0
+  const dow = (sh.getDay() + 6) % 7; // Mon=0, Sun=6
+  const monday = new Date(sh);
+  monday.setDate(sh.getDate() - dow - offset * 7);
+
+  const yyyy = monday.getFullYear();
+  const mm = String(monday.getMonth() + 1).padStart(2, '0');
+  const dd = String(monday.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const WEEK_OFFSETS: Record<string, number> = {
+  current: 0,
+  prev1: 1,
+  prev2: 2,
+  prev3: 3
+};
+
+export const selectedWeekToKey = (selectedWeek: string): string =>
+  weekKeyFromOffset(WEEK_OFFSETS[selectedWeek] ?? 0);

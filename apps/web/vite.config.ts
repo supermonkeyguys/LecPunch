@@ -9,7 +9,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:4000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
@@ -17,7 +17,12 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      '@lecpunch/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
+      '@lecpunch/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts')
     }
+  },
+  optimizeDeps: {
+    force: true
   }
 });

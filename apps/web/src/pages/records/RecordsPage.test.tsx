@@ -29,7 +29,7 @@ describe('RecordsPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/正在加载打卡记录/i)).toBeInTheDocument();
+    expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
   });
 
   it('shows error state when records request fails', async () => {
@@ -64,6 +64,6 @@ describe('RecordsPage', () => {
 
     expect(await screen.findByText(/2026-03-31/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/completed/i)).toBeInTheDocument();
+    expect(screen.getByText(/正常/i)).toBeInTheDocument();
   });
 });

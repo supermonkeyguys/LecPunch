@@ -11,23 +11,34 @@ export class RecordsService {
     private readonly usersService: UsersService
   ) {}
 
-  listMyRecords(userId: string, weekKey: string | undefined, page: number, pageSize: number) {
-    return this.attendanceService.listUserRecords(userId, { weekKey }, { page, pageSize });
+  listMyRecords(
+    userId: string,
+    filters: { weekKey?: string; startDate?: string; endDate?: string },
+    page: number,
+    pageSize: number
+  ) {
+    return this.attendanceService.listUserRecords(userId, filters, { page, pageSize });
   }
 
-  async listMemberRecords(currentUser: AuthUser, memberId: string, weekKey: string | undefined, page: number, pageSize: number) {
+  async listMemberRecords(
+    currentUser: AuthUser,
+    memberId: string,
+    filters: { weekKey?: string; startDate?: string; endDate?: string },
+    page: number,
+    pageSize: number
+  ) {
     const member = await this.usersService.findById(memberId);
     if (!member) {
-      throw new NotFoundException({ message: '³ÉÔ±²»´æÔÚ' });
+      throw new NotFoundException({ message: 'æˆå‘˜ä¸å­˜åœ¨' });
     }
 
     if (member.teamId !== currentUser.teamId) {
       throw new ForbiddenException({
         code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN,
-        message: '²»¿É²é¿´ÆäËûÍÅ¶Ó³ÉÔ±'
+        message: 'ä¸å¯æŸ¥çœ‹å…¶ä»–å›¢é˜Ÿæˆå‘˜'
       });
     }
 
-    return this.attendanceService.listUserRecords(member.id, { weekKey }, { page, pageSize });
+    return this.attendanceService.listUserRecords(member.id, filters, { page, pageSize });
   }
 }

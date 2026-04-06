@@ -1,10 +1,18 @@
 {
-  "extends": "../tsconfig/base.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "target": "ES2019",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
     "outDir": "dist",
-    "composite": true,
-    "declaration": true
+    "rootDir": "src",
+    "composite": true
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules"]

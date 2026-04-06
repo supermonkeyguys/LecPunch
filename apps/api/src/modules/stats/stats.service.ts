@@ -2,7 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { AttendanceService } from '../attendance/attendance.service';
 import { UsersService } from '../users/users.service';
 import { DateTime } from 'luxon';
-import { TIMEZONE, ERROR_CODES } from '@lecpunch/shared';
+import { TIMEZONE, ERROR_CODES, weeklyGoalSeconds } from '@lecpunch/shared';
 
 @Injectable()
 export class StatsService {
@@ -29,12 +29,25 @@ export class StatsService {
       .exec();
   }
 
-  async getTeamCurrentWeekStats(teamId: string) {
+  async getTeamCurrentWeekStats(teamId: string, enrollYear?: number) {
     const weekKey = this.getCurrentWeekKey();
     const model = this.attendanceService.getModel();
+
+    // If enrollYear filter is requested, pre-fetch matching userIds
+    let allowedUserIds: string[] | undefined;
+    if (enrollYear !== undefined) {
+      const sameGradeUsers = await this.usersService.findByTeamAndEnrollYear(teamId, enrollYear);
+      allowedUserIds = sameGradeUsers.map((u) => u.id);
+    }
+
+    const matchStage: Record<string, unknown> = { teamId, weekKey, status: { $ne: 'active' } };
+    if (allowedUserIds) {
+      matchStage.userId = { $in: allowedUserIds };
+    }
+
     const rows = await model
       .aggregate([
-        { $match: { teamId, weekKey, status: { $ne: 'active' } } },
+        { $match: matchStage },
         {
           $group: {
             _id: '$userId',
@@ -50,29 +63,47 @@ export class StatsService {
     const users = await this.usersService.findByIds(userIds);
     const userMap = new Map(users.map((user) => [user.id, user]));
 
-    return rows.map((row) => ({
-      userId: row._id,
-      totalDurationSeconds: row.totalDurationSeconds,
-      sessionsCount: row.sessionsCount,
-      displayName: userMap.get(row._id)?.displayName ?? '未知成员',
-      role: userMap.get(row._id)?.role ?? 'member',
-      weekKey
-    }));
+    return rows.map((row) => {
+      const user = userMap.get(row._id);
+      return {
+        userId: row._id,
+        totalDurationSeconds: row.totalDurationSeconds,
+        sessionsCount: row.sessionsCount,
+        displayName: user?.displayName ?? '未知成员',
+        role: user?.role ?? 'member',
+        avatarColor: user?.avatarColor,
+        avatarEmoji: user?.avatarEmoji,
+        avatarBase64: user?.avatarBase64,
+        weekKey
+      };
+    });
   }
 
   async getMemberWeeklyStats(currentUserTeamId: string, memberId: string, limit = 6) {
     const member = await this.usersService.findById(memberId);
     if (!member) {
-      throw new NotFoundException({ message: '��Ա������' });
+      throw new NotFoundException({ message: '成员不存在' });
     }
     if (member.teamId !== currentUserTeamId) {
       throw new ForbiddenException({
         code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN,
-        message: '���ɲ鿴�����Ŷӳ�Ա'
+        message: '不可查看其他团队成员'
       });
     }
 
-    return this.getMyWeeklyStats(member.id, limit);
+    const items = await this.getMyWeeklyStats(member.id, limit);
+    return {
+      member: {
+        id: member.id,
+        displayName: member.displayName,
+        role: member.role
+      },
+      items
+    };
+  }
+
+  getWeeklyGoalSeconds(enrollYear: number): number {
+    return weeklyGoalSeconds(enrollYear);
   }
 
   private getCurrentWeekKey() {

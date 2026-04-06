@@ -13,13 +13,15 @@ export class RecordsController {
   async myRecords(
     @CurrentUser() user: AuthUser,
     @Query('weekKey') weekKey?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 100);
-    const records = await this.recordsService.listMyRecords(user.userId, weekKey, pageNum, sizeNum);
-    return records.map(this.mapSession);
+    const records = await this.recordsService.listMyRecords(user.userId, { weekKey, startDate, endDate }, pageNum, sizeNum);
+    return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 
   @Get('member/:userId')
@@ -27,13 +29,15 @@ export class RecordsController {
     @CurrentUser() user: AuthUser,
     @Param('userId') userId: string,
     @Query('weekKey') weekKey?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @Query('page') page = '1',
     @Query('pageSize') pageSize = '20'
   ) {
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 100);
-    const records = await this.recordsService.listMemberRecords(user, userId, weekKey, pageNum, sizeNum);
-    return records.map(this.mapSession);
+    const records = await this.recordsService.listMemberRecords(user, userId, { weekKey, startDate, endDate }, pageNum, sizeNum);
+    return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 
   private mapSession(session: any) {

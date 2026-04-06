@@ -22,7 +22,12 @@ export const checkInAttendance = async () => {
   return response.data;
 };
 
-export const checkOutAttendance = async () => {
-  const response = await apiClient.post('/attendance/check-out');
+export interface CheckOutResponse {
+  status: 'completed' | 'invalidated';
+  invalidReason?: string;
+}
+
+export const checkOutAttendance = async (): Promise<CheckOutResponse> => {
+  const response = await apiClient.post<CheckOutResponse>('/attendance/check-out');
   return response.data;
 };

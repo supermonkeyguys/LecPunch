@@ -33,10 +33,10 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: '/',
         element: <ProtectedRoute />,
         children: [
           {
-            path: '/',
             element: <MainLayout />,
             children: [
               { index: true, element: <DashboardPage /> },

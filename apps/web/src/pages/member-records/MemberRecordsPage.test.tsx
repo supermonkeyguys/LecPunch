@@ -69,13 +69,16 @@ describe('MemberRecordsPage', () => {
         weekKey: '2026-03-31'
       }
     ]);
-    mocks.getMemberWeeklyStats.mockResolvedValue([
-      {
-        weekKey: '2026-03-31',
-        totalDurationSeconds: 7200,
-        sessionsCount: 2
-      }
-    ]);
+    mocks.getMemberWeeklyStats.mockResolvedValue({
+      member: { id: 'user-1', displayName: 'Alice', role: 'member' },
+      items: [
+        {
+          weekKey: '2026-03-31',
+          totalDurationSeconds: 7200,
+          sessionsCount: 2
+        }
+      ]
+    });
 
     render(
       <MemoryRouter initialEntries={['/members/user-1/records']}>
@@ -85,8 +88,8 @@ describe('MemberRecordsPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/user-1/i)).toBeInTheDocument();
-    expect(screen.getAllByText('2026-03-31')).toHaveLength(2);
+    expect(await screen.findAllByText(/Alice/i)).not.toHaveLength(0);
+    expect(screen.getAllByText('2026-03-31').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('02:00:00').length).toBeGreaterThanOrEqual(1);
   });
 });

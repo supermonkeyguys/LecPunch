@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { StatsService } from './stats.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -11,12 +11,18 @@ export class StatsController {
 
   @Get('me/weekly')
   async myWeeklyStats(@CurrentUser() user: AuthUser) {
-    return this.statsService.getMyWeeklyStats(user.userId);
+    const items = await this.statsService.getMyWeeklyStats(user.userId);
+    return { items, weeklyGoalSeconds: this.statsService.getWeeklyGoalSeconds(user.enrollYear) };
   }
 
   @Get('team/current-week')
-  async teamCurrentWeek(@CurrentUser() user: AuthUser) {
-    return this.statsService.getTeamCurrentWeekStats(user.teamId);
+  async teamCurrentWeek(
+    @CurrentUser() user: AuthUser,
+    @Query('sameGrade') sameGrade?: string
+  ) {
+    const enrollYear = sameGrade === 'true' ? user.enrollYear : undefined;
+    const items = await this.statsService.getTeamCurrentWeekStats(user.teamId, enrollYear);
+    return { items };
   }
 
   @Get('member/:userId/weekly')

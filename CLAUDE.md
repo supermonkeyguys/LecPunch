@@ -152,15 +152,51 @@ E2E is explicitly lower priority than solid backend and frontend focused tests f
 
 There is no bootstrapped monorepo in the repository yet, so concrete build/test/lint commands are not available yet.
 
-When the workspace is scaffolded, update this file with the real commands for:
-- install dependencies
-- start web app
-- start API app
-- run all tests
-- run a single web test
-- run a single API test
-- lint
-- typecheck
-- build
+## Commands
 
-Until then, do not invent commands that do not exist in the repo.
+```bash
+# Install all workspace dependencies
+pnpm install
+
+# Start web dev server (port 5173, proxies /api → localhost:4000)
+pnpm --filter web dev
+
+# Start API dev server (port 4000, watch mode)
+pnpm --filter api dev
+
+# Run all tests
+pnpm test
+
+# Run API tests only
+pnpm --filter api test
+
+# Run web tests only
+pnpm --filter web test
+
+# Run a single API test file
+pnpm --filter api exec vitest run src/modules/attendance/attendance.service.spec.ts
+
+# Run a single web test file
+pnpm --filter web exec vitest run src/pages/dashboard/DashboardPage.test.tsx
+
+# Lint all packages
+pnpm lint
+
+# Typecheck all packages
+pnpm typecheck
+
+# Build all packages (shared must build first — handled by Turbo dependency graph)
+pnpm build
+
+# Build shared package only (required before first API start if dist/ is missing)
+pnpm --filter @lecpunch/shared build
+
+# Seed demo users (demo-admin / demo-member, password: 123456)
+pnpm --filter api seed
+```
+
+### Prerequisites
+
+- MongoDB running locally on `mongodb://localhost:27017/lecpunch`
+- Copy `apps/api/.env.example` → `apps/api/.env` and fill in `AUTH_SECRET` (min 16 chars)
+- `apps/web/.env` should exist with `VITE_API_BASE_URL=` (empty = use Vite proxy)

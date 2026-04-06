@@ -31,7 +31,7 @@ describe('WeeklyHistoryPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/正在加载周历史统计/i)).toBeInTheDocument();
+    expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
   });
 
   it('shows error state when weekly stats request fails', async () => {

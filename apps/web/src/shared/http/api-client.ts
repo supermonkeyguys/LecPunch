@@ -1,15 +1,19 @@
 import axios, { AxiosHeaders } from 'axios';
 import { useRootStore } from '@/app/store/root-store';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'api';
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
   timeout: 10000
 });
 
-console.log(apiBaseUrl)
+// Injected by AppProviders so the interceptor can navigate without React Router context
+let _navigateToLogin: (() => void) | null = null;
+export const setNavigateToLogin = (fn: () => void) => {
+  _navigateToLogin = fn;
+};
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('lecpunch.token');
@@ -28,9 +32,8 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('lecpunch.token');
       localStorage.removeItem('lecpunch.user');
       useRootStore.getState().setAuth({ token: null, user: null });
+      _navigateToLogin?.();
     }
     return Promise.reject(error);
   }
 );
-
-export { apiClient };

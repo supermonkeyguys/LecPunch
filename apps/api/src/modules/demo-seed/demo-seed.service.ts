@@ -20,8 +20,8 @@ export class DemoSeedService {
     const createdUsers: string[] = [];
 
     const accounts = [
-      { username: 'demo-admin', displayName: 'Demo Admin', role: 'admin' as const },
-      { username: 'demo-member', displayName: 'Demo Member', role: 'member' as const }
+      { username: 'demo-admin', displayName: 'Demo Admin', role: 'admin' as const, enrollYear: 2024 },
+      { username: 'demo-member', displayName: 'Demo Member', role: 'member' as const, enrollYear: 2025 }
     ];
 
     for (const account of accounts) {
@@ -36,7 +36,8 @@ export class DemoSeedService {
         displayName: account.displayName,
         passwordHash,
         teamId: team.id,
-        role: account.role
+        role: account.role,
+        enrollYear: account.enrollYear
       });
       createdUsers.push(account.username);
     }

@@ -1,3 +1,6 @@
+import { Calendar } from 'lucide-react';
+import { Select } from '@lecpunch/ui';
+
 type WeekKey = 'current' | 'prev1' | 'prev2' | 'prev3';
 
 interface WeekSelectorProps {
@@ -5,25 +8,20 @@ interface WeekSelectorProps {
   onChange: (value: WeekKey) => void;
 }
 
-const labels: Record<WeekKey, string> = {
-  current: '本周',
-  prev1: '上周',
-  prev2: '前两周',
-  prev3: '前三周'
-};
+const options = [
+  { value: 'current', label: '本周' },
+  { value: 'prev1',   label: '上周' },
+  { value: 'prev2',   label: '前两周' },
+  { value: 'prev3',   label: '前三周' },
+];
 
 export const WeekSelector = ({ value, onChange }: WeekSelectorProps) => {
   return (
-    <select
-      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700"
+    <Select
       value={value}
-      onChange={(event) => onChange(event.target.value as WeekKey)}
-    >
-      {Object.entries(labels).map(([key, label]) => (
-        <option key={key} value={key}>
-          {label}
-        </option>
-      ))}
-    </select>
+      onValueChange={(v) => onChange(v as WeekKey)}
+      options={options}
+      prefix={<Calendar className="w-4 h-4" />}
+    />
   );
 };

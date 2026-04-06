@@ -43,7 +43,7 @@ export class NetworkPolicyService {
     if (!this.isIpAllowed(ip)) {
       throw new ForbiddenException({
         code: ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED,
-        message: 'µ±Ç°ÍøÂç²»ÔÊĞí´ò¿¨'
+        message: 'å½“å‰ç½‘ç»œä¸å…è®¸æ‰“å¡'
       });
     }
   }

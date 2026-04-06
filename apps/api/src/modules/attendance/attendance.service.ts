@@ -36,7 +36,7 @@ export class AttendanceService {
     if (existing) {
       throw new BadRequestException({
         code: ERROR_CODES.ATTENDANCE_ALREADY_CHECKED_IN,
-        message: '�������ڽ��еĴ�'
+        message: '当前已有进行中的打卡'
       });
     }
 
@@ -59,7 +59,7 @@ export class AttendanceService {
     if (!session) {
       throw new BadRequestException({
         code: ERROR_CODES.ATTENDANCE_NO_ACTIVE_SESSION,
-        message: '��ǰû�н����еĴ�'
+        message: '当前没有进行中的打卡'
       });
     }
 
@@ -81,10 +81,19 @@ export class AttendanceService {
     return session;
   }
 
-  listUserRecords(userId: string, filters: { weekKey?: string }, options: { page: number; pageSize: number }) {
+  listUserRecords(
+    userId: string,
+    filters: { weekKey?: string; startDate?: string; endDate?: string },
+    options: { page: number; pageSize: number }
+  ) {
     const query: Record<string, unknown> = { userId };
     if (filters.weekKey) {
       query.weekKey = filters.weekKey;
+    } else if (filters.startDate || filters.endDate) {
+      const range: Record<string, Date> = {};
+      if (filters.startDate) range.$gte = new Date(`${filters.startDate}T00:00:00.000Z`);
+      if (filters.endDate)   range.$lte = new Date(`${filters.endDate}T23:59:59.999Z`);
+      query.checkInAt = range;
     }
 
     const { page, pageSize } = options;

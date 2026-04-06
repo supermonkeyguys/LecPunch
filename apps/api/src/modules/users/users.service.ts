@@ -46,6 +46,10 @@ export class UsersService {
     return this.userModel.find({ _id: { $in: ids } }).exec();
   }
 
+  findByTeamAndEnrollYear(teamId: string, enrollYear: number) {
+    return this.userModel.find({ teamId, enrollYear }).exec();
+  }
+
   findByStudentId(studentId: string) {
     return this.userModel.findOne({ studentId }).exec();
   }

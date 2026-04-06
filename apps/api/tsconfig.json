@@ -4,18 +4,8 @@
     "outDir": "dist",
     "module": "CommonJS",
     "target": "ES2019",
-    "rootDir": "./src",
-    "baseUrl": "./src",
-    "paths": {
-      "@lecpunch/shared": ["../../packages/shared/src"],
-      "@lecpunch/shared/*": ["../../packages/shared/src/*"],
-      "@lecpunch/ui": ["../../packages/ui/src"],
-      "@lecpunch/ui/*": ["../../packages/ui/src/*"]
-    }
+    "rootDir": "./src"
   },
   "include": ["src"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../../packages/shared/tsconfig.json" }
-  ]
+  "exclude": ["node_modules", "dist"]
 }

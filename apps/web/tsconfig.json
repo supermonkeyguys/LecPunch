@@ -7,7 +7,9 @@
     "baseUrl": ".",
     "noEmit": true,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@lecpunch/ui": ["../../packages/ui/src/index.ts"],
+      "@lecpunch/ui/*": ["../../packages/ui/src/*"]
     }
   }
 }

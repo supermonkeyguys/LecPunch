@@ -24,13 +24,26 @@ interface RootState {
   selectedMember: SelectedMember | null;
   checkinState: CheckinState;
   auth: AuthState;
+  authInitializing: boolean;
   setCurrentView: (view: RootState['currentView']) => void;
   setSelectedWeek: (week: WeekKey) => void;
   setSelectedMember: (member: SelectedMember | null) => void;
   updateCheckinState: (patch: Partial<CheckinState>) => void;
   setAuth: (payload: AuthState) => void;
   updateUser: (patch: Partial<User>) => void;
+  setAuthInitializing: (value: boolean) => void;
 }
+
+// Synchronously restore auth from localStorage before any component renders
+const _storedToken = localStorage.getItem('lecpunch.token');
+const _storedUser = (() => {
+  try {
+    const raw = localStorage.getItem('lecpunch.user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+})();
 
 export const useRootStore = create<RootState>((set) => ({
   currentView: 'login',
@@ -41,9 +54,10 @@ export const useRootStore = create<RootState>((set) => ({
     elapsedSeconds: 0
   },
   auth: {
-    token: null,
-    user: null
+    token: _storedToken,
+    user: _storedUser
   },
+  authInitializing: false,
   setCurrentView: (view) => set({ currentView: view }),
   setSelectedWeek: (selectedWeek) => set({ selectedWeek }),
   setSelectedMember: (selectedMember) => set({ selectedMember }),
@@ -61,5 +75,6 @@ export const useRootStore = create<RootState>((set) => ({
         ...state.auth,
         user: state.auth.user ? { ...state.auth.user, ...patch } : null
       }
-    }))
+    })),
+  setAuthInitializing: (value) => set({ authInitializing: value })
 }));

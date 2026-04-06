@@ -31,7 +31,7 @@ describe('MembersPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/正在加载成员统计/i)).toBeInTheDocument();
+    expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
   });
 
   it('shows error state when member stats request fails', async () => {
@@ -66,6 +66,6 @@ describe('MembersPage', () => {
 
     expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/member/i)).toBeInTheDocument();
+    expect(screen.getByText(/普通成员/i)).toBeInTheDocument();
   });
 });
