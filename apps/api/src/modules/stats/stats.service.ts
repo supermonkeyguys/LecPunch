@@ -1,8 +1,8 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AttendanceService } from '../attendance/attendance.service';
 import { UsersService } from '../users/users.service';
-import { DateTime } from 'luxon';
-import { TIMEZONE, ERROR_CODES, weeklyGoalSeconds } from '@lecpunch/shared';
+import { ERROR_CODES, weeklyGoalSeconds } from '@lecpunch/shared';
+import { getWeekKey } from '../../common/utils/time.util';
 
 @Injectable()
 export class StatsService {
@@ -107,8 +107,6 @@ export class StatsService {
   }
 
   private getCurrentWeekKey() {
-    const now = DateTime.now().setZone(TIMEZONE);
-    const weekStart = now.startOf('day').minus({ days: now.weekday - 1 });
-    return weekStart.toFormat('yyyy-LL-dd');
+    return getWeekKey(new Date());
   }
 }

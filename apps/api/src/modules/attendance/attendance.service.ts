@@ -3,8 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AttendanceSession, AttendanceSessionDocument } from './schemas/attendance-session.schema';
 import { NetworkPolicyService } from '../network-policy/network-policy.service';
-import { ERROR_CODES, ATTENDANCE_MAX_SECONDS, TIMEZONE } from '@lecpunch/shared';
-import { DateTime } from 'luxon';
+import { ERROR_CODES, ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
+import { getShanghaiDateRange, getWeekKey } from '../../common/utils/time.util';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class AttendanceService {
       checkInAt: now,
       status: 'active',
       sourceIpAtCheckIn: clientIp,
-      weekKey: this.computeWeekKey(now)
+      weekKey: getWeekKey(now)
     });
 
     return session;
@@ -90,10 +90,7 @@ export class AttendanceService {
     if (filters.weekKey) {
       query.weekKey = filters.weekKey;
     } else if (filters.startDate || filters.endDate) {
-      const range: Record<string, Date> = {};
-      if (filters.startDate) range.$gte = new Date(`${filters.startDate}T00:00:00.000Z`);
-      if (filters.endDate)   range.$lte = new Date(`${filters.endDate}T23:59:59.999Z`);
-      query.checkInAt = range;
+      query.checkInAt = getShanghaiDateRange(filters.startDate, filters.endDate);
     }
 
     const { page, pageSize } = options;
@@ -119,11 +116,5 @@ export class AttendanceService {
 
   private findActiveSession(userId: string) {
     return this.attendanceModel.findOne({ userId, status: 'active' }).exec();
-  }
-
-  private computeWeekKey(date: Date) {
-    const dt = DateTime.fromJSDate(date, { zone: TIMEZONE });
-    const weekStart = dt.startOf('day').minus({ days: dt.weekday - 1 });
-    return weekStart.toFormat('yyyy-LL-dd');
   }
 }

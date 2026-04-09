@@ -15,6 +15,7 @@ describe('StatsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     attendanceService.getModel.mockReturnValue({ aggregate });
     service = new StatsService(attendanceService as any, usersService as any);
   });
@@ -40,6 +41,35 @@ describe('StatsService', () => {
         role: 'member',
         weekKey: expect.any(String)
       }
+    ]);
+  });
+
+  it('matches the current week using Asia/Shanghai boundaries', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-05T16:30:00.000Z'));
+    aggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([])
+    });
+    usersService.findByIds.mockResolvedValue([]);
+
+    await service.getTeamCurrentWeekStats('team-1');
+
+    expect(aggregate).toHaveBeenCalledWith([
+      {
+        $match: {
+          teamId: 'team-1',
+          weekKey: '2026-04-06',
+          status: { $ne: 'active' }
+        }
+      },
+      {
+        $group: {
+          _id: '$userId',
+          totalDurationSeconds: { $sum: '$durationSeconds' },
+          sessionsCount: { $sum: 1 }
+        }
+      },
+      { $sort: { totalDurationSeconds: -1 } }
     ]);
   });
 });
