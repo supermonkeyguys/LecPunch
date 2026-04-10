@@ -117,6 +117,37 @@ describe('DashboardPage', () => {
     });
   });
 
+  it('shows a clear alert when check-in is blocked by the network policy', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: false,
+      session: null
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    mocks.checkInAttendance.mockRejectedValue({
+      response: {
+        data: {
+          code: 'ATTENDANCE_NETWORK_NOT_ALLOWED',
+          message: 'Current network is not allowed for attendance'
+        }
+      }
+    });
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole('button', { name: /上卡/i }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('网络');
+    expect(alert).toHaveTextContent('打卡');
+    expect(mocks.getCurrentAttendance).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the loaded elapsed duration for an active session', async () => {
     mocks.getCurrentAttendance.mockResolvedValue({
       hasActiveSession: true,

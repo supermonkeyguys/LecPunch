@@ -1,8 +1,8 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ERROR_CODES } from '@lecpunch/shared';
-import * as ipaddr from 'ipaddr.js';
 import type { Request } from 'express';
+import * as ipaddr from 'ipaddr.js';
 
 @Injectable()
 export class NetworkPolicyService {
@@ -14,12 +14,16 @@ export class NetworkPolicyService {
 
   constructor(private readonly configService: ConfigService) {
     this.allowAny = configService.get<boolean>('ALLOW_ANY_NETWORK', true);
-    this.allowedIps = new Set(this.parseCsv(configService.get<string>('ALLOWED_PUBLIC_IPS')));
-    this.allowedCidrs = this.parseCsv(configService.get<string>('ALLOWED_CIDRS')).flatMap((cidr) => {
+    this.allowedIps = new Set(
+      this.parseCsv(configService.get<string>('ALLOWED_PUBLIC_IPS')).map((item) =>
+        this.normalizeIp(item)
+      )
+    );
+    this.allowedCidrs = this.parseCsv(configService.get<string>('ALLOWED_CIDRS')).map((cidr) => {
       try {
-        return [ipaddr.parseCIDR(cidr)];
+        return ipaddr.parseCIDR(cidr);
       } catch {
-        return [];
+        throw new Error(`Invalid ALLOWED_CIDRS entry: ${cidr}`);
       }
     });
     this.trustProxy = configService.get<boolean>('TRUST_PROXY', false);
@@ -28,11 +32,11 @@ export class NetworkPolicyService {
 
   getClientIp(request: Request): string {
     if (this.trustProxy) {
-      const forwarded = request.headers['x-forwarded-for'];
+      const headerValue = request.headers['x-forwarded-for'];
+      const forwarded = Array.isArray(headerValue) ? headerValue.join(',') : headerValue;
+
       if (typeof forwarded === 'string' && forwarded.length > 0) {
-        const parts = forwarded.split(',').map((part) => part.trim());
-        const index = Math.max(0, parts.length - this.trustedProxyHops - 1);
-        return this.normalizeIp(parts[index] ?? parts[0]);
+        return this.normalizeIp(this.pickForwardedIp(forwarded));
       }
     }
 
@@ -43,20 +47,28 @@ export class NetworkPolicyService {
     if (!this.isIpAllowed(ip)) {
       throw new ForbiddenException({
         code: ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED,
-        message: '当前网络不允许打卡'
+        message: 'Current network is not allowed for attendance'
       });
     }
   }
 
   isIpAllowed(ip: string) {
-    if (this.allowAny) return true;
-    if (!ip) return false;
-    if (this.allowedIps.has(ip)) {
+    const normalizedIp = this.normalizeIp(ip);
+
+    if (this.allowAny) {
+      return true;
+    }
+
+    if (!normalizedIp) {
+      return false;
+    }
+
+    if (this.allowedIps.has(normalizedIp)) {
       return true;
     }
 
     try {
-      const parsedIp = ipaddr.parse(ip);
+      const parsedIp = ipaddr.parse(normalizedIp);
       return this.allowedCidrs.some(([range, prefix]) => parsedIp.match(range, prefix));
     } catch {
       return false;
@@ -64,16 +76,52 @@ export class NetworkPolicyService {
   }
 
   private parseCsv(value?: string | null) {
-    if (!value) return [] as string[];
+    if (!value) {
+      return [] as string[];
+    }
+
     return value
       .split(',')
       .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => this.normalizeIp(item));
+      .filter(Boolean);
+  }
+
+  private pickForwardedIp(forwarded: string) {
+    const parts = forwarded
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      return '';
+    }
+
+    const index = Math.max(0, parts.length - this.trustedProxyHops - 1);
+    return parts[index] ?? parts[0];
   }
 
   private normalizeIp(ip: string) {
-    if (!ip) return '';
-    return ip.startsWith('::ffff:') ? ip.replace('::ffff:', '') : ip;
+    if (!ip) {
+      return '';
+    }
+
+    let normalized = ip.trim();
+    const bracketedMatch = normalized.match(/^\[([^\]]+)\](?::\d+)?$/);
+
+    if (bracketedMatch) {
+      normalized = bracketedMatch[1];
+    } else if (/^[^:]+:\d+$/.test(normalized)) {
+      normalized = normalized.slice(0, normalized.lastIndexOf(':'));
+    }
+
+    if (normalized.startsWith('::ffff:')) {
+      normalized = normalized.replace('::ffff:', '');
+    }
+
+    try {
+      return ipaddr.parse(normalized).toString();
+    } catch {
+      return normalized;
+    }
   }
 }
