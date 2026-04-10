@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User } from '@lecpunch/shared';
 
-type WeekKey = 'current' | 'prev1' | 'prev2' | 'prev3';
+export type WeekKey = 'current' | 'prev1' | 'prev2' | 'prev3';
 
 interface SelectedMember {
   id: string;

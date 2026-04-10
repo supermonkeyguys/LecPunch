@@ -1,0 +1,23 @@
+import { ERROR_CODES, type ErrorCode } from '@lecpunch/shared';
+
+const ERROR_MESSAGE_MAP: Partial<Record<ErrorCode, string>> = {
+  [ERROR_CODES.AUTH_INVALID_CREDENTIALS]: '用户名或密码错误',
+  [ERROR_CODES.AUTH_UNAUTHORIZED]: '登录已失效，请重新登录',
+  [ERROR_CODES.USER_DISABLED]: '当前账号已被禁用',
+  [ERROR_CODES.ATTENDANCE_ALREADY_CHECKED_IN]: '您已有进行中的打卡，请勿重复上卡',
+  [ERROR_CODES.ATTENDANCE_NO_ACTIVE_SESSION]: '当前没有进行中的打卡',
+  [ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED]: '当前网络不在允许范围内，无法打卡',
+  [ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED]: '当前打卡已失效，请重新上卡',
+  [ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN]: '您无权查看其他团队成员的数据'
+};
+
+const extractApiErrorPayload = (error: unknown) => {
+  const response = (error as { response?: { data?: { code?: string; message?: string } } })?.response;
+  return response?.data;
+};
+
+export const getApiErrorMessage = (error: unknown, fallback = '操作失败，请稍后重试') => {
+  const payload = extractApiErrorPayload(error);
+  const mappedMessage = payload?.code ? ERROR_MESSAGE_MAP[payload.code as ErrorCode] : undefined;
+  return mappedMessage ?? payload?.message ?? fallback;
+};

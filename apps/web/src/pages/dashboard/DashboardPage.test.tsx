@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
+import { useRootStore } from '@/app/store/root-store';
+import { selectedWeekToKey } from '@/shared/lib/time';
 
 const mocks = vi.hoisted(() => ({
   getCurrentAttendance: vi.fn(),
@@ -31,6 +33,7 @@ vi.mock('@/features/records/records.api', () => ({
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useRootStore.setState({ selectedWeek: 'current' });
     // Default: empty records for heatmap — overridden per test if needed
     mocks.getMyRecords.mockResolvedValue([]);
   });
@@ -188,5 +191,38 @@ describe('DashboardPage', () => {
     );
 
     expect(await screen.findByText((content) => content.includes('接近') || content.includes('即将'))).toBeInTheDocument();
+  });
+
+  it('shows a historical summary and disables attendance actions for non-current weeks', async () => {
+    useRootStore.setState({ selectedWeek: 'prev1' });
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 3661
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({
+      items: [
+        {
+          weekKey: selectedWeekToKey('prev1'),
+          totalDurationSeconds: 7200,
+          sessionsCount: 2
+        }
+      ],
+      weeklyGoalSeconds: 38 * 3600
+    });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/当前正在查看 上周 的个人数据/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /上卡|下卡/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText('02:00:00').length).toBeGreaterThan(0);
   });
 });

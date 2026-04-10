@@ -1,7 +1,6 @@
 import { Calendar } from 'lucide-react';
 import { Select } from '@lecpunch/ui';
-
-type WeekKey = 'current' | 'prev1' | 'prev2' | 'prev3';
+import type { WeekKey } from '@/app/store/root-store';
 
 interface WeekSelectorProps {
   value: WeekKey;

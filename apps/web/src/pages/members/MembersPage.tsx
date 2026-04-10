@@ -1,76 +1,102 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, Search } from 'lucide-react';
-import { Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
-import { formatDuration } from '@/shared/lib/time';
-import { WeekSelector } from '@/app/components/WeekSelector';
-import { useRootStore } from '@/app/store/root-store';
-import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
+import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
+import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
+import { getApiErrorMessage } from '@/shared/lib/api-error';
+import { formatDuration } from '@/shared/lib/time';
+import { PageSection } from '@/shared/ui/PageSection';
+import { PageState } from '@/shared/ui/PageState';
+
+interface MembersTableRow extends TeamWeeklyStatItem {
+  _action: null;
+}
 
 export const MembersPage = () => {
   const navigate = useNavigate();
-  const selectedWeek = useRootStore((s) => s.selectedWeek);
-  const setSelectedWeek = useRootStore((s) => s.setSelectedWeek);
   const [members, setMembers] = useState<TeamWeeklyStatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false;
+
+    const loadMembers = async () => {
       setLoading(true);
       setError(null);
+
       try {
-        setMembers(await getTeamCurrentWeekStats());
-      } catch {
-        setError('加载成员统计失败');
+        const nextMembers = await getTeamCurrentWeekStats();
+
+        if (cancelled) {
+          return;
+        }
+
+        setMembers(nextMembers);
+      } catch (error) {
+        if (!cancelled) {
+          setError(getApiErrorMessage(error, '加载成员统计失败'));
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
-    void load();
-  }, [selectedWeek]);
 
-  const sorted = [...members].sort((a, b) => b.totalDurationSeconds - a.totalDurationSeconds);
-  const filtered = search
-    ? sorted.filter((m) => m.displayName.toLowerCase().includes(search.toLowerCase()))
-    : sorted;
+    void loadMembers();
 
-  const columns: ColumnDef<TeamWeeklyStatItem & { _rank: number }>[] = [
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  const filteredMembers = useMemo(() => {
+    const sorted = [...members].sort((left, right) => right.totalDurationSeconds - left.totalDurationSeconds);
+    return search
+      ? sorted.filter((member) => member.displayName.toLowerCase().includes(search.toLowerCase()))
+      : sorted;
+  }, [members, search]);
+
+  const columns: ColumnDef<MembersTableRow>[] = [
     {
-      key: '_rank',
+      key: 'displayName',
       header: '排名 / 成员',
-      render: (_, row, idx) => (
+      render: (_, row, index) => (
         <div className="flex items-center gap-4">
-          <span className={`w-6 text-center font-bold text-sm ${idx < 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-            {idx + 1}
+          <span className={`w-6 text-center text-sm font-bold ${index < 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+            {index + 1}
           </span>
-          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm shrink-0">
-            {row.displayName[0]?.toUpperCase()}
-          </div>
-          <span className="font-bold text-gray-900 text-sm">{row.displayName}</span>
+          <Avatar
+            name={row.displayName}
+            size="sm"
+            avatarColor={row.avatarColor}
+            avatarEmoji={row.avatarEmoji}
+            avatarBase64={row.avatarBase64}
+          />
+          <span className="text-sm font-bold text-gray-900">{row.displayName}</span>
         </div>
-      ),
+      )
     },
     {
       key: 'role',
       header: '角色',
-      render: (v) =>
-        v === 'admin'
-          ? <Badge variant="purple">管理员</Badge>
-          : <Badge variant="gray">普通成员</Badge>,
+      render: (value) =>
+        value === 'admin' ? <Badge variant="purple">管理员</Badge> : <Badge variant="gray">普通成员</Badge>
     },
     {
       key: 'totalDurationSeconds',
       header: '本周累计时长',
-      cellClassName: 'font-mono font-bold text-gray-800 text-base',
-      render: (v) => formatDuration(v),
+      cellClassName: 'font-mono font-bold text-base text-gray-800',
+      render: (value) => formatDuration(value)
     },
     {
       key: 'sessionsCount',
       header: '打卡次数',
-      render: (v) => `${v} 次`,
+      render: (value) => `${value} 次`
     },
     {
       key: '_action',
@@ -81,58 +107,67 @@ export const MembersPage = () => {
         <Button
           variant="ghost"
           size="sm"
-          className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-          onClick={(e) => {
-            e.stopPropagation();
+          className="text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+          onClick={(event) => {
+            event.stopPropagation();
             navigate(`/members/${row.userId}/records`, {
-              state: { displayName: row.displayName, role: row.role },
+              state: { displayName: row.displayName, role: row.role }
             });
           }}
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="h-4 w-4" />
           查流水
         </Button>
-      ),
-    },
+      )
+    }
   ];
 
-  const tableData = filtered.map((m) => ({ ...m, _rank: 0, _action: null }));
+  const tableData: MembersTableRow[] = filteredMembers.map((member) => ({ ...member, _action: null }));
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+    <div className="mx-auto max-w-7xl p-8">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">团队数据</h1>
-          <p className="text-gray-500 text-sm mt-1">查看团队成员的排行与打卡记录。</p>
+          <p className="mt-1 text-sm text-gray-500">查看本周团队成员的排行与打卡记录。</p>
         </div>
         <div className="flex items-center gap-3">
-          <WeekSelector value={selectedWeek} onChange={setSelectedWeek} />
+          <Badge variant="info">仅本周</Badge>
           <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="搜索成员..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 h-[38px]"
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-[38px] rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <PageSection>
         {error ? (
-          <div className="px-6 py-12 text-center text-red-500">{error}</div>
+          <PageState
+            tone="error"
+            title={error}
+            description="团队榜当前只支持本周视图，请稍后重试。"
+            action={
+              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+                重新加载
+              </Button>
+            }
+          />
         ) : (
           <DataTable
-            columns={columns as any}
+            columns={columns}
             data={tableData}
             loading={loading}
             emptyText="暂无成员数据"
-            rowKey={(r) => r.userId}
+            rowKey={(member) => member.userId}
           />
         )}
-      </div>
+      </PageSection>
     </div>
   );
 };

@@ -5,6 +5,8 @@ export interface RecordFilters {
   weekKey?: string;
   startDate?: string;
   endDate?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export const getMyRecords = async (filters?: RecordFilters) => {

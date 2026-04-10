@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Input, Alert } from '@lecpunch/ui';
 import { useRootStore } from '@/app/store/root-store';
 import { login } from '@/features/auth/auth.api';
+import { getApiErrorMessage } from '@/shared/lib/api-error';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -29,7 +30,6 @@ export const LoginPage = () => {
       if (!/^\d{12}$/.test(studentId)) { setError('学号必须为 12 位数字'); return; }
     }
 
-    console.log('submit state:', { username, password, displayName, studentId, realName, mode });
     setSubmitting(true);
     try {
       const payload =
@@ -48,8 +48,8 @@ export const LoginPage = () => {
       localStorage.setItem('lecpunch.user', JSON.stringify(payload.user));
       setAuth({ token: payload.accessToken, user: payload.user });
       navigate('/');
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? '登录失败，请稍后重试');
+    } catch (error) {
+      setError(getApiErrorMessage(error, mode === 'login' ? '登录失败，请稍后重试' : '注册失败，请稍后重试'));
     } finally {
       setSubmitting(false);
     }

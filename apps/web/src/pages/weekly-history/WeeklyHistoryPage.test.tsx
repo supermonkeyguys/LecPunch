@@ -47,13 +47,16 @@ describe('WeeklyHistoryPage', () => {
   });
 
   it('renders weekly history rows', async () => {
-    mocks.getMyWeeklyStats.mockResolvedValue([
-      {
-        weekKey: '2026-03-31',
-        totalDurationSeconds: 7200,
-        sessionsCount: 2
-      }
-    ]);
+    mocks.getMyWeeklyStats.mockResolvedValue({
+      items: [
+        {
+          weekKey: '2026-03-31',
+          totalDurationSeconds: 7200,
+          sessionsCount: 2
+        }
+      ],
+      weeklyGoalSeconds: 38 * 3600
+    });
 
     render(
       <MemoryRouter>

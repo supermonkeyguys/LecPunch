@@ -17,7 +17,6 @@ interface LoginInput {
 
 export const login = async ({ username, password, displayName, studentId, realName, mode = 'login' }: LoginInput) => {
   if (mode === 'register') {
-    console.log('auth.api register payload:', { username, password, displayName, studentId, realName });
     const response = await apiClient.post<AuthPayload>('/auth/register', {
       username,
       password,
