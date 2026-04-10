@@ -43,15 +43,16 @@ describe('RecordsService', () => {
 
   it('returns paginated member records for same-team users', async () => {
     const rows = [{ id: 'session-1' }];
+    const filters = { weekKey: '2026-03-30' };
     usersService.findById.mockResolvedValue({
       id: 'user-2',
       teamId: 'team-1'
     });
     attendanceService.listUserRecords.mockResolvedValue(rows);
 
-    const result = await service.listMemberRecords(currentUser, 'user-2', '2026-03-30', 2, 10);
+    const result = await service.listMemberRecords(currentUser, 'user-2', filters, 2, 10);
 
-    expect(attendanceService.listUserRecords).toHaveBeenCalledWith('user-2', { weekKey: '2026-03-30' }, { page: 2, pageSize: 10 });
+    expect(attendanceService.listUserRecords).toHaveBeenCalledWith('user-2', filters, { page: 2, pageSize: 10 });
     expect(result).toBe(rows);
   });
 });

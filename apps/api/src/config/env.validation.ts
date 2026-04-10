@@ -15,15 +15,22 @@ const csvSchema = (
     .allow('')
     .default('')
     .custom((value, helpers) => {
+      const path = helpers.state.path?.join('.') ?? 'value';
+
       for (const item of csvToArray(value)) {
         if (!validator(item)) {
-          return helpers.message(
-            `${helpers.state.path.join('.')} contains an invalid ${label}: ${item}`
-          );
+          return helpers.error('csv.invalid', {
+            path,
+            item,
+            itemLabel: label
+          });
         }
       }
 
       return value;
+    })
+    .messages({
+      'csv.invalid': '{{#path}} contains an invalid {{#itemLabel}}: {{#item}}'
     });
 
 const ipListSchema = csvSchema((value) => ipaddr.isValid(value), 'IP address');
@@ -48,15 +55,18 @@ export const validationSchema = Joi.object({
   ALLOWED_CIDRS: cidrListSchema,
   TRUST_PROXY: Joi.boolean().truthy('true').falsy('false').default(false),
   TRUSTED_PROXY_HOPS: Joi.number().min(1).default(1)
-}).custom((value, helpers) => {
-  const hasAllowedIps = csvToArray(value.ALLOWED_PUBLIC_IPS).length > 0;
-  const hasAllowedCidrs = csvToArray(value.ALLOWED_CIDRS).length > 0;
+})
+  .custom((value, helpers) => {
+    const hasAllowedIps = csvToArray(value.ALLOWED_PUBLIC_IPS).length > 0;
+    const hasAllowedCidrs = csvToArray(value.ALLOWED_CIDRS).length > 0;
 
-  if (!value.ALLOW_ANY_NETWORK && !hasAllowedIps && !hasAllowedCidrs) {
-    return helpers.message(
+    if (!value.ALLOW_ANY_NETWORK && !hasAllowedIps && !hasAllowedCidrs) {
+      return helpers.error('network.allowlistRequired');
+    }
+
+    return value;
+  })
+  .messages({
+    'network.allowlistRequired':
       'ALLOWED_PUBLIC_IPS or ALLOWED_CIDRS must be configured when ALLOW_ANY_NETWORK=false'
-    );
-  }
-
-  return value;
-});
+  });
