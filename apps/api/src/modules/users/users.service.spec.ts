@@ -1,17 +1,28 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import * as bcrypt from 'bcrypt';
+import type { AuthUser } from '../auth/types/auth-user.type';
+
+const adminUser: AuthUser = {
+  userId: 'admin-1',
+  teamId: 'team-1',
+  role: 'admin',
+  username: 'admin',
+  displayName: 'Admin',
+  enrollYear: 2024
+};
 
 describe('UsersService', () => {
   const findByIdAndUpdate = vi.fn();
   const findById = vi.fn();
+  const find = vi.fn();
 
   const userModel = {
     create: vi.fn(),
     findOne: vi.fn(),
     findById,
-    find: vi.fn(),
+    find,
     findByIdAndUpdate,
   } as any;
 
@@ -100,6 +111,59 @@ describe('UsersService', () => {
           $set: expect.objectContaining({ passwordHash: expect.any(String) }),
         }),
       );
+    });
+  });
+
+  describe('admin member management', () => {
+    it('lists team members sorted from the team query', async () => {
+      const rows = [{ id: 'member-1' }];
+      const exec = vi.fn().mockResolvedValue(rows);
+      const sort = vi.fn().mockReturnValue({ exec });
+      find.mockReturnValue({ sort });
+
+      const result = await service.listTeamMembers('team-1');
+
+      expect(find).toHaveBeenCalledWith({ teamId: 'team-1' });
+      expect(sort).toHaveBeenCalledWith({ role: 1, status: 1, displayName: 1, username: 1 });
+      expect(result).toBe(rows);
+    });
+
+    it('rejects cross-team admin updates', async () => {
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1', teamId: 'team-2', role: 'member', status: 'active' })
+      });
+
+      await expect(
+        service.adminUpdateMember(adminUser, 'member-1', { status: 'disabled' })
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('rejects admins changing their own role or status', async () => {
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'admin-1', teamId: 'team-1', role: 'admin', status: 'active' })
+      });
+
+      await expect(
+        service.adminUpdateMember(adminUser, 'admin-1', { role: 'member' })
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('updates same-team member role or status', async () => {
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1', teamId: 'team-1', role: 'member', status: 'active' })
+      });
+      findByIdAndUpdate.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1', role: 'admin', status: 'active' })
+      });
+
+      const result = await service.adminUpdateMember(adminUser, 'member-1', { role: 'admin' });
+
+      expect(findByIdAndUpdate).toHaveBeenCalledWith(
+        'member-1',
+        { $set: { role: 'admin' } },
+        { new: true }
+      );
+      expect(result).toEqual({ id: 'member-1', role: 'admin', status: 'active' });
     });
   });
 });

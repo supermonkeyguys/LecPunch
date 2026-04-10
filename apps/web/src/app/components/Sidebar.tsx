@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut } from 'lucide-react';
+import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut, Shield } from 'lucide-react';
 import { Button } from '@lecpunch/ui';
 import { useRootStore } from '../store/root-store';
 
@@ -13,6 +13,7 @@ const navItems = [
 export const Sidebar = () => {
   const navigate = useNavigate();
   const setAuth = useRootStore((s) => s.setAuth);
+  const user = useRootStore((s) => s.auth.user);
 
   const handleLogout = () => {
     localStorage.removeItem('lecpunch.token');
@@ -46,6 +47,25 @@ export const Sidebar = () => {
             {item.label}
           </NavLink>
         ))}
+
+        {user?.role === 'admin' ? (
+          <>
+            <div className="mt-6 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400">管理</div>
+            <NavLink
+              to="/admin/members"
+              className={({ isActive }) =>
+                `w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <Shield className="w-5 h-5 mr-3 flex-shrink-0" />
+              成员管理
+            </NavLink>
+          </>
+        ) : null}
       </div>
       <div className="p-4 border-t border-gray-100">
         <Button variant="danger" size="md" className="w-full" onClick={handleLogout}>

@@ -1,9 +1,10 @@
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom';
 import { AppProviders } from '../providers/AppProviders';
 import { ToastContainer } from '@/shared/ui/toast';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AdminRoute } from './AdminRoute';
 import { LoginPage } from '@/pages/login/LoginPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { RecordsPage } from '@/pages/records/RecordsPage';
@@ -11,6 +12,7 @@ import { MembersPage } from '@/pages/members/MembersPage';
 import { MemberRecordsPage } from '@/pages/member-records/MemberRecordsPage';
 import { WeeklyHistoryPage } from '@/pages/weekly-history/WeeklyHistoryPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
+import { AdminMembersPage } from '@/pages/admin-members/AdminMembersPage';
 
 // Root wrapper inside the router context — safe to use useNavigate here
 const Root = () => (
@@ -44,7 +46,15 @@ const router = createBrowserRouter([
               { path: 'members', element: <MembersPage /> },
               { path: 'members/:userId/records', element: <MemberRecordsPage /> },
               { path: 'weekly-history', element: <WeeklyHistoryPage /> },
-              { path: 'profile', element: <ProfilePage /> }
+              { path: 'profile', element: <ProfilePage /> },
+              {
+                path: 'admin',
+                element: <AdminRoute />,
+                children: [
+                  { index: true, element: <Navigate to="members" replace /> },
+                  { path: 'members', element: <AdminMembersPage /> }
+                ]
+              }
             ]
           }
         ]
