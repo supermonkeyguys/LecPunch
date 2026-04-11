@@ -98,6 +98,7 @@ describe('AttendanceService', () => {
 
     const result = await service.checkIn(user, '127.0.0.1');
 
+    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
     expect(result.weekKey).toBe('2026-04-06');
   });
 

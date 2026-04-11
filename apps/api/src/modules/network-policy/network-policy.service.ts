@@ -1,50 +1,100 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ERROR_CODES } from '@lecpunch/shared';
 import type { Request } from 'express';
 import * as ipaddr from 'ipaddr.js';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import type { UpdateNetworkPolicyDto } from './dto/update-network-policy.dto';
+import { NetworkPolicy } from './schemas/network-policy.schema';
+
+type PolicySource = 'database' | 'environment';
+
+type PersistedNetworkPolicyInput = {
+  allowAnyNetwork: boolean;
+  allowedPublicIps: string[];
+  allowedCidrs: string[];
+  trustProxy: boolean;
+  trustedProxyHops: number;
+};
+
+export interface NetworkPolicySnapshot extends PersistedNetworkPolicyInput {
+  teamId: string;
+  source: PolicySource;
+  updatedAt?: Date;
+}
+
+type PersistedNetworkPolicyRecord = PersistedNetworkPolicyInput & {
+  teamId: string;
+  updatedAt?: Date;
+};
 
 @Injectable()
 export class NetworkPolicyService {
-  private readonly allowAny: boolean;
-  private readonly allowedIps: Set<string>;
-  private readonly allowedCidrs: Array<[ipaddr.IPv4 | ipaddr.IPv6, number]>;
-  private readonly trustProxy: boolean;
-  private readonly trustedProxyHops: number;
+  private readonly fallbackPolicy: PersistedNetworkPolicyInput;
 
-  constructor(private readonly configService: ConfigService) {
-    this.allowAny = configService.get<boolean>('ALLOW_ANY_NETWORK', true);
-    this.allowedIps = new Set(
-      this.parseCsv(configService.get<string>('ALLOWED_PUBLIC_IPS')).map((item) =>
-        this.normalizeIp(item)
-      )
-    );
-    this.allowedCidrs = this.parseCsv(configService.get<string>('ALLOWED_CIDRS')).map((cidr) => {
-      try {
-        return ipaddr.parseCIDR(cidr);
-      } catch {
-        throw new Error(`Invalid ALLOWED_CIDRS entry: ${cidr}`);
-      }
+  constructor(
+    configService: ConfigService,
+    @InjectModel(NetworkPolicy.name)
+    private readonly networkPolicyModel: Model<NetworkPolicy>
+  ) {
+    this.fallbackPolicy = this.normalizePolicy({
+      allowAnyNetwork: configService.get<boolean>('ALLOW_ANY_NETWORK', true),
+      allowedPublicIps: this.parseCsv(configService.get<string>('ALLOWED_PUBLIC_IPS')),
+      allowedCidrs: this.parseCsv(configService.get<string>('ALLOWED_CIDRS')),
+      trustProxy: configService.get<boolean>('TRUST_PROXY', false),
+      trustedProxyHops: configService.get<number>('TRUSTED_PROXY_HOPS', 1)
     });
-    this.trustProxy = configService.get<boolean>('TRUST_PROXY', false);
-    this.trustedProxyHops = configService.get<number>('TRUSTED_PROXY_HOPS', 1);
   }
 
-  getClientIp(request: Request): string {
-    if (this.trustProxy) {
+  async getAdminPolicy(teamId: string) {
+    return this.resolvePolicy(teamId);
+  }
+
+  async updateAdminPolicy(teamId: string, input: UpdateNetworkPolicyDto) {
+    const nextPolicy = this.normalizePolicy(input);
+    this.assertAllowlistConfigured(nextPolicy);
+
+    const updated = await this.networkPolicyModel
+      .findOneAndUpdate(
+        { teamId },
+        { $set: nextPolicy },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      )
+      .exec();
+
+    if (!updated) {
+      throw new BadRequestException('Failed to persist network policy');
+    }
+
+    return this.toSnapshot({
+      teamId: updated.teamId,
+      allowAnyNetwork: updated.allowAnyNetwork,
+      allowedPublicIps: updated.allowedPublicIps,
+      allowedCidrs: updated.allowedCidrs,
+      trustProxy: updated.trustProxy,
+      trustedProxyHops: updated.trustedProxyHops,
+      updatedAt: updated.updatedAt as Date | undefined
+    }, 'database');
+  }
+
+  async getClientIp(teamId: string, request: Request): Promise<string> {
+    const policy = await this.resolvePolicy(teamId);
+
+    if (policy.trustProxy) {
       const headerValue = request.headers['x-forwarded-for'];
       const forwarded = Array.isArray(headerValue) ? headerValue.join(',') : headerValue;
 
       if (typeof forwarded === 'string' && forwarded.length > 0) {
-        return this.normalizeIp(this.pickForwardedIp(forwarded));
+        return this.normalizeIp(this.pickForwardedIp(forwarded, policy.trustedProxyHops));
       }
     }
 
     return this.normalizeIp(request.ip || request.socket.remoteAddress || '');
   }
 
-  assertIpAllowed(ip: string) {
-    if (!this.isIpAllowed(ip)) {
+  async assertIpAllowed(teamId: string, ip: string) {
+    if (!(await this.isIpAllowed(teamId, ip))) {
       throw new ForbiddenException({
         code: ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED,
         message: 'Current network is not allowed for attendance'
@@ -52,10 +102,11 @@ export class NetworkPolicyService {
     }
   }
 
-  isIpAllowed(ip: string) {
+  async isIpAllowed(teamId: string, ip: string) {
+    const policy = await this.resolvePolicy(teamId);
     const normalizedIp = this.normalizeIp(ip);
 
-    if (this.allowAny) {
+    if (policy.allowAnyNetwork) {
       return true;
     }
 
@@ -63,16 +114,57 @@ export class NetworkPolicyService {
       return false;
     }
 
-    if (this.allowedIps.has(normalizedIp)) {
+    if (policy.allowedPublicIps.includes(normalizedIp)) {
       return true;
     }
 
     try {
       const parsedIp = ipaddr.parse(normalizedIp);
-      return this.allowedCidrs.some(([range, prefix]) => parsedIp.match(range, prefix));
+      return policy.allowedCidrs.some((cidr) => {
+        const [range, prefix] = ipaddr.parseCIDR(cidr);
+        return parsedIp.match(range, prefix);
+      });
     } catch {
       return false;
     }
+  }
+
+  private async resolvePolicy(teamId: string): Promise<NetworkPolicySnapshot> {
+    const stored = await this.networkPolicyModel.findOne({ teamId }).exec();
+    if (!stored) {
+      return {
+        teamId,
+        source: 'environment',
+        ...this.fallbackPolicy
+      };
+    }
+
+    return this.toSnapshot({
+      teamId: stored.teamId,
+      allowAnyNetwork: stored.allowAnyNetwork,
+      allowedPublicIps: stored.allowedPublicIps,
+      allowedCidrs: stored.allowedCidrs,
+      trustProxy: stored.trustProxy,
+      trustedProxyHops: stored.trustedProxyHops,
+      updatedAt: stored.updatedAt as Date | undefined
+    }, 'database');
+  }
+
+  private toSnapshot(policy: PersistedNetworkPolicyRecord, source: PolicySource): NetworkPolicySnapshot {
+    const normalized = this.normalizePolicy({
+      allowAnyNetwork: policy.allowAnyNetwork,
+      allowedPublicIps: policy.allowedPublicIps,
+      allowedCidrs: policy.allowedCidrs,
+      trustProxy: policy.trustProxy,
+      trustedProxyHops: policy.trustedProxyHops
+    });
+
+    return {
+      teamId: policy.teamId,
+      source,
+      updatedAt: policy.updatedAt,
+      ...normalized
+    };
   }
 
   private parseCsv(value?: string | null) {
@@ -86,7 +178,32 @@ export class NetworkPolicyService {
       .filter(Boolean);
   }
 
-  private pickForwardedIp(forwarded: string) {
+  private normalizePolicy(input: PersistedNetworkPolicyInput): PersistedNetworkPolicyInput {
+    const trustedProxyHops =
+      Number.isFinite(input.trustedProxyHops) && input.trustedProxyHops > 0
+        ? Math.floor(input.trustedProxyHops)
+        : 1;
+
+    return {
+      allowAnyNetwork: Boolean(input.allowAnyNetwork),
+      allowedPublicIps: Array.from(
+        new Set((input.allowedPublicIps ?? []).map((item) => this.normalizeConfiguredIp(item)).filter(Boolean))
+      ),
+      allowedCidrs: Array.from(
+        new Set((input.allowedCidrs ?? []).map((item) => this.normalizeConfiguredCidr(item)).filter(Boolean))
+      ),
+      trustProxy: Boolean(input.trustProxy),
+      trustedProxyHops
+    };
+  }
+
+  private assertAllowlistConfigured(policy: PersistedNetworkPolicyInput) {
+    if (!policy.allowAnyNetwork && policy.allowedPublicIps.length === 0 && policy.allowedCidrs.length === 0) {
+      throw new BadRequestException('At least one allowed IP or CIDR is required when network enforcement is enabled');
+    }
+  }
+
+  private pickForwardedIp(forwarded: string, trustedProxyHops: number) {
     const parts = forwarded
       .split(',')
       .map((part) => part.trim())
@@ -96,8 +213,35 @@ export class NetworkPolicyService {
       return '';
     }
 
-    const index = Math.max(0, parts.length - this.trustedProxyHops - 1);
+    const index = Math.max(0, parts.length - trustedProxyHops - 1);
     return parts[index] ?? parts[0];
+  }
+
+  private normalizeConfiguredIp(ip: string) {
+    const normalized = this.normalizeIp(ip);
+    if (!normalized) {
+      return '';
+    }
+
+    try {
+      return ipaddr.parse(normalized).toString();
+    } catch {
+      throw new BadRequestException(`Invalid allowed IP address: ${ip}`);
+    }
+  }
+
+  private normalizeConfiguredCidr(cidr: string) {
+    const normalized = cidr.trim();
+    if (!normalized) {
+      return '';
+    }
+
+    try {
+      const [range, prefix] = ipaddr.parseCIDR(normalized);
+      return `${range.toString()}/${prefix}`;
+    } catch {
+      throw new BadRequestException(`Invalid allowed CIDR: ${cidr}`);
+    }
   }
 
   private normalizeIp(ip: string) {

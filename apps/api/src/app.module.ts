@@ -9,6 +9,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { RecordsModule } from './modules/records/records.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { DemoSeedModule } from './modules/demo-seed/demo-seed.module';
+import { NetworkPolicyModule } from './modules/network-policy/network-policy.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { DemoSeedModule } from './modules/demo-seed/demo-seed.module';
     UsersModule,
     TeamsModule,
     AuthModule,
+    NetworkPolicyModule,
     AttendanceModule,
     RecordsModule,
     StatsModule,

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut, Shield } from 'lucide-react';
+import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut, Shield, Wifi } from 'lucide-react';
 import { Button } from '@lecpunch/ui';
 import { useRootStore } from '../store/root-store';
 
@@ -63,6 +63,19 @@ export const Sidebar = () => {
             >
               <Shield className="w-5 h-5 mr-3 flex-shrink-0" />
               成员管理
+            </NavLink>
+            <NavLink
+              to="/admin/network-policy"
+              className={({ isActive }) =>
+                `w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <Wifi className="w-5 h-5 mr-3 flex-shrink-0" />
+              网络策略
             </NavLink>
           </>
         ) : null}

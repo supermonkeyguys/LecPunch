@@ -31,7 +31,7 @@ export class AttendanceService {
   }
 
   async checkIn(user: AuthUser, clientIp: string) {
-    this.networkPolicyService.assertIpAllowed(clientIp);
+    await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
     const existing = await this.findActiveSession(user.userId);
     if (existing) {
       throw new BadRequestException({
@@ -54,7 +54,7 @@ export class AttendanceService {
   }
 
   async checkOut(user: AuthUser, clientIp: string) {
-    this.networkPolicyService.assertIpAllowed(clientIp);
+    await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
     const session = await this.findActiveSession(user.userId);
     if (!session) {
       throw new BadRequestException({

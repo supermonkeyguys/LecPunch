@@ -25,14 +25,14 @@ export class AttendanceController {
 
   @Post('check-in')
   async checkIn(@CurrentUser() user: AuthUser, @Req() request: Request) {
-    const ip = this.networkPolicyService.getClientIp(request);
+    const ip = await this.networkPolicyService.getClientIp(user.teamId, request);
     const session = await this.attendanceService.checkIn(user, ip);
     return this.mapSession(session);
   }
 
   @Post('check-out')
   async checkOut(@CurrentUser() user: AuthUser, @Req() request: Request) {
-    const ip = this.networkPolicyService.getClientIp(request);
+    const ip = await this.networkPolicyService.getClientIp(user.teamId, request);
     const session = await this.attendanceService.checkOut(user, ip);
     return this.mapSession(session);
   }
