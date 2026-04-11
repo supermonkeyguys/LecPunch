@@ -25,21 +25,29 @@ vi.mock('@/shared/ui/toast', async () => {
 
 describe('AdminRecordsExportPage', () => {
   const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  const originalURL = window.URL;
   const createObjectURL = vi.fn(() => 'blob:records-export');
   const revokeObjectURL = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    class MockURL extends originalURL {}
+    Object.assign(MockURL, originalURL, {
+      createObjectURL,
+      revokeObjectURL
+    });
+
     Object.defineProperty(window, 'URL', {
       writable: true,
-      value: {
-        createObjectURL,
-        revokeObjectURL
-      }
+      value: MockURL
     });
   });
 
   afterEach(() => {
+    Object.defineProperty(window, 'URL', {
+      writable: true,
+      value: originalURL
+    });
     cleanup();
   });
 
