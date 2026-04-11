@@ -6,7 +6,7 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "seed": "tsx src/scripts/seed-demo.ts",
+    "seed": "ts-node src/scripts/seed-demo.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",
     "typecheck": "tsc -b tsconfig.build.json"

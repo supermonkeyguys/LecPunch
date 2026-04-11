@@ -1,202 +1,179 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents working in this repository.
 
-## Repository status
-
-This repository is currently in the planning stage. The main source of truth for the MVP is `docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md`.
-
-Current agreed scope for V1:
-- Pure Web MVP
-- Member-facing flows first
-- Single team for now, but keep `teamId` in domain models
-- Username/password login
-- Network restriction implemented by backend IP/CIDR allowlist checks
-- Weekly statistics prioritized for V1
-- No make-up requests, leave system, Excel export, push notifications, or offline sync in V1
-
-If `prd.md`, `UI.md`, and the architecture spec conflict, follow the architecture spec for implementation unless the user says otherwise.
-
-## Product and architecture references
+## Primary References
 
 Read these before making structural changes:
-- `docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md` — MVP scope, domain rules, API contract, package boundaries, phased rollout
-- `prd.md` — broader product backlog; includes ideas intentionally deferred from V1
-- `UI.md` — UI structure and component decomposition reference for the member-facing web app
 
-## Planned workspace shape
+- `AGENTS.md`
+- `docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md`
+- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
 
-The intended repository structure is a pnpm + Turbo monorepo:
+If these documents conflict:
 
-```txt
-apps/
-  web/        React member web app
-  api/        NestJS API
-packages/
-  ui/         reusable headless/presentational UI primitives
-  shared/     cross-app domain types, enums, constants, light schemas
-  eslint-config/
-  tsconfig/
-docs/
-  superpowers/
-    specs/
-    plans/
-```
+- use the execution plan for current task order
+- use the architecture spec for product and technical boundaries
+- use `AGENTS.md` for task execution, git, and collaboration rules
 
-The repository may not contain all of these directories yet. Prefer creating the minimum needed to match the architecture spec rather than inventing alternate structure.
+## Repository Status
 
-## Frontend architecture
+The repository is no longer in planning-only mode. The current baseline is V1.1 with these delivered capability groups:
 
-Frontend stack target:
-- React
-- React Router
-- Zustand
-- ahooks
-- Axios
-- Tailwind CSS
-- Radix UI
-- react-hook-form
-- zod
+- member-facing attendance flows
+- network policy enforcement and admin management
+- minimal admin capabilities for member management and records export
+- targeted tests, typecheck, and build commands in the workspace
 
-Follow the layered structure defined in the spec:
+Current V1.1 scope:
 
-```txt
-apps/web/src/
-  app/        route registration, providers, store setup, axios setup, global styles
-  pages/      page-level composition only
-  widgets/    larger page sections composed from features/entities
-  features/   business actions, request hooks, store bindings
-  entities/   stable domain presentation units
-  shared/     UI-neutral helpers, hooks, constants, HTTP utilities
-```
+- Pure web app
+- Single-team data model with `teamId` preserved
+- Username/password auth
+- Server-authoritative attendance rules
+- Same-team data visibility in V1.1
+- Minimal `/admin/*` operations inside the same web app
 
-Important boundaries:
-- Keep UI and data logic separated
-- Do not put business truth in Zustand; server responses remain authoritative
-- `packages/ui` stays presentation-only and must not depend on business requests or feature state
-- `packages/shared` only contains stable cross-app contracts, not frontend hooks or backend services
+Current V1.1 non-scope:
 
-## Backend architecture
+- Multi-team product flows
+- Leave or make-up request workflows
+- Excel export
+- Push notifications
+- Offline sync
 
-Backend stack target:
-- NestJS
-- TypeScript
-- MongoDB
+## Architecture Boundaries
 
-Suggested backend module boundaries:
-- `auth` — login, JWT, current-user lookup
-- `users` — user profile, role, team relationship
-- `teams` — team metadata and future multi-team extension points
-- `attendance` — check-in/out lifecycle, active session, 5-hour invalidation rule
-- `records` — detail queries for self and teammates
-- `stats` — weekly aggregations and history views
-- `network-policy` — IP/CIDR allowlist evaluation and proxy trust rules
+Keep these boundaries intact unless the user explicitly changes them:
 
-Business truth must stay on the server, especially for:
-- whether a user currently has an active session
-- whether a session is valid or invalidated
-- whether the current network is allowed
-- weekly aggregates and cross-user access control
+- Business truth stays on the server
+- Preserve `Asia/Shanghai` as the system time basis
+- Preserve the established API split between `attendance`, `records`, `stats`, `users`, and `network-policy`
+- Frontend pages stay focused on composition; move heavier business logic into features/widgets
+- `packages/shared` contains stable cross-app contracts only
+- `packages/ui` stays presentation-only
 
-## Core domain rules
+## Backend Rules That Must Hold
 
-Implement these exactly unless the user changes the spec:
-- Check-in requires authenticated user, active user status, no existing active session, and allowed network
-- Check-out requires an existing active session and allowed network
-- If a completed session duration is `>= 18000` seconds, mark it `invalidated`, set duration to `0`, and set `invalidReason` to `overtime_5h`
-- Week calculations use `Asia/Shanghai`
-- Weekly ranges are natural weeks: Monday 00:00:00 through Sunday 23:59:59
-- Frontend must not attempt to detect Wi-Fi SSID/BSSID; V1 network restriction is backend IP/CIDR allowlist matching
-- Same-team members can view each other’s records in V1; cross-team access must be rejected server-side
+- Check-in requires authenticated, active users with no active session and an allowed network
+- Check-out requires an existing active session and an allowed network
+- Sessions with duration `>= 18000` seconds are invalidated with `invalidReason = overtime_5h`
+- Same-team access is allowed in V1.1; cross-team access must be rejected server-side
+- Network checks are evaluated on the backend, not in the browser
 
-## API shape to preserve
+## Current Admin Surface
 
-The architecture spec already defines the first-pass API surface. Before changing endpoint names or payloads, verify whether the change still matches:
-- `POST /auth/login`
-- `GET /auth/me`
-- `GET /attendance/current`
-- `POST /attendance/check-in`
-- `POST /attendance/check-out`
-- `GET /records/me`
-- `GET /records/member/:userId`
-- `GET /stats/me/weekly`
-- `GET /stats/team/current-week`
-- `GET /stats/member/:userId/weekly`
+Admin users currently have these routes:
 
-Also preserve the explicit split between detail queries (`records`) and aggregate queries (`stats`).
+- `/admin/members`
+- `/admin/network-policy`
+- `/admin/records-export`
 
-## Testing priorities
+Related API surface:
 
-Prioritize tests around business rules before UI breadth.
-
-Backend critical cases:
-- successful check-in
-- duplicate check-in rejected
-- successful check-out
-- 5-hour invalidation rule
-- network not allowed rejection
-- same-team allowed / cross-team forbidden record access
-- weekly aggregation based on natural week in `Asia/Shanghai`
-
-Frontend critical cases:
-- auth route protection
-- check-in / check-out button state transitions
-- active session timer display
-- records page rendering
-- members page navigation to member detail
-- network-restricted error feedback
-
-E2E is explicitly lower priority than solid backend and frontend focused tests for the MVP.
+- `GET /users/admin/members`
+- `PATCH /users/admin/members/:userId`
+- `GET /network-policy/admin/current`
+- `PATCH /network-policy/admin/current`
+- `GET /records/admin/export`
 
 ## Commands
 
-There is no bootstrapped monorepo in the repository yet, so concrete build/test/lint commands are not available yet.
-
-## Commands
+Install dependencies:
 
 ```bash
-# Install all workspace dependencies
 pnpm install
-
-# Start web dev server (port 5173, proxies /api → localhost:4000)
-pnpm --filter web dev
-
-# Start API dev server (port 4000, watch mode)
-pnpm --filter api dev
-
-# Run all tests
-pnpm test
-
-# Run API tests only
-pnpm --filter api test
-
-# Run web tests only
-pnpm --filter web test
-
-# Run a single API test file
-pnpm --filter api exec vitest run src/modules/attendance/attendance.service.spec.ts
-
-# Run a single web test file
-pnpm --filter web exec vitest run src/pages/dashboard/DashboardPage.test.tsx
-
-# Lint all packages
-pnpm lint
-
-# Typecheck all packages
-pnpm typecheck
-
-# Build all packages (shared must build first — handled by Turbo dependency graph)
-pnpm build
-
-# Build shared package only (required before first API start if dist/ is missing)
-pnpm --filter @lecpunch/shared build
-
-# Seed demo users (demo-admin / demo-member, password: 123456)
-pnpm --filter api seed
 ```
 
-### Prerequisites
+Start the API:
 
-- MongoDB running locally on `mongodb://localhost:27017/lecpunch`
-- Copy `apps/api/.env.example` → `apps/api/.env` and fill in `AUTH_SECRET` (min 16 chars)
-- `apps/web/.env` should exist with `VITE_API_BASE_URL=` (empty = use Vite proxy)
+```bash
+pnpm --filter @lecpunch/api dev
+```
+
+Start the web app:
+
+```bash
+pnpm --filter @lecpunch/web dev
+```
+
+Run all tests:
+
+```bash
+pnpm test
+```
+
+Run workspace typecheck:
+
+```bash
+pnpm typecheck
+```
+
+Run workspace build:
+
+```bash
+pnpm build
+```
+
+Run API tests only:
+
+```bash
+pnpm --filter @lecpunch/api test
+```
+
+Run web tests only:
+
+```bash
+pnpm --filter @lecpunch/web test
+```
+
+Run a targeted API test:
+
+```bash
+pnpm --filter @lecpunch/api exec vitest run src/modules/attendance/attendance.service.spec.ts
+```
+
+Run a targeted web test:
+
+```bash
+pnpm --filter @lecpunch/web exec vitest run src/pages/dashboard/DashboardPage.test.tsx
+```
+
+Seed demo accounts:
+
+```bash
+pnpm --filter @lecpunch/api seed
+```
+
+Demo seed result:
+
+- `demo-admin` / `123456`
+- `demo-member` / `123456`
+
+If `packages/shared/dist` is missing and the API cannot resolve `@lecpunch/shared`, build it once:
+
+```bash
+pnpm --filter @lecpunch/shared build
+```
+
+## Environment Notes
+
+API:
+
+- copy `apps/api/.env.example` to `apps/api/.env`
+- set `AUTH_SECRET` to at least 16 characters
+- when `ALLOW_ANY_NETWORK=false`, configure `ALLOWED_PUBLIC_IPS` or `ALLOWED_CIDRS`
+
+Web:
+
+- copy `apps/web/.env.example` to `apps/web/.env`
+- keep `VITE_API_BASE_URL=` empty for local Vite proxy mode
+- set a full origin only when the frontend should call a deployed API directly
+
+## Execution Guidance
+
+Unless the user says otherwise, continue work by following the next unfinished item in:
+
+- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+
+Work one self-contained task at a time, verify the relevant changes, then create one atomic commit and push the current branch.

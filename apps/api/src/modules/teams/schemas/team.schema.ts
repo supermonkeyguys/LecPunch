@@ -4,7 +4,7 @@ import { TeamStatus } from '@lecpunch/shared';
 
 @Schema({ timestamps: true, collection: 'teams' })
 export class Team {
-  @Prop({ required: true })
+  @Prop({ required: true, type: String })
   name!: string;
 
   @Prop({

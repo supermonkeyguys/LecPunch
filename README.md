@@ -1,121 +1,177 @@
 # LecPunch
 
-LecPunch 是一个面向团队成员的 Web 打卡 MVP。当前仓库已经具备可运行的 monorepo 骨架、NestJS API、React Web 前端，以及最小业务闭环页面。
+LecPunch 是一个团队打卡系统 monorepo。当前仓库已经收口到 V1.1 基线，包含成员端打卡闭环、同团队数据查看，以及最小可用的后台管理能力。
 
-## 当前能力
+## V1.1 范围
 
-- 用户名/密码登录与注册
-- Dashboard 查看当前打卡状态
-- 上卡 / 下卡
-- 我的打卡记录
-- 团队成员列表
-- 成员记录详情
-- 个人周历史统计
+当前已纳入范围的能力：
+
+- 用户名 / 密码登录，以及可开关的开放注册
+- 以后端为真值的上卡 / 下卡业务规则
+- 当前打卡状态、我的记录、成员记录、个人周历史
+- 团队本周统计与同团队访问控制
+- 个人资料编辑与密码修改
+- 后台成员管理
+- 后台网络策略管理
+- 后台团队记录 CSV 导出
+
+当前明确不在 V1.1 范围内：
+
+- 多团队产品化流程
+- 请假 / 补卡流程
+- Excel 导出
+- 推送提醒
+- 离线同步
+- 当前工作区脚本之外的完整部署自动化
 
 ## 技术栈
 
-- pnpm workspace + Turbo
+- `pnpm` workspace + Turbo
 - `apps/api`: NestJS + MongoDB
 - `apps/web`: React + Vite + Zustand + Axios + Tailwind
-- `packages/shared`: 前后端共享类型与常量
+- `packages/shared`: 前后端共享领域契约与常量
+- `packages/ui`: 共享展示组件
 
-## 环境准备
+## 环境要求
 
 - Node.js 20+
 - pnpm 8+
-- MongoDB 本地实例
+- 本地 MongoDB，默认连接串为 `mongodb://localhost:27017/lecpunch`
 
 ## 安装依赖
 
-```bash
+```powershell
 pnpm install
 ```
 
-## 环境变量
+如果 `packages/shared/dist` 缺失，且 API 启动时报 `@lecpunch/shared` 无法解析，可先执行一次：
+
+```powershell
+pnpm --filter @lecpunch/shared build
+```
+
+## 环境配置
 
 ### API
 
-复制：
+复制示例文件：
 
-```bash
-cp apps/api/.env.example apps/api/.env
+```powershell
+Copy-Item apps/api/.env.example apps/api/.env
 ```
 
-关键变量：
+关键变量说明：
 
-- `MONGODB_URI`
-- `AUTH_SECRET`
-- `ALLOW_OPEN_REGISTRATION`
-- `ALLOW_ANY_NETWORK`
+- `MONGODB_URI`：MongoDB 连接串
+- `AUTH_SECRET`：JWT 密钥，至少 16 位
+- `DEFAULT_TEAM_NAME`：注册和 seed 流程使用的默认团队名
+- `ALLOW_OPEN_REGISTRATION`：是否允许 `/auth/register`
+- `ALLOW_ANY_NETWORK`：设为 `false` 后才真正启用打卡网络白名单
+- `ALLOWED_PUBLIC_IPS`：逗号分隔的精确客户端 IP 白名单
+- `ALLOWED_CIDRS`：逗号分隔的 CIDR 白名单
+- `TRUST_PROXY`：是否信任 `X-Forwarded-For`
+- `TRUSTED_PROXY_HOPS`：`TRUST_PROXY=true` 时按代理链右侧计算的可信跳数
 
-开发阶段可保持：
+本地演示建议保持：
 
 ```env
 ALLOW_OPEN_REGISTRATION=true
 ALLOW_ANY_NETWORK=true
 ```
 
+重要约束：当 `ALLOW_ANY_NETWORK=false` 时，`ALLOWED_PUBLIC_IPS` 或 `ALLOWED_CIDRS` 至少要配置一个。
+
 ### Web
 
-复制：
+复制示例文件：
 
-```bash
-cp apps/web/.env.example apps/web/.env
+```powershell
+Copy-Item apps/web/.env.example apps/web/.env
 ```
 
-默认前端请求 API：
+本地开发建议把 `VITE_API_BASE_URL` 留空，让 Vite 通过 `/api` 代理到 `http://localhost:4000`：
 
 ```env
-VITE_API_BASE_URL=http://localhost:4000
+VITE_API_BASE_URL=
 ```
 
-## 启动开发环境
+只有在前端需要直连已部署 API 时，才填写完整地址。
 
-### 启动 API
+## 种子数据
 
-```bash
+API 工作区已经提供可重复执行的演示数据脚本：
+
+```powershell
+pnpm --filter @lecpunch/api seed
+```
+
+它会确保默认团队存在，并在账号缺失时创建：
+
+- `demo-admin` / `123456`
+- `demo-member` / `123456`
+
+可用 `demo-admin` 验证后台入口：
+
+- `/admin/members`
+- `/admin/network-policy`
+- `/admin/records-export`
+
+## 本地启动
+
+启动 API：
+
+```powershell
 pnpm --filter @lecpunch/api dev
 ```
 
-默认监听：`http://localhost:4000`
+默认地址：`http://localhost:4000`
 
-### 启动 Web
+在另一个终端启动 Web：
 
-```bash
+```powershell
 pnpm --filter @lecpunch/web dev
 ```
 
-默认监听：`http://localhost:4173`
+默认地址：`http://localhost:5173`
 
-## 常用命令
+## 验证命令
 
-### 全仓
+全仓：
 
-```bash
-pnpm test
+```powershell
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
-### 单独运行 API 测试
+单独执行：
 
-```bash
+```powershell
 pnpm --filter @lecpunch/api test
-```
-
-### 单独运行 Web 测试
-
-```bash
 pnpm --filter @lecpunch/web test
 ```
 
-## 当前说明
+定向示例：
 
-- 当前页面已经接上主要 API，但 UI 仍是 MVP 级别
-- 网络限制默认可放开；若要验证限制逻辑，请在 API `.env` 中关闭 `ALLOW_ANY_NETWORK`
-- 当前没有完整 seed 脚本，建议先通过注册页面创建测试账号
+```powershell
+pnpm --filter @lecpunch/api exec vitest run src/modules/attendance/attendance.service.spec.ts
+pnpm --filter @lecpunch/web exec vitest run src/pages/dashboard/DashboardPage.test.tsx
+```
+
+## 演示清单
+
+从零开始做一轮本地演示时，按这个顺序：
+
+1. `pnpm install`
+2. 配置两份 `.env`
+3. 启动 MongoDB
+4. 执行 `pnpm --filter @lecpunch/api seed`
+5. 启动 API 和 Web
+6. 用 `demo-admin` 验证成员管理、网络策略和记录导出
+7. 用 `demo-member` 验证成员端打卡主链路
 
 ## 参考文档
 
 - 架构设计：`docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md`
-- 执行交接：`docs/superpowers/specs/2026-04-02-lecpunch-handoff-design.md`
+- 当前执行计划：`docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+- Agent 协作规则：`AGENTS.md`
