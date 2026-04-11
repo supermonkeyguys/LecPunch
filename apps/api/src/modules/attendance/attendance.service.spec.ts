@@ -124,4 +124,24 @@ describe('AttendanceService', () => {
     });
     expect(sort).toHaveBeenCalledWith({ checkInAt: -1 });
   });
+
+  it('builds team record export date filters using Asia/Shanghai day boundaries', async () => {
+    const exec = vi.fn().mockResolvedValue([]);
+    const sort = vi.fn().mockReturnValue({ exec });
+    find.mockReturnValue({ sort });
+
+    await service.listTeamRecords('team-1', {
+      startDate: '2026-04-09',
+      endDate: '2026-04-10'
+    });
+
+    expect(find).toHaveBeenCalledWith({
+      teamId: 'team-1',
+      checkInAt: {
+        $gte: new Date('2026-04-08T16:00:00.000Z'),
+        $lte: new Date('2026-04-10T15:59:59.999Z')
+      }
+    });
+    expect(sort).toHaveBeenCalledWith({ checkInAt: -1 });
+  });
 });

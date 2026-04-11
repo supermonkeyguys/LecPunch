@@ -13,12 +13,22 @@ const currentUser: AuthUser = {
   enrollYear: 2024
 };
 
+const adminUser: AuthUser = {
+  ...currentUser,
+  userId: 'admin-1',
+  role: 'admin',
+  username: 'admin',
+  displayName: 'Admin'
+};
+
 describe('RecordsService', () => {
   const attendanceService = {
-    listUserRecords: vi.fn()
+    listUserRecords: vi.fn(),
+    listTeamRecords: vi.fn()
   };
   const usersService = {
-    findById: vi.fn()
+    findById: vi.fn(),
+    listTeamMembers: vi.fn()
   };
 
   let service: RecordsService;
@@ -54,5 +64,59 @@ describe('RecordsService', () => {
 
     expect(attendanceService.listUserRecords).toHaveBeenCalledWith('user-2', filters, { page: 2, pageSize: 10 });
     expect(result).toBe(rows);
+  });
+
+  it('rejects non-admin team record export requests', async () => {
+    await expect(service.exportTeamRecords(currentUser, {})).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('exports team records with member metadata for admins', async () => {
+    attendanceService.listTeamRecords.mockResolvedValue([
+      {
+        id: 'session-1',
+        teamId: 'team-1',
+        userId: 'user-2',
+        weekKey: '2026-04-06',
+        checkInAt: new Date('2026-04-09T01:00:00.000Z'),
+        checkOutAt: new Date('2026-04-09T03:00:00.000Z'),
+        durationSeconds: 7200,
+        status: 'completed'
+      }
+    ]);
+    usersService.listTeamMembers.mockResolvedValue([
+      {
+        id: 'user-2',
+        username: 'alice',
+        displayName: 'Alice',
+        realName: 'Alice Chen',
+        studentId: '20240001',
+        enrollYear: 2024
+      }
+    ]);
+
+    const result = await service.exportTeamRecords(adminUser, { startDate: '2026-04-09', endDate: '2026-04-09' });
+
+    expect(attendanceService.listTeamRecords).toHaveBeenCalledWith('team-1', {
+      startDate: '2026-04-09',
+      endDate: '2026-04-09'
+    });
+    expect(usersService.listTeamMembers).toHaveBeenCalledWith('team-1');
+    expect(result).toEqual([
+      {
+        sessionId: 'session-1',
+        weekKey: '2026-04-06',
+        userId: 'user-2',
+        username: 'alice',
+        displayName: 'Alice',
+        realName: 'Alice Chen',
+        studentId: '20240001',
+        enrollYear: 2024,
+        checkInAt: new Date('2026-04-09T01:00:00.000Z'),
+        checkOutAt: new Date('2026-04-09T03:00:00.000Z'),
+        durationSeconds: 7200,
+        status: 'completed',
+        invalidReason: undefined
+      }
+    ]);
   });
 });

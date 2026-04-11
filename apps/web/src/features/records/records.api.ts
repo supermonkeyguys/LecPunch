@@ -22,3 +22,34 @@ export const getMemberRecords = async (userId: string, filters?: RecordFilters) 
   });
   return response.data.items;
 };
+
+export interface AdminRecordsExportResult {
+  blob: Blob;
+  filename: string;
+}
+
+const parseFilenameFromDisposition = (disposition?: string) => {
+  if (!disposition) {
+    return 'team-records-all.csv';
+  }
+
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+  return plainMatch?.[1] ?? 'team-records-all.csv';
+};
+
+export const downloadAdminRecordsExport = async (filters?: RecordFilters): Promise<AdminRecordsExportResult> => {
+  const response = await apiClient.get<Blob>('/records/admin/export', {
+    params: filters ?? undefined,
+    responseType: 'blob'
+  });
+
+  return {
+    blob: response.data,
+    filename: parseFilenameFromDisposition(response.headers['content-disposition'])
+  };
+};

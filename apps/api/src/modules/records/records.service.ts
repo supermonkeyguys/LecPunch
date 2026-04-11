@@ -4,6 +4,28 @@ import { UsersService } from '../users/users.service';
 import { ERROR_CODES } from '@lecpunch/shared';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
+export interface TeamRecordExportFilters {
+  weekKey?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface TeamRecordExportRow {
+  sessionId: string;
+  weekKey: string;
+  userId: string;
+  username?: string;
+  displayName?: string;
+  realName?: string;
+  studentId?: string;
+  enrollYear?: number;
+  checkInAt: Date;
+  checkOutAt?: Date;
+  durationSeconds?: number;
+  status: string;
+  invalidReason?: string;
+}
+
 @Injectable()
 export class RecordsService {
   constructor(
@@ -13,7 +35,7 @@ export class RecordsService {
 
   listMyRecords(
     userId: string,
-    filters: { weekKey?: string; startDate?: string; endDate?: string },
+    filters: TeamRecordExportFilters,
     page: number,
     pageSize: number
   ) {
@@ -23,7 +45,7 @@ export class RecordsService {
   async listMemberRecords(
     currentUser: AuthUser,
     memberId: string,
-    filters: { weekKey?: string; startDate?: string; endDate?: string },
+    filters: TeamRecordExportFilters,
     page: number,
     pageSize: number
   ) {
@@ -40,5 +62,38 @@ export class RecordsService {
     }
 
     return this.attendanceService.listUserRecords(member.id, filters, { page, pageSize });
+  }
+
+  async exportTeamRecords(currentUser: AuthUser, filters: TeamRecordExportFilters): Promise<TeamRecordExportRow[]> {
+    if (currentUser.role !== 'admin') {
+      throw new ForbiddenException('Only admins can export team records');
+    }
+
+    const [records, members] = await Promise.all([
+      this.attendanceService.listTeamRecords(currentUser.teamId, filters),
+      this.usersService.listTeamMembers(currentUser.teamId)
+    ]);
+
+    const membersById = new Map(members.map((member) => [member.id, member]));
+
+    return records.map((record) => {
+      const member = membersById.get(record.userId);
+
+      return {
+        sessionId: record.id,
+        weekKey: record.weekKey,
+        userId: record.userId,
+        username: member?.username,
+        displayName: member?.displayName,
+        realName: member?.realName,
+        studentId: member?.studentId,
+        enrollYear: member?.enrollYear,
+        checkInAt: record.checkInAt,
+        checkOutAt: record.checkOutAt,
+        durationSeconds: record.durationSeconds,
+        status: record.status,
+        invalidReason: record.invalidReason
+      };
+    });
   }
 }

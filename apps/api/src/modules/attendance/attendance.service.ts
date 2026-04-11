@@ -102,12 +102,14 @@ export class AttendanceService {
       .exec();
   }
 
-  listTeamRecords(teamId: string, filters: { weekKey?: string }) {
+  listTeamRecords(teamId: string, filters: { weekKey?: string; startDate?: string; endDate?: string }) {
     const query: Record<string, unknown> = { teamId };
     if (filters.weekKey) {
       query.weekKey = filters.weekKey;
+    } else if (filters.startDate || filters.endDate) {
+      query.checkInAt = getShanghaiDateRange(filters.startDate, filters.endDate);
     }
-    return this.attendanceModel.find(query).exec();
+    return this.attendanceModel.find(query).sort({ checkInAt: -1 }).exec();
   }
 
   getModel() {
