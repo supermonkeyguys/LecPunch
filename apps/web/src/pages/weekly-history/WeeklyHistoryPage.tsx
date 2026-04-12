@@ -75,13 +75,14 @@ export const WeeklyHistoryPage = () => {
       header: '进度',
       headerClassName: 'w-56',
       render: (_, row) => {
-        const progress = weeklyGoalSeconds > 0 ? (row.totalDurationSeconds / weeklyGoalSeconds) * 100 : 0;
+        const progressGoalSeconds = row.weeklyGoalSeconds || weeklyGoalSeconds;
+        const progress = progressGoalSeconds > 0 ? (row.totalDurationSeconds / progressGoalSeconds) * 100 : 0;
 
         return (
           <div className="space-y-2">
             <Progress value={progress} className="w-44" />
             <div className="text-xs text-gray-500">
-              {`${Math.round(Math.min(progress, 100))}% / 目标 ${formatDuration(weeklyGoalSeconds)}`}
+              {`${Math.round(Math.min(progress, 100))}% / 目标 ${formatDuration(progressGoalSeconds)}`}
             </div>
           </div>
         );
@@ -115,7 +116,7 @@ export const WeeklyHistoryPage = () => {
               </div>
               <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">进度</div>
-                <div className="mt-2 text-sm font-medium text-gray-900">所有历史周统一按当前目标计算</div>
+                <div className="mt-2 text-sm font-medium text-gray-900">优先按每周目标快照计算</div>
               </div>
               <div className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm">
                 <div className="text-xs font-semibold uppercase tracking-wide text-gray-500">作废记录</div>

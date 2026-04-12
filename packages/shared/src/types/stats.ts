@@ -2,6 +2,7 @@ export interface WeeklyStatItem {
   weekKey: string;
   totalDurationSeconds: number;
   sessionsCount: number;
+  weeklyGoalSeconds: number;
 }
 
 export interface TeamWeeklyStatItem extends WeeklyStatItem {

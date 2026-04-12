@@ -53,7 +53,8 @@ describe('WeeklyHistoryPage', () => {
         {
           weekKey: '2026-03-31',
           totalDurationSeconds: 7200,
-          sessionsCount: 2
+          sessionsCount: 2,
+          weeklyGoalSeconds: 38 * 3600
         }
       ],
       weeklyGoalSeconds: 38 * 3600
@@ -68,7 +69,7 @@ describe('WeeklyHistoryPage', () => {
     expect(await screen.findByText('2026-03-31')).toBeInTheDocument();
     expect(screen.getByText(/统计口径/i)).toBeInTheDocument();
     expect(screen.getByText(/当前目标 38:00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/所有历史周统一按当前目标计算/i)).toBeInTheDocument();
+    expect(screen.getByText(/优先按每周目标快照计算/i)).toBeInTheDocument();
     expect(screen.getByText(/次数计入，时长按 0 处理/i)).toBeInTheDocument();
     expect(screen.getByText(/03-31 ~ 04-06/i)).toBeInTheDocument();
     expect(screen.getByText('02:00:00')).toBeInTheDocument();

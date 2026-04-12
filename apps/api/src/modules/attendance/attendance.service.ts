@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AttendanceSession, AttendanceSessionDocument } from './schemas/attendance-session.schema';
 import { NetworkPolicyService } from '../network-policy/network-policy.service';
-import { ERROR_CODES, ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
+import { ERROR_CODES, ATTENDANCE_MAX_SECONDS, weeklyGoalSeconds } from '@lecpunch/shared';
 import { getShanghaiDateRange, getWeekKey } from '../../common/utils/time.util';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
@@ -47,7 +47,8 @@ export class AttendanceService {
       checkInAt: now,
       status: 'active',
       sourceIpAtCheckIn: clientIp,
-      weekKey: getWeekKey(now)
+      weekKey: getWeekKey(now),
+      weeklyGoalSecondsSnapshot: weeklyGoalSeconds(user.enrollYear)
     });
 
     return session;

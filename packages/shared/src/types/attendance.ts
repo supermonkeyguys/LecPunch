@@ -11,6 +11,7 @@ export interface AttendanceSession {
   status: AttendanceStatus;
   invalidReason?: AttendanceInvalidReason;
   weekKey: string;
+  weeklyGoalSecondsSnapshot?: number;
   createdAt: string;
   updatedAt: string;
 }

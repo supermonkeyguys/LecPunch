@@ -74,11 +74,42 @@ describe('StatsService', () => {
 
   it('maps aggregated weekly rows to the shared weekKey contract', async () => {
     aggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([
+        {
+          _id: '2026-04-07',
+          totalDurationSeconds: 5400,
+          sessionsCount: 3,
+          weeklyGoalSecondsSnapshot: 38 * 3600
+        }
+      ])
+    });
+
+    const result = await service.getMyWeeklyStats('user-1', 2024);
+
+    expect(result).toEqual([
+      {
+        weekKey: '2026-04-07',
+        totalDurationSeconds: 5400,
+        sessionsCount: 3,
+        weeklyGoalSeconds: 38 * 3600
+      }
+    ]);
+  });
+
+  it('falls back to the current enroll-year goal when old rows have no snapshot', async () => {
+    aggregate.mockReturnValue({
       exec: vi.fn().mockResolvedValue([{ _id: '2026-04-07', totalDurationSeconds: 5400, sessionsCount: 3 }])
     });
 
-    const result = await service.getMyWeeklyStats('user-1');
+    const result = await service.getMyWeeklyStats('user-1', 2025);
 
-    expect(result).toEqual([{ weekKey: '2026-04-07', totalDurationSeconds: 5400, sessionsCount: 3 }]);
+    expect(result).toEqual([
+      {
+        weekKey: '2026-04-07',
+        totalDurationSeconds: 5400,
+        sessionsCount: 3,
+        weeklyGoalSeconds: 28 * 3600
+      }
+    ]);
   });
 });

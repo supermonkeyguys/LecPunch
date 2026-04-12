@@ -18,13 +18,13 @@ describe('StatsController contract', () => {
 
   it('returns weekly stats inside a stable items wrapper', async () => {
     statsService.getMyWeeklyStats.mockResolvedValue([
-      { weekKey: '2026-03-31', totalDurationSeconds: 7200, sessionsCount: 2 }
+      { weekKey: '2026-03-31', totalDurationSeconds: 7200, sessionsCount: 2, weeklyGoalSeconds: 38 * 3600 }
     ]);
 
     const result = await controller.myWeeklyStats({ userId: 'user-1', enrollYear: 2024 } as any);
 
     expect(result).toMatchObject({
-      items: [{ weekKey: '2026-03-31', totalDurationSeconds: 7200, sessionsCount: 2 }],
+      items: [{ weekKey: '2026-03-31', totalDurationSeconds: 7200, sessionsCount: 2, weeklyGoalSeconds: 38 * 3600 }],
       weeklyGoalSeconds: 38 * 3600
     });
   });
@@ -32,7 +32,7 @@ describe('StatsController contract', () => {
   it('returns member weekly stats with member info', async () => {
     statsService.getMemberWeeklyStats.mockResolvedValue({
       member: { id: 'user-2', displayName: 'Bob', role: 'member' },
-      items: [{ weekKey: '2026-03-31', totalDurationSeconds: 3600, sessionsCount: 1 }]
+      items: [{ weekKey: '2026-03-31', totalDurationSeconds: 3600, sessionsCount: 1, weeklyGoalSeconds: 28 * 3600 }]
     });
 
     const result = await controller.memberWeeklyStats({ teamId: 'team-1' } as any, 'user-2');

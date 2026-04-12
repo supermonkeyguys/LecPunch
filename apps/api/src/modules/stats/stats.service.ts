@@ -11,7 +11,7 @@ export class StatsService {
     private readonly usersService: UsersService
   ) {}
 
-  async getMyWeeklyStats(userId: string, limit = 6) {
+  async getMyWeeklyStats(userId: string, enrollYear: number, limit = 6) {
     const model = this.attendanceService.getModel();
     const rows = await model
       .aggregate([
@@ -20,7 +20,8 @@ export class StatsService {
           $group: {
             _id: '$weekKey',
             totalDurationSeconds: { $sum: '$durationSeconds' },
-            sessionsCount: { $sum: 1 }
+            sessionsCount: { $sum: 1 },
+            weeklyGoalSecondsSnapshot: { $max: '$weeklyGoalSecondsSnapshot' }
           }
         },
         { $sort: { _id: -1 } },
@@ -31,7 +32,8 @@ export class StatsService {
     return rows.map((row) => ({
       weekKey: row._id,
       totalDurationSeconds: row.totalDurationSeconds,
-      sessionsCount: row.sessionsCount
+      sessionsCount: row.sessionsCount,
+      weeklyGoalSeconds: row.weeklyGoalSecondsSnapshot ?? weeklyGoalSeconds(enrollYear)
     }));
   }
 
@@ -98,7 +100,7 @@ export class StatsService {
       });
     }
 
-    const items = await this.getMyWeeklyStats(member.id, limit);
+    const items = await this.getMyWeeklyStats(member.id, member.enrollYear, limit);
     return {
       member: {
         id: member.id,

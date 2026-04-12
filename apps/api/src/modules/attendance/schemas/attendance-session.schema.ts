@@ -33,6 +33,9 @@ export class AttendanceSession {
 
   @Prop({ required: true, type: String, index: true })
   weekKey!: string;
+
+  @Prop({ type: Number })
+  weeklyGoalSecondsSnapshot?: number;
 }
 
 export type AttendanceSessionDocument = HydratedDocument<AttendanceSession>;

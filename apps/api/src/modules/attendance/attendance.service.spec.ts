@@ -100,6 +100,7 @@ describe('AttendanceService', () => {
 
     expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
     expect(result.weekKey).toBe('2026-04-06');
+    expect(result.weeklyGoalSecondsSnapshot).toBe(38 * 3600);
   });
 
   it('builds record date filters using Asia/Shanghai day boundaries', async () => {
