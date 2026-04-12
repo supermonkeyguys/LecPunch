@@ -53,7 +53,15 @@ describe('DashboardPage', () => {
       weeklyGoalSeconds: 38 * 3600
     });
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
-      { userId: 'user-1', displayName: 'Alice', role: 'member', totalDurationSeconds: 7200, sessionsCount: 2, weekKey: '2026-03-31' }
+      {
+        userId: 'user-1',
+        displayName: 'Alice',
+        role: 'member',
+        enrollYear: 2024,
+        totalDurationSeconds: 7200,
+        sessionsCount: 2,
+        weekKey: '2026-03-31'
+      }
     ]);
 
     render(

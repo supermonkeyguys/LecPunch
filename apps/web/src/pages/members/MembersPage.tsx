@@ -13,12 +13,25 @@ interface MembersTableRow extends TeamWeeklyStatItem {
   _action: null;
 }
 
+type SortOption = 'duration-desc' | 'duration-asc' | 'count-desc' | 'count-asc';
+
+const SORTERS: Record<SortOption, (left: TeamWeeklyStatItem, right: TeamWeeklyStatItem) => number> = {
+  'duration-desc': (left, right) => right.totalDurationSeconds - left.totalDurationSeconds,
+  'duration-asc': (left, right) => left.totalDurationSeconds - right.totalDurationSeconds,
+  'count-desc': (left, right) => right.sessionsCount - left.sessionsCount,
+  'count-asc': (left, right) => left.sessionsCount - right.sessionsCount
+};
+
 export const MembersPage = () => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<TeamWeeklyStatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [selectedEnrollYear, setSelectedEnrollYear] = useState('all');
+  const [minimumHours, setMinimumHours] = useState('');
+  const [maximumHours, setMaximumHours] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('duration-desc');
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -54,17 +67,35 @@ export const MembersPage = () => {
     };
   }, [reloadToken]);
 
+  const enrollYearOptions = useMemo(
+    () => [...new Set(members.map((member) => member.enrollYear))].filter(Boolean).sort((left, right) => right - left),
+    [members]
+  );
+
   const filteredMembers = useMemo(() => {
-    const sorted = [...members].sort((left, right) => right.totalDurationSeconds - left.totalDurationSeconds);
-    return search
-      ? sorted.filter((member) => member.displayName.toLowerCase().includes(search.toLowerCase()))
-      : sorted;
-  }, [members, search]);
+    const normalizedSearch = search.trim().toLowerCase();
+    const minimumSeconds = minimumHours === '' ? null : Math.max(Number(minimumHours) || 0, 0) * 3600;
+    const maximumSeconds = maximumHours === '' ? null : Math.max(Number(maximumHours) || 0, 0) * 3600;
+
+    return [...members]
+      .filter((member) => (selectedEnrollYear === 'all' ? true : String(member.enrollYear) === selectedEnrollYear))
+      .filter((member) => (normalizedSearch ? member.displayName.toLowerCase().includes(normalizedSearch) : true))
+      .filter((member) => (minimumSeconds === null ? true : member.totalDurationSeconds >= minimumSeconds))
+      .filter((member) => (maximumSeconds === null ? true : member.totalDurationSeconds <= maximumSeconds))
+      .sort((left, right) => {
+        const result = SORTERS[sortBy](left, right);
+        if (result !== 0) {
+          return result;
+        }
+
+        return left.displayName.localeCompare(right.displayName);
+      });
+  }, [maximumHours, members, minimumHours, search, selectedEnrollYear, sortBy]);
 
   const columns: ColumnDef<MembersTableRow>[] = [
     {
       key: 'displayName',
-      header: '排名 / 成员',
+      header: '排序 / 成员',
       render: (_, row, index) => (
         <div className="flex items-center gap-4">
           <span className={`w-6 text-center text-sm font-bold ${index < 3 ? 'text-blue-600' : 'text-gray-400'}`}>
@@ -82,14 +113,13 @@ export const MembersPage = () => {
       )
     },
     {
-      key: 'role',
-      header: '角色',
-      render: (value) =>
-        value === 'admin' ? <Badge variant="purple">管理员</Badge> : <Badge variant="gray">普通成员</Badge>
+      key: 'enrollYear',
+      header: '成员年级',
+      render: (value) => <span className="font-medium text-gray-700">{value ? `${value} 级` : '-'}</span>
     },
     {
       key: 'totalDurationSeconds',
-      header: '本周累计时长',
+      header: '打卡时长',
       cellClassName: 'font-mono font-bold text-base text-gray-800',
       render: (value) => formatDuration(value)
     },
@@ -116,7 +146,7 @@ export const MembersPage = () => {
           }}
         >
           <Eye className="h-4 w-4" />
-          查流水
+          查看流水
         </Button>
       )
     }
@@ -129,7 +159,7 @@ export const MembersPage = () => {
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">团队数据</h1>
-          <p className="mt-1 text-sm text-gray-500">查看本周团队成员的排行与打卡记录。</p>
+          <p className="mt-1 text-sm text-gray-500">查看本周团队成员的累计打卡时长、次数和成员明细。</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="info">仅本周</Badge>
@@ -138,6 +168,7 @@ export const MembersPage = () => {
             <input
               type="text"
               placeholder="搜索成员..."
+              aria-label="member-search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               className="h-[38px] rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -159,13 +190,87 @@ export const MembersPage = () => {
             }
           />
         ) : (
-          <DataTable
-            columns={columns}
-            data={tableData}
-            loading={loading}
-            emptyText="暂无成员数据"
-            rowKey={(member) => member.userId}
-          />
+          <div className="space-y-5">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_160px_160px_220px]">
+              <label className="block sm:hidden">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">搜索</span>
+                <input
+                  type="text"
+                  aria-label="member-search-mobile"
+                  placeholder="搜索成员..."
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">年级筛选</span>
+                <select
+                  aria-label="grade-filter"
+                  value={selectedEnrollYear}
+                  onChange={(event) => setSelectedEnrollYear(event.target.value)}
+                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">全部年级</option>
+                  {enrollYearOptions.map((year) => (
+                    <option key={year} value={String(year)}>
+                      {year} 级
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">最低时长 (小时)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  aria-label="minimum-hours-filter"
+                  value={minimumHours}
+                  onChange={(event) => setMinimumHours(event.target.value)}
+                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">最高时长 (小时)</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.5}
+                  aria-label="maximum-hours-filter"
+                  value={maximumHours}
+                  onChange={(event) => setMaximumHours(event.target.value)}
+                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">排序方式</span>
+                <select
+                  aria-label="members-sort"
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value as SortOption)}
+                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="duration-desc">打卡时长 从高到低</option>
+                  <option value="duration-asc">打卡时长 从低到高</option>
+                  <option value="count-desc">打卡次数 从高到低</option>
+                  <option value="count-asc">打卡次数 从低到高</option>
+                </select>
+              </label>
+            </div>
+
+            <DataTable
+              columns={columns}
+              data={tableData}
+              loading={loading}
+              emptyText="暂无符合条件的成员数据"
+              rowKey={(member) => member.userId}
+            />
+          </div>
         )}
       </PageSection>
     </div>

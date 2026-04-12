@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Button, DataTable, Progress, type ColumnDef } from '@lecpunch/ui';
+import { Badge, Button, DataTable, Progress, type ColumnDef } from '@lecpunch/ui';
 import type { WeeklyStatItem } from '@lecpunch/shared';
 import { getMyWeeklyStats } from '@/features/stats/stats.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
-import { formatDuration } from '@/shared/lib/time';
+import { formatDuration, formatWeekRangeLabel, isCurrentWeekKey } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
 export const WeeklyHistoryPage = () => {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatItem[]>([]);
+  const [weeklyGoalSeconds, setWeeklyGoalSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -28,6 +29,7 @@ export const WeeklyHistoryPage = () => {
         }
 
         setWeeklyStats(result.items);
+        setWeeklyGoalSeconds(result.weeklyGoalSeconds);
       } catch (error) {
         if (!cancelled) {
           setError(getApiErrorMessage(error, '加载周历史统计失败'));
@@ -46,10 +48,21 @@ export const WeeklyHistoryPage = () => {
     };
   }, [reloadToken]);
 
-  const maxDuration = Math.max(...weeklyStats.map((item) => item.totalDurationSeconds), 1);
-
   const columns: ColumnDef<WeeklyStatItem>[] = [
-    { key: 'weekKey', header: '周标识', cellClassName: 'font-medium text-gray-900' },
+    {
+      key: 'weekKey',
+      header: '周标识',
+      cellClassName: 'font-medium text-gray-900',
+      render: (value) => (
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-gray-900">{value}</span>
+            {isCurrentWeekKey(value) ? <Badge variant="info">本周</Badge> : null}
+          </div>
+          <div className="text-xs text-gray-500">{formatWeekRangeLabel(value)}</div>
+        </div>
+      )
+    },
     {
       key: 'totalDurationSeconds',
       header: '累计时长',
@@ -60,8 +73,19 @@ export const WeeklyHistoryPage = () => {
     {
       key: '_progress',
       header: '进度',
-      headerClassName: 'w-48',
-      render: (_, row) => <Progress value={(row.totalDurationSeconds / maxDuration) * 100} className="w-40" />
+      headerClassName: 'w-56',
+      render: (_, row) => {
+        const progress = weeklyGoalSeconds > 0 ? (row.totalDurationSeconds / weeklyGoalSeconds) * 100 : 0;
+
+        return (
+          <div className="space-y-2">
+            <Progress value={progress} className="w-44" />
+            <div className="text-xs text-gray-500">
+              {`${Math.round(Math.min(progress, 100))}% / 目标 ${formatDuration(weeklyGoalSeconds)}`}
+            </div>
+          </div>
+        );
+      }
     }
   ];
 
@@ -69,7 +93,7 @@ export const WeeklyHistoryPage = () => {
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">周历史统计</h1>
-        <p className="mt-1 text-sm text-gray-500">查看您近期各周的打卡累计情况。</p>
+        <p className="mt-1 text-sm text-gray-500">查看你近几周的打卡累计情况和周目标完成进度。</p>
       </div>
 
       <PageSection>

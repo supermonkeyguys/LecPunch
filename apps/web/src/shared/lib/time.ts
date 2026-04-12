@@ -12,6 +12,17 @@ export const formatDuration = (seconds: number) => {
   return `${hours}:${minutes}:${secs}`;
 };
 
+const parseWeekKey = (weekKey: string) => {
+  const [year, month, day] = weekKey.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
+const formatMonthDay = (date: Date) => {
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  return `${mm}-${dd}`;
+};
+
 /** Format an ISO date string to a readable local time */
 export const formatDateTime = (iso: string) => {
   const d = new Date(iso);
@@ -25,18 +36,16 @@ export const formatDateTime = (iso: string) => {
 
 /**
  * Convert a selectedWeek key to the Monday-based weekKey string (yyyy-MM-dd).
- * 'current' → this week's Monday, 'prev1' → last Monday, etc.
+ * 'current' -> this week's Monday, 'prev1' -> last Monday, etc.
  */
 export const weekKeyFromOffset = (offset: number): string => {
   const now = new Date();
-  // Shift to Asia/Shanghai by adding UTC+8 offset
   const shanghaiOffset = 8 * 60;
-  const localOffset = now.getTimezoneOffset(); // minutes behind UTC
+  const localOffset = now.getTimezoneOffset();
   const shanghaiMs = now.getTime() + (shanghaiOffset + localOffset) * 60 * 1000;
   const sh = new Date(shanghaiMs);
 
-  // Day of week: 0=Sun, 1=Mon … shift so Mon=0
-  const dow = (sh.getDay() + 6) % 7; // Mon=0, Sun=6
+  const dow = (sh.getDay() + 6) % 7;
   const monday = new Date(sh);
   monday.setDate(sh.getDate() - dow - offset * 7);
 
@@ -55,3 +64,12 @@ const WEEK_OFFSETS: Record<string, number> = {
 
 export const selectedWeekToKey = (selectedWeek: string): string =>
   weekKeyFromOffset(WEEK_OFFSETS[selectedWeek] ?? 0);
+
+export const formatWeekRangeLabel = (weekKey: string) => {
+  const start = parseWeekKey(weekKey);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  return `${formatMonthDay(start)} ~ ${formatMonthDay(end)}`;
+};
+
+export const isCurrentWeekKey = (weekKey: string) => weekKey === weekKeyFromOffset(0);

@@ -65,7 +65,9 @@ describe('WeeklyHistoryPage', () => {
     );
 
     expect(await screen.findByText('2026-03-31')).toBeInTheDocument();
+    expect(screen.getByText(/03-31 ~ 04-06/i)).toBeInTheDocument();
     expect(screen.getByText('02:00:00')).toBeInTheDocument();
+    expect(screen.getByText(/5% \/ 目标 38:00:00/i)).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
   });
 });

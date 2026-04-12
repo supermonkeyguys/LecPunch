@@ -20,15 +20,13 @@ describe('StatsService', () => {
     service = new StatsService(attendanceService as any, usersService as any);
   });
 
-  it('returns team current week stats enriched with role and display name', async () => {
+  it('returns team current week stats enriched with member profile fields', async () => {
     aggregate.mockReturnValue({
       exec: vi.fn().mockResolvedValue([
         { _id: 'user-1', totalDurationSeconds: 7200, sessionsCount: 2 }
       ])
     });
-    usersService.findByIds.mockResolvedValue([
-      { id: 'user-1', displayName: 'Alice', role: 'member' }
-    ]);
+    usersService.findByIds.mockResolvedValue([{ id: 'user-1', displayName: 'Alice', role: 'member', enrollYear: 2024 }]);
 
     const result = await service.getTeamCurrentWeekStats('team-1');
 
@@ -39,6 +37,7 @@ describe('StatsService', () => {
         sessionsCount: 2,
         displayName: 'Alice',
         role: 'member',
+        enrollYear: 2024,
         weekKey: expect.any(String)
       }
     ]);

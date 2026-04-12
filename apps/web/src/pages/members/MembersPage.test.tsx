@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MembersPage } from './MembersPage';
 
@@ -52,6 +53,7 @@ describe('MembersPage', () => {
         userId: 'user-1',
         displayName: 'Alice',
         role: 'member',
+        enrollYear: 2024,
         totalDurationSeconds: 7200,
         sessionsCount: 2,
         weekKey: '2026-03-31'
@@ -66,6 +68,45 @@ describe('MembersPage', () => {
 
     expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/普通成员/i)).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: /2024 级/i })).toBeInTheDocument();
+  });
+
+  it('filters by enroll year and sorts by sessions count', async () => {
+    const user = userEvent.setup();
+
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([
+      {
+        userId: 'user-1',
+        displayName: 'Alice',
+        role: 'member',
+        enrollYear: 2024,
+        totalDurationSeconds: 7200,
+        sessionsCount: 2,
+        weekKey: '2026-03-31'
+      },
+      {
+        userId: 'user-2',
+        displayName: 'Bob',
+        role: 'member',
+        enrollYear: 2025,
+        totalDurationSeconds: 3600,
+        sessionsCount: 4,
+        weekKey: '2026-03-31'
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <MembersPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('grade-filter'), '2025');
+    await user.selectOptions(screen.getByLabelText('members-sort'), 'count-desc');
+
+    expect(screen.getByText(/Bob/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Alice/i)).not.toBeInTheDocument();
   });
 });

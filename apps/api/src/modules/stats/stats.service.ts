@@ -71,6 +71,7 @@ export class StatsService {
         sessionsCount: row.sessionsCount,
         displayName: user?.displayName ?? '未知成员',
         role: user?.role ?? 'member',
+        enrollYear: user?.enrollYear ?? 0,
         avatarColor: user?.avatarColor,
         avatarEmoji: user?.avatarEmoji,
         avatarBase64: user?.avatarBase64,
