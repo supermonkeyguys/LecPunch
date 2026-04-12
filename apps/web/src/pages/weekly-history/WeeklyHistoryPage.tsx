@@ -93,7 +93,6 @@ export const WeeklyHistoryPage = () => {
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">周历史统计</h1>
-        <p className="mt-1 text-sm text-gray-500">查看你近几周的打卡累计情况和周目标完成进度。</p>
       </div>
 
       <PageSection>
@@ -101,7 +100,6 @@ export const WeeklyHistoryPage = () => {
           <PageState
             tone="error"
             title={error}
-            description="周历史按服务端聚合生成，请稍后重试。"
             action={
               <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
                 重新加载

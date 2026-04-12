@@ -56,7 +56,6 @@ export const MemberRecordsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const stateDisplayName: string | undefined = (location.state as { displayName?: string } | null)?.displayName;
-  const stateRole: string | undefined = (location.state as { role?: string } | null)?.role;
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -68,7 +67,6 @@ export const MemberRecordsPage = () => {
   const [reloadToken, setReloadToken] = useState(0);
 
   const memberName = stateDisplayName ?? memberInfo?.displayName ?? userId ?? '未知成员';
-  const memberRole = stateRole ?? memberInfo?.role ?? 'member';
 
   useEffect(() => {
     if (!userId) {
@@ -125,7 +123,6 @@ export const MemberRecordsPage = () => {
             <Avatar name={memberName} size="md" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{memberName} 的打卡记录</h1>
-              <p className="mt-0.5 text-sm text-gray-500">{memberRole === 'admin' ? '管理员' : '普通成员'}</p>
             </div>
           </div>
         </div>
@@ -143,18 +140,13 @@ export const MemberRecordsPage = () => {
 
       {loading ? (
         <PageSection>
-          <PageState
-            tone="loading"
-            title="正在加载成员记录..."
-            description="正在同步成员的周统计与打卡流水。"
-          />
+          <PageState tone="loading" title="正在加载成员记录..." />
         </PageSection>
       ) : error ? (
         <PageSection>
           <PageState
             tone="error"
             title={error}
-            description="请确认您仍有权限查看该成员数据，然后重新加载。"
             action={
               <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
                 重新加载

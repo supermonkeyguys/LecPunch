@@ -229,7 +229,7 @@ describe('DashboardPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/当前正在查看 上周 的个人数据/i)).toBeInTheDocument();
+    expect(await screen.findByText(/当前查看 上周，不可打卡。/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /上卡|下卡/i })).not.toBeInTheDocument();
     expect(screen.getAllByText('02:00:00').length).toBeGreaterThan(0);
   });

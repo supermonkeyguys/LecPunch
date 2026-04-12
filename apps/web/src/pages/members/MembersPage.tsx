@@ -193,7 +193,7 @@ export const MembersPage = () => {
           onClick={(event) => {
             event.stopPropagation();
             navigate(`/members/${row.userId}/records`, {
-              state: { displayName: row.displayName, role: row.role }
+              state: { displayName: row.displayName }
             });
           }}
         >

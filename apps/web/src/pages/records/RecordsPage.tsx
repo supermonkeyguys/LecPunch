@@ -97,7 +97,6 @@ export const RecordsPage = () => {
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">我的打卡记录</h1>
-          <p className="mt-1 text-sm text-gray-500">查看您的详细打卡流水记录。</p>
         </div>
         <DateRangePicker
           startDate={startDate}
@@ -116,7 +115,6 @@ export const RecordsPage = () => {
           <PageState
             tone="error"
             title={error}
-            description="可以稍后重试，或调整筛选条件后重新加载。"
             action={
               <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
                 重新加载

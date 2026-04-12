@@ -89,7 +89,7 @@ export const DashboardPage = () => {
 
   const openMemberRecords = (member: TeamWeeklyStatItem) => {
     navigate(`/members/${member.userId}/records`, {
-      state: { displayName: member.displayName, role: member.role }
+      state: { displayName: member.displayName }
     });
   };
 
@@ -108,17 +108,13 @@ export const DashboardPage = () => {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">工作台</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            当前显示：
-            <span className="font-medium text-blue-600">{weekLabel}</span> 的数据
-          </p>
         </div>
         <WeekSelector value={selectedWeek} onChange={setSelectedWeek} />
       </div>
 
       {!isCurrentWeek ? (
         <Alert variant="info" icon={<AlertTriangle className="h-4 w-4" />}>
-          当前正在查看 {weekLabel} 的个人数据。打卡按钮已禁用，团队榜固定展示本周同年级排行。
+          当前查看 {weekLabel}，不可打卡。
         </Alert>
       ) : null}
 
@@ -127,7 +123,6 @@ export const DashboardPage = () => {
           <PageState
             tone="error"
             title={error}
-            description="请检查网络后重新加载工作台数据。"
             action={
               <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
