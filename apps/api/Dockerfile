@@ -1,9 +1,12 @@
 FROM node:20-bookworm-slim AS build
 
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
 RUN corepack enable
+RUN npm config set registry ${NPM_REGISTRY} && pnpm config set registry ${NPM_REGISTRY}
 
 WORKDIR /app
 

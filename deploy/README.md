@@ -8,6 +8,13 @@ It uses:
 - the API container on the internal Docker network only
 - the web container serving the Vite build through nginx and proxying `/api` to the API
 
+The Docker build defaults to `https://registry.npmjs.org/`.
+If your server cannot access that reliably, you can override it per build with:
+
+```bash
+export NPM_REGISTRY=https://registry.npmmirror.com
+```
+
 ## 1. Limitations
 
 - Access is over `http://<server-public-ip>/`, not HTTPS.
@@ -54,6 +61,8 @@ Run:
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+If you previously had a broken local npm source configured on the server, this compose file still forces the registry passed by `NPM_REGISTRY`, so you do not need to modify global npm config first.
 
 Check logs if needed:
 
