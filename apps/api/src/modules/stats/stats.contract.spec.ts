@@ -29,6 +29,34 @@ describe('StatsController contract', () => {
     });
   });
 
+  it('returns team current week stats without leaking member ids', async () => {
+    statsService.getTeamCurrentWeekStats.mockResolvedValue([
+      {
+        displayName: 'Alice',
+        role: 'member',
+        enrollYear: 2024,
+        totalDurationSeconds: 7200,
+        sessionsCount: 2,
+        weekKey: '2026-03-31'
+      }
+    ]);
+
+    const result = await controller.teamCurrentWeek({ teamId: 'team-1', enrollYear: 2024 } as any);
+
+    expect(result).toMatchObject({
+      items: [
+        {
+          displayName: 'Alice',
+          enrollYear: 2024,
+          totalDurationSeconds: 7200,
+          sessionsCount: 2,
+          weekKey: '2026-03-31'
+        }
+      ]
+    });
+    expect(result.items[0]).not.toHaveProperty('userId');
+  });
+
   it('returns member weekly stats with member info', async () => {
     statsService.getMemberWeeklyStats.mockResolvedValue({
       member: { id: 'user-2', displayName: 'Bob', role: 'member' },

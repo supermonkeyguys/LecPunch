@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { cleanup, render, screen, within, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MembersPage } from './MembersPage';
@@ -47,10 +47,9 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/加载成员统计失败/i)).toBeInTheDocument();
   });
 
-  it('renders team members from weekly stats', async () => {
+  it('renders team members from weekly stats without member ids', async () => {
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
-        userId: 'user-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -66,11 +65,13 @@ describe('MembersPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Alice$/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /2024 级/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '筛选' })).toBeInTheDocument();
     expect(screen.getByLabelText('scope-team')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText(/ID:/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /查看流水/i })).not.toBeInTheDocument();
   });
 
   it('supports switching between same-grade and full-team scopes', async () => {
@@ -79,7 +80,6 @@ describe('MembersPage', () => {
     mocks.getTeamCurrentWeekStats
       .mockResolvedValueOnce([
         {
-          userId: 'user-1',
           displayName: 'Alice',
           role: 'member',
           enrollYear: 2024,
@@ -90,7 +90,6 @@ describe('MembersPage', () => {
       ])
       .mockResolvedValueOnce([
         {
-          userId: 'user-2',
           displayName: 'Bob',
           role: 'member',
           enrollYear: 2025,
@@ -106,7 +105,7 @@ describe('MembersPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Alice$/i)).toBeInTheDocument();
     expect(mocks.getTeamCurrentWeekStats).toHaveBeenNthCalledWith(1, true);
 
     await user.click(screen.getByLabelText('scope-team'));
@@ -114,13 +113,12 @@ describe('MembersPage', () => {
     await waitFor(() => {
       expect(mocks.getTeamCurrentWeekStats).toHaveBeenNthCalledWith(2, false);
     });
-    expect(await screen.findByText(/Bob/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Bob$/i)).toBeInTheDocument();
   });
 
   it('restores filters and sort state from the URL', async () => {
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
-        userId: 'user-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -129,7 +127,6 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
-        userId: 'user-2',
         displayName: 'Bob',
         role: 'member',
         enrollYear: 2025,
@@ -138,7 +135,6 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
-        userId: 'user-3',
         displayName: 'Bobby',
         role: 'member',
         enrollYear: 2025,
@@ -164,7 +160,7 @@ describe('MembersPage', () => {
 
     const rows = screen.getAllByRole('row');
     const firstDataRow = rows[1];
-    expect(within(firstDataRow).getByText(/Bob/i)).toBeInTheDocument();
+    expect(within(firstDataRow).getByText(/^Bob$/i)).toBeInTheDocument();
   });
 
   it('keeps filters in the card and sorts from the table header controls', async () => {
@@ -172,7 +168,6 @@ describe('MembersPage', () => {
 
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
-        userId: 'user-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -181,7 +176,6 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
-        userId: 'user-2',
         displayName: 'Bob',
         role: 'member',
         enrollYear: 2025,
@@ -197,14 +191,14 @@ describe('MembersPage', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+    expect(await screen.findByText(/^Alice$/i)).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText('grade-filter'), 'all');
     await user.click(screen.getByLabelText('sort-count'));
 
     const rows = screen.getAllByRole('row');
     const firstDataRow = rows[1];
-    expect(within(firstDataRow).getByText(/Bob/i)).toBeInTheDocument();
+    expect(within(firstDataRow).getByText(/^Bob$/i)).toBeInTheDocument();
     expect(screen.queryByLabelText('members-sort')).not.toBeInTheDocument();
   });
 });

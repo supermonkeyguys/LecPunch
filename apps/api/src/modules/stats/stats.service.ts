@@ -74,7 +74,6 @@ export class StatsService {
     return rows.map((row) => {
       const user = userMap.get(row._id);
       return {
-        userId: row._id,
         totalDurationSeconds: row.totalDurationSeconds,
         sessionsCount: row.sessionsCount,
         displayName: user?.displayName ?? '未知成员',

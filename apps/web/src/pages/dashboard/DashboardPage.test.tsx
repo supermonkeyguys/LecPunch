@@ -54,7 +54,6 @@ describe('DashboardPage', () => {
     });
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
-        userId: 'user-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,

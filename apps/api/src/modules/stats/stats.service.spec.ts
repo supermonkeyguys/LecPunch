@@ -32,7 +32,6 @@ describe('StatsService', () => {
 
     expect(result).toEqual([
       {
-        userId: 'user-1',
         totalDurationSeconds: 7200,
         sessionsCount: 2,
         displayName: 'Alice',
