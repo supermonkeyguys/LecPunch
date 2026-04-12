@@ -15,7 +15,7 @@ WORKDIR /app
 
 RUN rm -f /root/.npmrc /etc/npmrc /usr/local/etc/npmrc
 RUN rm -rf /root/.config/pnpm /tmp/xdg && mkdir -p /tmp/xdg
-RUN printf "registry=%s\nstrict-ssl=true\n" "${NPM_REGISTRY}" > /app/.npmrc
+RUN printf "registry=%s\nstrict-ssl=true\nreplace-registry-host=always\n" "${NPM_REGISTRY}" > /app/.npmrc
 RUN npm config get registry
 RUN npm install -g "pnpm@${PNPM_VERSION}" --registry=${NPM_REGISTRY}
 
