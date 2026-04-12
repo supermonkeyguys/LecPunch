@@ -44,9 +44,10 @@ describe('WeeklyHistoryPage', () => {
     );
 
     expect(await screen.findByText(/加载周历史统计失败/i)).toBeInTheDocument();
+    expect(screen.queryByText(/统计口径/i)).not.toBeInTheDocument();
   });
 
-  it('renders weekly history rows', async () => {
+  it('renders weekly history rows and the stats guidance', async () => {
     mocks.getMyWeeklyStats.mockResolvedValue({
       items: [
         {
@@ -65,6 +66,10 @@ describe('WeeklyHistoryPage', () => {
     );
 
     expect(await screen.findByText('2026-03-31')).toBeInTheDocument();
+    expect(screen.getByText(/统计口径/i)).toBeInTheDocument();
+    expect(screen.getByText(/当前目标 38:00:00/i)).toBeInTheDocument();
+    expect(screen.getByText(/所有历史周统一按当前目标计算/i)).toBeInTheDocument();
+    expect(screen.getByText(/次数计入，时长按 0 处理/i)).toBeInTheDocument();
     expect(screen.getByText(/03-31 ~ 04-06/i)).toBeInTheDocument();
     expect(screen.getByText('02:00:00')).toBeInTheDocument();
     expect(screen.getByText(/5% \/ 目标 38:00:00/i)).toBeInTheDocument();
