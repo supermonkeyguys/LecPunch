@@ -69,7 +69,7 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /2024 级/i })).toBeInTheDocument();
-    expect(screen.getByText(/筛选条件/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '筛选' })).toBeInTheDocument();
   });
 
   it('keeps filters in the card and sorts from the table header controls', async () => {

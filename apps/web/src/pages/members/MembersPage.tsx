@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
@@ -210,12 +210,7 @@ export const MembersPage = () => {
     <div className="mx-auto max-w-7xl p-8">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm text-blue-700">
-            <SlidersHorizontal className="h-4 w-4" />
-            成员视图
-          </div>
           <h1 className="text-2xl font-bold text-gray-900">团队成员</h1>
-          <p className="mt-1 text-sm text-gray-500">本周成员统计和记录入口分开整理，筛选与排序分别控制。</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="info">仅本周</Badge>
@@ -240,11 +235,8 @@ export const MembersPage = () => {
         <div className="space-y-6">
           <PageSection padded>
             <div className="space-y-5">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">筛选条件</h2>
-                  <p className="text-sm text-gray-500">筛选区域只负责缩小结果集，排序请直接点击表头图标。</p>
-                </div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">筛选</h2>
                 <Button type="button" variant="outline" size="sm" onClick={resetFilters} disabled={!hasActiveFilters}>
                   <X className="h-4 w-4" />
                   清空筛选
@@ -315,18 +307,7 @@ export const MembersPage = () => {
 
           <PageSection>
             <div className="border-b border-gray-100 px-6 py-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">成员统计表</h2>
-                  <p className="text-sm text-gray-500">
-                    当前按
-                    {sortMetric === 'duration' ? '打卡时长' : '打卡次数'}
-                    {sortDirection === 'desc' ? '从高到低' : '从低到高'}
-                    排序。
-                  </p>
-                </div>
-                <div className="text-sm text-gray-500">点击“打卡时长”或“打卡次数”列头可切换排序。</div>
-              </div>
+              <h2 className="text-lg font-semibold text-gray-900">成员统计</h2>
             </div>
 
             <DataTable
