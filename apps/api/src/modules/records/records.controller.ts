@@ -70,8 +70,6 @@ export class RecordsController {
   private mapSession(session: any) {
     return {
       id: session.id,
-      userId: session.userId,
-      teamId: session.teamId,
       checkInAt: session.checkInAt,
       checkOutAt: session.checkOutAt,
       durationSeconds: session.durationSeconds,

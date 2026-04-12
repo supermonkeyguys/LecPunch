@@ -15,6 +15,48 @@ describe('RecordsController', () => {
     controller = new RecordsController(recordsService as any);
   });
 
+  it('maps member records without leaking user or team ids', async () => {
+    recordsService.listMemberRecords.mockResolvedValue([
+      {
+        id: 'session-1',
+        userId: 'user-2',
+        teamId: 'team-1',
+        checkInAt: new Date('2026-04-09T01:00:00.000Z'),
+        checkOutAt: new Date('2026-04-09T03:00:00.000Z'),
+        durationSeconds: 7200,
+        status: 'completed',
+        invalidReason: undefined,
+        weekKey: '2026-04-06'
+      }
+    ]);
+
+    const result = await controller.memberRecords(
+      { userId: 'user-1', teamId: 'team-1', role: 'member' } as any,
+      'member-key-2'
+    );
+
+    expect(recordsService.listMemberRecords).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', teamId: 'team-1' }),
+      'member-key-2',
+      { weekKey: undefined, startDate: undefined, endDate: undefined },
+      1,
+      20
+    );
+    expect(result.items).toEqual([
+      {
+        id: 'session-1',
+        checkInAt: new Date('2026-04-09T01:00:00.000Z'),
+        checkOutAt: new Date('2026-04-09T03:00:00.000Z'),
+        durationSeconds: 7200,
+        status: 'completed',
+        invalidReason: undefined,
+        weekKey: '2026-04-06'
+      }
+    ]);
+    expect(result.items[0]).not.toHaveProperty('userId');
+    expect(result.items[0]).not.toHaveProperty('teamId');
+  });
+
   it('exports CSV with attachment headers for admins', async () => {
     recordsService.exportTeamRecords.mockResolvedValue([
       {

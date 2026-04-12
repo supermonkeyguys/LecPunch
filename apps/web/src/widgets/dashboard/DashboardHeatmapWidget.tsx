@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { History } from 'lucide-react';
-import type { AttendanceSession } from '@lecpunch/shared';
+import type { AttendanceRecordItem } from '@/features/records/records.api';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { buildHeatmap, cellDate, getMonday, HEATMAP_WEEKS, type HeatmapCell } from './dashboard.lib';
 
 interface DashboardHeatmapWidgetProps {
   loading: boolean;
-  records: AttendanceSession[];
+  records: AttendanceRecordItem[];
 }
 
 export const DashboardHeatmapWidget = ({ loading, records }: DashboardHeatmapWidgetProps) => {

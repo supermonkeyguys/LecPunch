@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AttendanceSession, TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
+import type { TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
 import type { WeekKey } from '@/app/store/root-store';
 import {
   getCurrentAttendance,
   type CurrentAttendanceResponse
 } from '@/features/attendance/attendance.api';
-import { getMyRecords } from '@/features/records/records.api';
+import { getMyRecords, type AttendanceRecordItem } from '@/features/records/records.api';
 import { getMyWeeklyStats, getTeamCurrentWeekStats } from '@/features/stats/stats.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { selectedWeekToKey } from '@/shared/lib/time';
@@ -15,7 +15,7 @@ interface DashboardState {
   weeklyStats: WeeklyStatItem[];
   weeklyGoalSeconds: number;
   teamStats: TeamWeeklyStatItem[];
-  records: AttendanceSession[];
+  records: AttendanceRecordItem[];
   loading: boolean;
   error: string | null;
 }

@@ -9,17 +9,25 @@ export interface RecordFilters {
   pageSize?: number;
 }
 
+export type AttendanceRecordItem = Pick<
+  AttendanceSession,
+  'id' | 'checkInAt' | 'checkOutAt' | 'durationSeconds' | 'status' | 'invalidReason' | 'weekKey'
+>;
+
 export const getMyRecords = async (filters?: RecordFilters) => {
-  const response = await apiClient.get<{ items: AttendanceSession[]; page: number; pageSize: number }>('/records/me', {
+  const response = await apiClient.get<{ items: AttendanceRecordItem[]; page: number; pageSize: number }>('/records/me', {
     params: filters ?? undefined
   });
   return response.data.items;
 };
 
 export const getMemberRecords = async (memberKey: string, filters?: RecordFilters) => {
-  const response = await apiClient.get<{ items: AttendanceSession[]; page: number; pageSize: number }>(`/records/member/${memberKey}`, {
-    params: filters ?? undefined
-  });
+  const response = await apiClient.get<{ items: AttendanceRecordItem[]; page: number; pageSize: number }>(
+    `/records/member/${memberKey}`,
+    {
+      params: filters ?? undefined
+    }
+  );
   return response.data.items;
 };
 

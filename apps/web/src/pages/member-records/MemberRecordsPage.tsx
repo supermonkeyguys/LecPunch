@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
-import type { AttendanceSession, WeeklyStatItem } from '@lecpunch/shared';
-import { getMemberRecords } from '@/features/records/records.api';
+import type { WeeklyStatItem } from '@lecpunch/shared';
+import { getMemberRecords, type AttendanceRecordItem } from '@/features/records/records.api';
 import { getMemberWeeklyStats, type MemberWeeklyStatsResponse } from '@/features/stats/stats.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime, formatDuration } from '@/shared/lib/time';
@@ -21,7 +21,7 @@ const statusBadge = (status: string) => {
   return <Badge variant="info">进行中</Badge>;
 };
 
-const recordColumns: ColumnDef<AttendanceSession>[] = [
+const recordColumns: ColumnDef<AttendanceRecordItem>[] = [
   { key: 'weekKey', header: '周标识', cellClassName: 'font-medium text-gray-900' },
   {
     key: 'checkInAt',
@@ -59,7 +59,7 @@ export const MemberRecordsPage = () => {
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [records, setRecords] = useState<AttendanceSession[]>([]);
+  const [records, setRecords] = useState<AttendanceRecordItem[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatItem[]>([]);
   const [memberInfo, setMemberInfo] = useState<MemberWeeklyStatsResponse['member'] | null>(null);
   const [loading, setLoading] = useState(true);

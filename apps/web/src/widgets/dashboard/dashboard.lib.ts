@@ -1,4 +1,4 @@
-import type { AttendanceSession } from '@lecpunch/shared';
+import type { AttendanceRecordItem } from '@/features/records/records.api';
 import type { WeekKey } from '@/app/store/root-store';
 
 export const HEATMAP_WEEKS = 20;
@@ -15,7 +15,7 @@ export interface HeatmapCell {
   totalSeconds: number;
 }
 
-export const buildHeatmap = (records: AttendanceSession[]) => {
+export const buildHeatmap = (records: AttendanceRecordItem[]) => {
   const map = new Map<string, HeatmapCell>();
   for (const record of records) {
     if (record.status === 'active') {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
-import type { AttendanceSession } from '@lecpunch/shared';
-import { getMyRecords } from '@/features/records/records.api';
+import { getMyRecords, type AttendanceRecordItem } from '@/features/records/records.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime, formatDuration } from '@/shared/lib/time';
 import { DateRangePicker } from '@/shared/ui/DateRangePicker';
@@ -18,7 +17,7 @@ const statusBadge = (status: string) => {
   return <Badge variant="info">进行中</Badge>;
 };
 
-const columns: ColumnDef<AttendanceSession>[] = [
+const columns: ColumnDef<AttendanceRecordItem>[] = [
   { key: 'weekKey', header: '周标识', cellClassName: 'font-medium text-gray-900' },
   {
     key: 'checkInAt',
@@ -51,7 +50,7 @@ const columns: ColumnDef<AttendanceSession>[] = [
 export const RecordsPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [records, setRecords] = useState<AttendanceSession[]>([]);
+  const [records, setRecords] = useState<AttendanceRecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
