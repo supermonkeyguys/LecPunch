@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { WeeklyHistoryPage } from './WeeklyHistoryPage';
@@ -47,7 +47,7 @@ describe('WeeklyHistoryPage', () => {
     expect(screen.queryByText(/统计口径/i)).not.toBeInTheDocument();
   });
 
-  it('renders weekly history rows and the stats guidance', async () => {
+  it('renders weekly history rows without the stats guidance card', async () => {
     mocks.getMyWeeklyStats.mockResolvedValue({
       items: [
         {
@@ -67,10 +67,7 @@ describe('WeeklyHistoryPage', () => {
     );
 
     expect(await screen.findByText('2026-03-31')).toBeInTheDocument();
-    expect(screen.getByText(/统计口径/i)).toBeInTheDocument();
-    expect(screen.getByText(/当前目标 38:00:00/i)).toBeInTheDocument();
-    expect(screen.getByText(/优先按每周目标快照计算/i)).toBeInTheDocument();
-    expect(screen.getByText(/次数计入，时长按 0 处理/i)).toBeInTheDocument();
+    expect(screen.queryByText(/统计口径/i)).not.toBeInTheDocument();
     expect(screen.getByText(/03-31 ~ 04-06/i)).toBeInTheDocument();
     expect(screen.getByText('02:00:00')).toBeInTheDocument();
     expect(screen.getByText(/5% \/ 目标 38:00:00/i)).toBeInTheDocument();
