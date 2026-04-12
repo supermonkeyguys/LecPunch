@@ -4,17 +4,19 @@ ARG NPM_REGISTRY=https://registry.npmjs.org/
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-
-RUN corepack enable
-RUN npm config set registry ${NPM_REGISTRY} && pnpm config set registry ${NPM_REGISTRY}
+ENV NPM_CONFIG_REGISTRY=$NPM_REGISTRY
 
 WORKDIR /app
+
+RUN corepack enable
+RUN printf "registry=%s\n" "${NPM_REGISTRY}" > /app/.npmrc
+RUN npm config set registry ${NPM_REGISTRY} --location=user
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json nest-cli.json ./
 COPY apps ./apps
 COPY packages ./packages
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --registry=${NPM_REGISTRY}
 RUN pnpm --filter @lecpunch/shared build
 RUN pnpm --filter @lecpunch/api build
 
