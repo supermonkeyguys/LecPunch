@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MembersPage } from './MembersPage';
@@ -69,9 +69,10 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /2024 级/i })).toBeInTheDocument();
+    expect(screen.getByText(/筛选条件/i)).toBeInTheDocument();
   });
 
-  it('filters by enroll year and sorts by sessions count', async () => {
+  it('keeps filters in the card and sorts from the table header controls', async () => {
     const user = userEvent.setup();
 
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
@@ -103,10 +104,12 @@ describe('MembersPage', () => {
 
     expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('grade-filter'), '2025');
-    await user.selectOptions(screen.getByLabelText('members-sort'), 'count-desc');
+    await user.selectOptions(screen.getByLabelText('grade-filter'), 'all');
+    await user.click(screen.getByLabelText('sort-count'));
 
-    expect(screen.getByText(/Bob/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Alice/i)).not.toBeInTheDocument();
+    const rows = screen.getAllByRole('row');
+    const firstDataRow = rows[1];
+    expect(within(firstDataRow).getByText(/Bob/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText('members-sort')).not.toBeInTheDocument();
   });
 });

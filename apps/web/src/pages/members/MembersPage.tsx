@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
@@ -13,14 +13,8 @@ interface MembersTableRow extends TeamWeeklyStatItem {
   _action: null;
 }
 
-type SortOption = 'duration-desc' | 'duration-asc' | 'count-desc' | 'count-asc';
-
-const SORTERS: Record<SortOption, (left: TeamWeeklyStatItem, right: TeamWeeklyStatItem) => number> = {
-  'duration-desc': (left, right) => right.totalDurationSeconds - left.totalDurationSeconds,
-  'duration-asc': (left, right) => left.totalDurationSeconds - right.totalDurationSeconds,
-  'count-desc': (left, right) => right.sessionsCount - left.sessionsCount,
-  'count-asc': (left, right) => left.sessionsCount - right.sessionsCount
-};
+type SortMetric = 'duration' | 'count';
+type SortDirection = 'desc' | 'asc';
 
 export const MembersPage = () => {
   const navigate = useNavigate();
@@ -31,7 +25,8 @@ export const MembersPage = () => {
   const [selectedEnrollYear, setSelectedEnrollYear] = useState('all');
   const [minimumHours, setMinimumHours] = useState('');
   const [maximumHours, setMaximumHours] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('duration-desc');
+  const [sortMetric, setSortMetric] = useState<SortMetric>('duration');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -44,11 +39,9 @@ export const MembersPage = () => {
       try {
         const nextMembers = await getTeamCurrentWeekStats();
 
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setMembers(nextMembers);
         }
-
-        setMembers(nextMembers);
       } catch (error) {
         if (!cancelled) {
           setError(getApiErrorMessage(error, '加载成员统计失败'));
@@ -83,24 +76,77 @@ export const MembersPage = () => {
       .filter((member) => (minimumSeconds === null ? true : member.totalDurationSeconds >= minimumSeconds))
       .filter((member) => (maximumSeconds === null ? true : member.totalDurationSeconds <= maximumSeconds))
       .sort((left, right) => {
-        const result = SORTERS[sortBy](left, right);
-        if (result !== 0) {
-          return result;
+        const primary =
+          sortMetric === 'duration'
+            ? left.totalDurationSeconds - right.totalDurationSeconds
+            : left.sessionsCount - right.sessionsCount;
+
+        if (primary !== 0) {
+          return sortDirection === 'asc' ? primary : -primary;
         }
 
         return left.displayName.localeCompare(right.displayName);
       });
-  }, [maximumHours, members, minimumHours, search, selectedEnrollYear, sortBy]);
+  }, [maximumHours, members, minimumHours, search, selectedEnrollYear, sortDirection, sortMetric]);
+
+  const handleSortToggle = (metric: SortMetric) => {
+    if (sortMetric === metric) {
+      setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+      return;
+    }
+
+    setSortMetric(metric);
+    setSortDirection('desc');
+  };
+
+  const resetFilters = () => {
+    setSearch('');
+    setSelectedEnrollYear('all');
+    setMinimumHours('');
+    setMaximumHours('');
+  };
+
+  const hasActiveFilters =
+    search.trim() !== '' || selectedEnrollYear !== 'all' || minimumHours !== '' || maximumHours !== '';
+
+  const renderSortIcon = (metric: SortMetric) => {
+    if (sortMetric !== metric) {
+      return <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />;
+    }
+
+    return sortDirection === 'desc' ? (
+      <ArrowDown className="h-3.5 w-3.5 text-blue-600" />
+    ) : (
+      <ArrowUp className="h-3.5 w-3.5 text-blue-600" />
+    );
+  };
+
+  const renderSortHeader = (label: string, metric: SortMetric) => (
+    <button
+      type="button"
+      onClick={() => handleSortToggle(metric)}
+      className="inline-flex items-center gap-1 text-xs font-semibold normal-case tracking-normal text-gray-600 transition hover:text-gray-900"
+      aria-label={`sort-${metric}`}
+    >
+      <span>{label}</span>
+      {renderSortIcon(metric)}
+    </button>
+  );
 
   const columns: ColumnDef<MembersTableRow>[] = [
     {
       key: 'displayName',
-      header: '排序 / 成员',
+      header: <span className="normal-case tracking-normal">排名 / 成员</span>,
+      headerClassName: 'normal-case tracking-normal',
       render: (_, row, index) => (
         <div className="flex items-center gap-4">
-          <span className={`w-6 text-center text-sm font-bold ${index < 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
+              index < 3 ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-500'
+            }`}
+          >
             {index + 1}
-          </span>
+          </div>
           <Avatar
             name={row.displayName}
             size="sm"
@@ -108,30 +154,36 @@ export const MembersPage = () => {
             avatarEmoji={row.avatarEmoji}
             avatarBase64={row.avatarBase64}
           />
-          <span className="text-sm font-bold text-gray-900">{row.displayName}</span>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-gray-900">{row.displayName}</div>
+            <div className="text-xs text-gray-500">ID: {row.userId}</div>
+          </div>
         </div>
       )
     },
     {
       key: 'enrollYear',
-      header: '成员年级',
+      header: <span className="normal-case tracking-normal">成员年级</span>,
+      headerClassName: 'normal-case tracking-normal',
       render: (value) => <span className="font-medium text-gray-700">{value ? `${value} 级` : '-'}</span>
     },
     {
       key: 'totalDurationSeconds',
-      header: '打卡时长',
-      cellClassName: 'font-mono font-bold text-base text-gray-800',
+      header: renderSortHeader('打卡时长', 'duration'),
+      headerClassName: 'normal-case tracking-normal',
+      cellClassName: 'font-mono text-base font-bold text-gray-800',
       render: (value) => formatDuration(value)
     },
     {
       key: 'sessionsCount',
-      header: '打卡次数',
+      header: renderSortHeader('打卡次数', 'count'),
+      headerClassName: 'normal-case tracking-normal',
       render: (value) => `${value} 次`
     },
     {
       key: '_action',
-      header: '',
-      headerClassName: 'text-right',
+      header: <span className="normal-case tracking-normal" />,
+      headerClassName: 'text-right normal-case tracking-normal',
       cellClassName: 'text-right',
       render: (_, row) => (
         <Button
@@ -156,29 +208,23 @@ export const MembersPage = () => {
 
   return (
     <div className="mx-auto max-w-7xl p-8">
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">团队数据</h1>
-          <p className="mt-1 text-sm text-gray-500">查看本周团队成员的累计打卡时长、次数和成员明细。</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="info">仅本周</Badge>
-          <div className="relative hidden sm:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="搜索成员..."
-              aria-label="member-search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-[38px] rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="mb-2 flex items-center gap-2 text-sm text-blue-700">
+            <SlidersHorizontal className="h-4 w-4" />
+            成员视图
           </div>
+          <h1 className="text-2xl font-bold text-gray-900">团队成员</h1>
+          <p className="mt-1 text-sm text-gray-500">本周成员统计和记录入口分开整理，筛选与排序分别控制。</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="info">仅本周</Badge>
+          <Badge variant="gray">{filteredMembers.length} 人</Badge>
         </div>
       </div>
 
-      <PageSection>
-        {error ? (
+      {error ? (
+        <PageSection>
           <PageState
             tone="error"
             title={error}
@@ -189,78 +235,98 @@ export const MembersPage = () => {
               </Button>
             }
           />
-        ) : (
-          <div className="space-y-5">
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_160px_160px_220px]">
-              <label className="block sm:hidden">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">搜索</span>
-                <input
-                  type="text"
-                  aria-label="member-search-mobile"
-                  placeholder="搜索成员..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </label>
+        </PageSection>
+      ) : (
+        <div className="space-y-6">
+          <PageSection padded>
+            <div className="space-y-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">筛选条件</h2>
+                  <p className="text-sm text-gray-500">筛选区域只负责缩小结果集，排序请直接点击表头图标。</p>
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={resetFilters} disabled={!hasActiveFilters}>
+                  <X className="h-4 w-4" />
+                  清空筛选
+                </Button>
+              </div>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">年级筛选</span>
-                <select
-                  aria-label="grade-filter"
-                  value={selectedEnrollYear}
-                  onChange={(event) => setSelectedEnrollYear(event.target.value)}
-                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">全部年级</option>
-                  {enrollYearOptions.map((year) => (
-                    <option key={year} value={String(year)}>
-                      {year} 级
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">成员搜索</span>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      aria-label="member-search"
+                      placeholder="按成员名搜索"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      className="h-11 w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </label>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">最低时长 (小时)</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  aria-label="minimum-hours-filter"
-                  value={minimumHours}
-                  onChange={(event) => setMinimumHours(event.target.value)}
-                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">年级筛选</span>
+                  <select
+                    aria-label="grade-filter"
+                    value={selectedEnrollYear}
+                    onChange={(event) => setSelectedEnrollYear(event.target.value)}
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">全部年级</option>
+                    {enrollYearOptions.map((year) => (
+                      <option key={year} value={String(year)}>
+                        {year} 级
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">最高时长 (小时)</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.5}
-                  aria-label="maximum-hours-filter"
-                  value={maximumHours}
-                  onChange={(event) => setMaximumHours(event.target.value)}
-                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">最低时长 (小时)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    aria-label="minimum-hours-filter"
+                    value={minimumHours}
+                    onChange={(event) => setMinimumHours(event.target.value)}
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">排序方式</span>
-                <select
-                  aria-label="members-sort"
-                  value={sortBy}
-                  onChange={(event) => setSortBy(event.target.value as SortOption)}
-                  className="h-[38px] w-full rounded-lg border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="duration-desc">打卡时长 从高到低</option>
-                  <option value="duration-asc">打卡时长 从低到高</option>
-                  <option value="count-desc">打卡次数 从高到低</option>
-                  <option value="count-asc">打卡次数 从低到高</option>
-                </select>
-              </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">最高时长 (小时)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    aria-label="maximum-hours-filter"
+                    value={maximumHours}
+                    onChange={(event) => setMaximumHours(event.target.value)}
+                    className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+              </div>
+            </div>
+          </PageSection>
+
+          <PageSection>
+            <div className="border-b border-gray-100 px-6 py-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">成员统计表</h2>
+                  <p className="text-sm text-gray-500">
+                    当前按
+                    {sortMetric === 'duration' ? '打卡时长' : '打卡次数'}
+                    {sortDirection === 'desc' ? '从高到低' : '从低到高'}
+                    排序。
+                  </p>
+                </div>
+                <div className="text-sm text-gray-500">点击“打卡时长”或“打卡次数”列头可切换排序。</div>
+              </div>
             </div>
 
             <DataTable
@@ -270,9 +336,9 @@ export const MembersPage = () => {
               emptyText="暂无符合条件的成员数据"
               rowKey={(member) => member.userId}
             />
-          </div>
-        )}
-      </PageSection>
+          </PageSection>
+        </div>
+      )}
     </div>
   );
 };

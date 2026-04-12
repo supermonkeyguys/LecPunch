@@ -1,8 +1,9 @@
+import type { ReactNode } from 'react';
 import { cn } from '../lib/cn';
 
 export interface ColumnDef<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   headerClassName?: string;
   cellClassName?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
