@@ -117,6 +117,56 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/Bob/i)).toBeInTheDocument();
   });
 
+  it('restores filters and sort state from the URL', async () => {
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([
+      {
+        userId: 'user-1',
+        displayName: 'Alice',
+        role: 'member',
+        enrollYear: 2024,
+        totalDurationSeconds: 7200,
+        sessionsCount: 2,
+        weekKey: '2026-03-31'
+      },
+      {
+        userId: 'user-2',
+        displayName: 'Bob',
+        role: 'member',
+        enrollYear: 2025,
+        totalDurationSeconds: 3600,
+        sessionsCount: 1,
+        weekKey: '2026-03-31'
+      },
+      {
+        userId: 'user-3',
+        displayName: 'Bobby',
+        role: 'member',
+        enrollYear: 2025,
+        totalDurationSeconds: 5400,
+        sessionsCount: 3,
+        weekKey: '2026-03-31'
+      }
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/members?scope=same-grade&search=Bo&enrollYear=2025&minHours=1&maxHours=2&sort=count-asc']}>
+        <MembersPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/^Bob$/)).toBeInTheDocument();
+    expect(mocks.getTeamCurrentWeekStats).toHaveBeenCalledWith(true);
+    expect(screen.getByLabelText('scope-same-grade')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('member-search')).toHaveValue('Bo');
+    expect(screen.getByLabelText('grade-filter')).toHaveValue('2025');
+    expect(screen.getByLabelText('minimum-hours-filter')).toHaveValue(1);
+    expect(screen.getByLabelText('maximum-hours-filter')).toHaveValue(2);
+
+    const rows = screen.getAllByRole('row');
+    const firstDataRow = rows[1];
+    expect(within(firstDataRow).getByText(/Bob/i)).toBeInTheDocument();
+  });
+
   it('keeps filters in the card and sorts from the table header controls', async () => {
     const user = userEvent.setup();
 

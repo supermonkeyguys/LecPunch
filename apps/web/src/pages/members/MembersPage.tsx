@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
@@ -18,27 +18,123 @@ type SortMetric = 'duration' | 'count';
 type SortDirection = 'desc' | 'asc';
 type MembersScope = 'team' | 'same-grade';
 
+interface MembersViewState {
+  scope: MembersScope;
+  search: string;
+  selectedEnrollYear: string;
+  minimumHours: string;
+  maximumHours: string;
+  sortMetric: SortMetric;
+  sortDirection: SortDirection;
+}
+
 const SCOPE_OPTIONS: Array<{ value: MembersScope; label: string }> = [
   { value: 'team', label: '全团队' },
   { value: 'same-grade', label: '同年级' }
 ];
 
+const DEFAULT_VIEW_STATE: MembersViewState = {
+  scope: 'team',
+  search: '',
+  selectedEnrollYear: 'all',
+  minimumHours: '',
+  maximumHours: '',
+  sortMetric: 'duration',
+  sortDirection: 'desc'
+};
+
+const parseScope = (value: string | null): MembersScope | null => {
+  return value === 'team' || value === 'same-grade' ? value : null;
+};
+
+const parseSort = (value: string | null): Pick<MembersViewState, 'sortMetric' | 'sortDirection'> => {
+  if (!value) {
+    return {
+      sortMetric: DEFAULT_VIEW_STATE.sortMetric,
+      sortDirection: DEFAULT_VIEW_STATE.sortDirection
+    };
+  }
+
+  const [metric, direction] = value.split('-');
+  const sortMetric: SortMetric = metric === 'count' ? 'count' : 'duration';
+  const sortDirection: SortDirection = direction === 'asc' ? 'asc' : 'desc';
+
+  return { sortMetric, sortDirection };
+};
+
+const buildSearchParams = (state: MembersViewState) => {
+  const next = new URLSearchParams();
+
+  if (state.scope !== DEFAULT_VIEW_STATE.scope) {
+    next.set('scope', state.scope);
+  }
+  if (state.search.trim() !== DEFAULT_VIEW_STATE.search) {
+    next.set('search', state.search);
+  }
+  if (state.selectedEnrollYear !== DEFAULT_VIEW_STATE.selectedEnrollYear) {
+    next.set('enrollYear', state.selectedEnrollYear);
+  }
+  if (state.minimumHours !== DEFAULT_VIEW_STATE.minimumHours) {
+    next.set('minHours', state.minimumHours);
+  }
+  if (state.maximumHours !== DEFAULT_VIEW_STATE.maximumHours) {
+    next.set('maxHours', state.maximumHours);
+  }
+  if (
+    state.sortMetric !== DEFAULT_VIEW_STATE.sortMetric ||
+    state.sortDirection !== DEFAULT_VIEW_STATE.sortDirection
+  ) {
+    next.set('sort', `${state.sortMetric}-${state.sortDirection}`);
+  }
+
+  return next;
+};
+
 export const MembersPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialScope = ((location.state as { scope?: MembersScope } | null)?.scope ?? 'team') as MembersScope;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const fallbackScope = parseScope((location.state as { scope?: string } | null)?.scope ?? null) ?? 'team';
 
   const [members, setMembers] = useState<TeamWeeklyStatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [scope, setScope] = useState<MembersScope>(initialScope);
-  const [search, setSearch] = useState('');
-  const [selectedEnrollYear, setSelectedEnrollYear] = useState('all');
-  const [minimumHours, setMinimumHours] = useState('');
-  const [maximumHours, setMaximumHours] = useState('');
-  const [sortMetric, setSortMetric] = useState<SortMetric>('duration');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [reloadToken, setReloadToken] = useState(0);
+
+  const { sortMetric, sortDirection } = useMemo(() => parseSort(searchParams.get('sort')), [searchParams]);
+  const scope = parseScope(searchParams.get('scope')) ?? fallbackScope;
+  const search = searchParams.get('search') ?? '';
+  const selectedEnrollYear = searchParams.get('enrollYear') ?? 'all';
+  const minimumHours = searchParams.get('minHours') ?? '';
+  const maximumHours = searchParams.get('maxHours') ?? '';
+
+  const viewState = useMemo<MembersViewState>(
+    () => ({
+      scope,
+      search,
+      selectedEnrollYear,
+      minimumHours,
+      maximumHours,
+      sortMetric,
+      sortDirection
+    }),
+    [maximumHours, minimumHours, scope, search, selectedEnrollYear, sortDirection, sortMetric]
+  );
+
+  useEffect(() => {
+    const canonicalParams = buildSearchParams(viewState);
+    if (canonicalParams.toString() !== searchParams.toString()) {
+      setSearchParams(canonicalParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, viewState]);
+
+  const updateViewState = (updates: Partial<MembersViewState>, replace = false) => {
+    const nextState: MembersViewState = {
+      ...viewState,
+      ...updates
+    };
+    setSearchParams(buildSearchParams(nextState), { replace });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -77,15 +173,15 @@ export const MembersPage = () => {
   );
 
   useEffect(() => {
-    if (selectedEnrollYear === 'all') {
+    if (loading || selectedEnrollYear === 'all' || enrollYearOptions.length === 0) {
       return;
     }
 
     const hasSelectedYear = enrollYearOptions.some((year) => String(year) === selectedEnrollYear);
     if (!hasSelectedYear) {
-      setSelectedEnrollYear('all');
+      updateViewState({ selectedEnrollYear: 'all' }, true);
     }
-  }, [enrollYearOptions, selectedEnrollYear]);
+  }, [enrollYearOptions, loading, selectedEnrollYear]);
 
   const filteredMembers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -113,19 +209,25 @@ export const MembersPage = () => {
 
   const handleSortToggle = (metric: SortMetric) => {
     if (sortMetric === metric) {
-      setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+      updateViewState({
+        sortDirection: sortDirection === 'desc' ? 'asc' : 'desc'
+      });
       return;
     }
 
-    setSortMetric(metric);
-    setSortDirection('desc');
+    updateViewState({
+      sortMetric: metric,
+      sortDirection: 'desc'
+    });
   };
 
   const resetFilters = () => {
-    setSearch('');
-    setSelectedEnrollYear('all');
-    setMinimumHours('');
-    setMaximumHours('');
+    updateViewState({
+      search: '',
+      selectedEnrollYear: 'all',
+      minimumHours: '',
+      maximumHours: ''
+    });
   };
 
   const hasActiveFilters =
@@ -278,7 +380,7 @@ export const MembersPage = () => {
                         type="button"
                         aria-label={`scope-${option.value}`}
                         aria-pressed={scope === option.value}
-                        onClick={() => setScope(option.value)}
+                        onClick={() => updateViewState({ scope: option.value })}
                         className={cn(
                           'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition',
                           scope === option.value
@@ -303,7 +405,7 @@ export const MembersPage = () => {
                       aria-label="member-search"
                       placeholder="按成员名搜索"
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
+                      onChange={(event) => updateViewState({ search: event.target.value })}
                       className="h-11 w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -316,7 +418,7 @@ export const MembersPage = () => {
                   <select
                     aria-label="grade-filter"
                     value={selectedEnrollYear}
-                    onChange={(event) => setSelectedEnrollYear(event.target.value)}
+                    onChange={(event) => updateViewState({ selectedEnrollYear: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="all">全部年级</option>
@@ -338,7 +440,7 @@ export const MembersPage = () => {
                     step={0.5}
                     aria-label="minimum-hours-filter"
                     value={minimumHours}
-                    onChange={(event) => setMinimumHours(event.target.value)}
+                    onChange={(event) => updateViewState({ minimumHours: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </label>
@@ -353,7 +455,7 @@ export const MembersPage = () => {
                     step={0.5}
                     aria-label="maximum-hours-filter"
                     value={maximumHours}
-                    onChange={(event) => setMaximumHours(event.target.value)}
+                    onChange={(event) => updateViewState({ maximumHours: event.target.value })}
                     className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </label>
