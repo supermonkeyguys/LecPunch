@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowDown, ArrowUp, ArrowUpDown, Search, X } from 'lucide-react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
@@ -11,6 +11,7 @@ import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
 interface MembersTableRow extends TeamWeeklyStatItem {
+  _action: null;
   _rowKey: string;
 }
 
@@ -91,6 +92,7 @@ const buildSearchParams = (state: MembersViewState) => {
 };
 
 export const MembersPage = () => {
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const fallbackScope = parseScope((location.state as { scope?: string } | null)?.scope ?? null) ?? 'team';
@@ -301,12 +303,35 @@ export const MembersPage = () => {
       header: renderSortHeader('打卡次数', 'count'),
       headerClassName: 'normal-case tracking-normal',
       render: (value) => `${value} 次`
+    },
+    {
+      key: '_action',
+      header: <span className="normal-case tracking-normal" />,
+      headerClassName: 'text-right normal-case tracking-normal',
+      cellClassName: 'text-right',
+      render: (_, row) => (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+          onClick={(event) => {
+            event.stopPropagation();
+            navigate(`/members/${row.memberKey}/records`, {
+              state: { displayName: row.displayName }
+            });
+          }}
+        >
+          <Eye className="h-4 w-4" />
+          查看流水
+        </Button>
+      )
     }
   ];
 
   const tableData: MembersTableRow[] = filteredMembers.map((member, index) => ({
     ...member,
-    _rowKey: `${member.displayName}-${member.enrollYear}-${member.totalDurationSeconds}-${member.sessionsCount}-${index}`
+    _action: null,
+    _rowKey: `${member.memberKey}-${index}`
   }));
 
   const scopeLabel = scope === 'same-grade' ? '同年级' : '全团队';

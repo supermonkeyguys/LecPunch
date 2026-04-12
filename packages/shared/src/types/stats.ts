@@ -6,6 +6,7 @@ export interface WeeklyStatItem {
 }
 
 export interface TeamWeeklyStatItem extends WeeklyStatItem {
+  memberKey: string;
   displayName: string;
   role: 'member' | 'admin';
   enrollYear: number;

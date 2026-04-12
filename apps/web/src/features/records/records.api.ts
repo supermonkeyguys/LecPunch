@@ -16,8 +16,8 @@ export const getMyRecords = async (filters?: RecordFilters) => {
   return response.data.items;
 };
 
-export const getMemberRecords = async (userId: string, filters?: RecordFilters) => {
-  const response = await apiClient.get<{ items: AttendanceSession[]; page: number; pageSize: number }>(`/records/member/${userId}`, {
+export const getMemberRecords = async (memberKey: string, filters?: RecordFilters) => {
+  const response = await apiClient.get<{ items: AttendanceSession[]; page: number; pageSize: number }>(`/records/member/${memberKey}`, {
     params: filters ?? undefined
   });
   return response.data.items;

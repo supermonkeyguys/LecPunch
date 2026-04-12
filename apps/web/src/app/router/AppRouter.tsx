@@ -46,7 +46,7 @@ const router = createBrowserRouter([
               { index: true, element: <DashboardPage /> },
               { path: 'records', element: <RecordsPage /> },
               { path: 'members', element: <MembersPage /> },
-              { path: 'members/:userId/records', element: <MemberRecordsPage /> },
+              { path: 'members/:memberKey/records', element: <MemberRecordsPage /> },
               { path: 'weekly-history', element: <WeeklyHistoryPage /> },
               { path: 'profile', element: <ProfilePage /> },
               {

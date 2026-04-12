@@ -9,6 +9,7 @@ interface DashboardTeamWidgetProps {
   loading: boolean;
   teamStats: TeamWeeklyStatItem[];
   isCurrentWeek: boolean;
+  onOpenMember: (member: TeamWeeklyStatItem) => void;
   onOpenMembers: () => void;
 }
 
@@ -16,6 +17,7 @@ export const DashboardTeamWidget = ({
   loading,
   teamStats,
   isCurrentWeek,
+  onOpenMember,
   onOpenMembers
 }: DashboardTeamWidgetProps) => {
   return (
@@ -37,8 +39,9 @@ export const DashboardTeamWidget = ({
           <div className="space-y-2">
             {teamStats.map((member) => (
               <div
-                key={`${member.displayName}-${member.enrollYear}-${member.totalDurationSeconds}-${member.sessionsCount}`}
-                className="rounded-xl border border-transparent p-3"
+                key={member.memberKey}
+                className="cursor-pointer rounded-xl border border-transparent p-3 transition-colors hover:border-gray-100 hover:bg-gray-50"
+                onClick={() => onOpenMember(member)}
               >
                 <div className="flex items-center">
                   <Avatar

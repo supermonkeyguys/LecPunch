@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { ATTENDANCE_MAX_SECONDS, WARNING_THRESHOLD_SECONDS } from '@lecpunch/shared';
+import { ATTENDANCE_MAX_SECONDS, WARNING_THRESHOLD_SECONDS, type TeamWeeklyStatItem } from '@lecpunch/shared';
 import { Alert, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
 import { useRootStore } from '@/app/store/root-store';
@@ -87,6 +87,12 @@ export const DashboardPage = () => {
     }
   };
 
+  const openMemberRecords = (member: TeamWeeklyStatItem) => {
+    navigate(`/members/${member.memberKey}/records`, {
+      state: { displayName: member.displayName }
+    });
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-8">
       {actionError ? (
@@ -148,6 +154,7 @@ export const DashboardPage = () => {
             loading={loading}
             teamStats={teamStats}
             isCurrentWeek={isCurrentWeek}
+            onOpenMember={openMemberRecords}
             onOpenMembers={() => navigate('/members', { state: { scope: 'same-grade' } })}
           />
         </div>

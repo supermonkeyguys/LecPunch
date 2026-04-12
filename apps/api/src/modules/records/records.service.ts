@@ -44,12 +44,12 @@ export class RecordsService {
 
   async listMemberRecords(
     currentUser: AuthUser,
-    memberId: string,
+    memberKey: string,
     filters: TeamRecordExportFilters,
     page: number,
     pageSize: number
   ) {
-    const member = await this.usersService.findById(memberId);
+    const member = await this.usersService.findByMemberKey(memberKey);
     if (!member) {
       throw new NotFoundException({ message: '成员不存在' });
     }

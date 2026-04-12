@@ -19,11 +19,11 @@ export const getTeamCurrentWeekStats = async (sameGrade = false) => {
 };
 
 export interface MemberWeeklyStatsResponse {
-  member: { id: string; displayName: string; role: string };
+  member: { memberKey: string; displayName: string; role: string };
   items: WeeklyStatItem[];
 }
 
-export const getMemberWeeklyStats = async (userId: string): Promise<MemberWeeklyStatsResponse> => {
-  const response = await apiClient.get<MemberWeeklyStatsResponse>(`/stats/member/${userId}/weekly`);
+export const getMemberWeeklyStats = async (memberKey: string): Promise<MemberWeeklyStatsResponse> => {
+  const response = await apiClient.get<MemberWeeklyStatsResponse>(`/stats/member/${memberKey}/weekly`);
   return response.data;
 };

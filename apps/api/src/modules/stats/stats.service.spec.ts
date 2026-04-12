@@ -8,7 +8,9 @@ describe('StatsService', () => {
   };
   const usersService = {
     findById: vi.fn(),
-    findByIds: vi.fn()
+    findByIds: vi.fn(),
+    findByMemberKey: vi.fn(),
+    getMemberKey: vi.fn((id: string) => `key-${id}`)
   };
 
   let service: StatsService;
@@ -32,6 +34,7 @@ describe('StatsService', () => {
 
     expect(result).toEqual([
       {
+        memberKey: 'key-user-1',
         totalDurationSeconds: 7200,
         sessionsCount: 2,
         displayName: 'Alice',

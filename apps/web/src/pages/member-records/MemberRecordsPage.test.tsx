@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MemberRecordsPage } from './MemberRecordsPage';
@@ -33,9 +33,9 @@ describe('MemberRecordsPage', () => {
     mocks.getMemberWeeklyStats.mockReturnValue(new Promise(() => undefined));
 
     render(
-      <MemoryRouter initialEntries={['/members/user-1/records']}>
+      <MemoryRouter initialEntries={['/members/member-key-1/records']}>
         <Routes>
-          <Route path="/members/:userId/records" element={<MemberRecordsPage />} />
+          <Route path="/members/:memberKey/records" element={<MemberRecordsPage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -48,9 +48,9 @@ describe('MemberRecordsPage', () => {
     mocks.getMemberWeeklyStats.mockRejectedValue(new Error('boom'));
 
     render(
-      <MemoryRouter initialEntries={['/members/user-1/records']}>
+      <MemoryRouter initialEntries={['/members/member-key-1/records']}>
         <Routes>
-          <Route path="/members/:userId/records" element={<MemberRecordsPage />} />
+          <Route path="/members/:memberKey/records" element={<MemberRecordsPage />} />
         </Routes>
       </MemoryRouter>
     );
@@ -70,7 +70,7 @@ describe('MemberRecordsPage', () => {
       }
     ]);
     mocks.getMemberWeeklyStats.mockResolvedValue({
-      member: { id: 'user-1', displayName: 'Alice', role: 'member' },
+      member: { memberKey: 'member-key-1', displayName: 'Alice', role: 'member' },
       items: [
         {
           weekKey: '2026-03-31',
@@ -81,9 +81,9 @@ describe('MemberRecordsPage', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/members/user-1/records']}>
+      <MemoryRouter initialEntries={['/members/member-key-1/records']}>
         <Routes>
-          <Route path="/members/:userId/records" element={<MemberRecordsPage />} />
+          <Route path="/members/:memberKey/records" element={<MemberRecordsPage />} />
         </Routes>
       </MemoryRouter>
     );

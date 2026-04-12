@@ -27,10 +27,10 @@ export class RecordsController {
     return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 
-  @Get('member/:userId')
+  @Get('member/:memberKey')
   async memberRecords(
     @CurrentUser() user: AuthUser,
-    @Param('userId') userId: string,
+    @Param('memberKey') memberKey: string,
     @Query('weekKey') weekKey?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -39,7 +39,13 @@ export class RecordsController {
   ) {
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 100);
-    const records = await this.recordsService.listMemberRecords(user, userId, { weekKey, startDate, endDate }, pageNum, sizeNum);
+    const records = await this.recordsService.listMemberRecords(
+      user,
+      memberKey,
+      { weekKey, startDate, endDate },
+      pageNum,
+      sizeNum
+    );
     return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 

@@ -32,6 +32,7 @@ describe('StatsController contract', () => {
   it('returns team current week stats without leaking member ids', async () => {
     statsService.getTeamCurrentWeekStats.mockResolvedValue([
       {
+        memberKey: 'member-key-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -46,6 +47,7 @@ describe('StatsController contract', () => {
     expect(result).toMatchObject({
       items: [
         {
+          memberKey: 'member-key-1',
           displayName: 'Alice',
           enrollYear: 2024,
           totalDurationSeconds: 7200,
@@ -59,14 +61,14 @@ describe('StatsController contract', () => {
 
   it('returns member weekly stats with member info', async () => {
     statsService.getMemberWeeklyStats.mockResolvedValue({
-      member: { id: 'user-2', displayName: 'Bob', role: 'member' },
+      member: { memberKey: 'member-key-2', displayName: 'Bob', role: 'member' },
       items: [{ weekKey: '2026-03-31', totalDurationSeconds: 3600, sessionsCount: 1, weeklyGoalSeconds: 28 * 3600 }]
     });
 
-    const result = await controller.memberWeeklyStats({ teamId: 'team-1' } as any, 'user-2');
+    const result = await controller.memberWeeklyStats({ teamId: 'team-1' } as any, 'member-key-2');
 
     expect(result).toMatchObject({
-      member: { id: 'user-2', displayName: 'Bob' },
+      member: { memberKey: 'member-key-2', displayName: 'Bob' },
       items: expect.arrayContaining([expect.objectContaining({ weekKey: '2026-03-31' })])
     });
   });

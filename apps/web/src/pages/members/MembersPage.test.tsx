@@ -47,9 +47,10 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/加载成员统计失败/i)).toBeInTheDocument();
   });
 
-  it('renders team members from weekly stats without member ids', async () => {
+  it('renders team members without showing raw ids and keeps the records action', async () => {
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
+        memberKey: 'member-key-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -71,7 +72,7 @@ describe('MembersPage', () => {
     expect(screen.getByRole('heading', { name: '筛选' })).toBeInTheDocument();
     expect(screen.getByLabelText('scope-team')).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByText(/ID:/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /查看流水/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /查看流水/i })).toBeInTheDocument();
   });
 
   it('supports switching between same-grade and full-team scopes', async () => {
@@ -80,6 +81,7 @@ describe('MembersPage', () => {
     mocks.getTeamCurrentWeekStats
       .mockResolvedValueOnce([
         {
+          memberKey: 'member-key-1',
           displayName: 'Alice',
           role: 'member',
           enrollYear: 2024,
@@ -90,6 +92,7 @@ describe('MembersPage', () => {
       ])
       .mockResolvedValueOnce([
         {
+          memberKey: 'member-key-2',
           displayName: 'Bob',
           role: 'member',
           enrollYear: 2025,
@@ -119,6 +122,7 @@ describe('MembersPage', () => {
   it('restores filters and sort state from the URL', async () => {
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
+        memberKey: 'member-key-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -127,6 +131,7 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
+        memberKey: 'member-key-2',
         displayName: 'Bob',
         role: 'member',
         enrollYear: 2025,
@@ -135,6 +140,7 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
+        memberKey: 'member-key-3',
         displayName: 'Bobby',
         role: 'member',
         enrollYear: 2025,
@@ -168,6 +174,7 @@ describe('MembersPage', () => {
 
     mocks.getTeamCurrentWeekStats.mockResolvedValue([
       {
+        memberKey: 'member-key-1',
         displayName: 'Alice',
         role: 'member',
         enrollYear: 2024,
@@ -176,6 +183,7 @@ describe('MembersPage', () => {
         weekKey: '2026-03-31'
       },
       {
+        memberKey: 'member-key-2',
         displayName: 'Bob',
         role: 'member',
         enrollYear: 2025,

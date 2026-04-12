@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
 import { ERROR_CODES, UserRole, UserStatus } from '@lecpunch/shared';
 import * as bcrypt from 'bcrypt';
+import { createHmac, timingSafeEqual } from 'crypto';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
 export interface CreateUserInput {
@@ -31,7 +33,10 @@ export interface AdminUpdateMemberInput {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  constructor(
+    @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    private readonly configService: ConfigService
+  ) {}
 
   create(payload: CreateUserInput) {
     return this.userModel.create({
@@ -61,6 +66,21 @@ export class UsersService {
       .find({ teamId })
       .sort({ role: 1, status: 1, displayName: 1, username: 1 })
       .exec();
+  }
+
+  getMemberKey(userId: string) {
+    const payload = Buffer.from(userId, 'utf8').toString('base64url');
+    const signature = this.signMemberKeyPayload(payload);
+    return `${payload}.${signature}`;
+  }
+
+  async findByMemberKey(memberKey: string) {
+    const userId = this.parseMemberKey(memberKey);
+    if (!userId) {
+      return null;
+    }
+
+    return this.findById(userId);
   }
 
   findByStudentId(studentId: string) {
@@ -161,5 +181,35 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return updated;
+  }
+
+  private parseMemberKey(memberKey: string) {
+    const [payload, signature, ...rest] = memberKey.split('.');
+    if (!payload || !signature || rest.length > 0) {
+      return null;
+    }
+
+    const expectedSignature = this.signMemberKeyPayload(payload);
+    const actualBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) {
+      return null;
+    }
+
+    try {
+      const userId = Buffer.from(payload, 'base64url').toString('utf8');
+      return userId || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private signMemberKeyPayload(payload: string) {
+    const secret = this.configService.get<string>('AUTH_SECRET');
+    if (!secret) {
+      throw new Error('AUTH_SECRET is required for member key signing');
+    }
+
+    return createHmac('sha256', secret).update(payload).digest('base64url').slice(0, 24);
   }
 }

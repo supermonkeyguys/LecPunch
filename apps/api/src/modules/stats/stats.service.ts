@@ -74,6 +74,7 @@ export class StatsService {
     return rows.map((row) => {
       const user = userMap.get(row._id);
       return {
+        memberKey: this.usersService.getMemberKey(row._id),
         totalDurationSeconds: row.totalDurationSeconds,
         sessionsCount: row.sessionsCount,
         displayName: user?.displayName ?? '未知成员',
@@ -87,8 +88,8 @@ export class StatsService {
     });
   }
 
-  async getMemberWeeklyStats(currentUserTeamId: string, memberId: string, limit = 6) {
-    const member = await this.usersService.findById(memberId);
+  async getMemberWeeklyStats(currentUserTeamId: string, memberKey: string, limit = 6) {
+    const member = await this.usersService.findByMemberKey(memberKey);
     if (!member) {
       throw new NotFoundException({ message: '成员不存在' });
     }
@@ -102,7 +103,7 @@ export class StatsService {
     const items = await this.getMyWeeklyStats(member.id, member.enrollYear, limit);
     return {
       member: {
-        id: member.id,
+        memberKey,
         displayName: member.displayName,
         role: member.role
       },

@@ -25,12 +25,15 @@ describe('UsersService', () => {
     find,
     findByIdAndUpdate,
   } as any;
+  const configService = {
+    get: vi.fn().mockReturnValue('test-secret')
+  } as any;
 
   let service: UsersService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new UsersService(userModel);
+    service = new UsersService(userModel, configService);
   });
 
   describe('updateProfile - avatar mutual exclusion', () => {
@@ -164,6 +167,29 @@ describe('UsersService', () => {
         { new: true }
       );
       expect(result).toEqual({ id: 'member-1', role: 'admin', status: 'active' });
+    });
+  });
+
+  describe('member key helpers', () => {
+    it('generates and resolves a signed member key', async () => {
+      const key = service.getMemberKey('member-1');
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1', displayName: 'Alice' })
+      });
+
+      const result = await service.findByMemberKey(key);
+
+      expect(result).toMatchObject({ id: 'member-1', displayName: 'Alice' });
+    });
+
+    it('rejects tampered member keys', async () => {
+      const key = service.getMemberKey('member-1');
+      const tampered = `${key}x`;
+
+      const result = await service.findByMemberKey(tampered);
+
+      expect(result).toBeNull();
+      expect(findById).not.toHaveBeenCalled();
     });
   });
 });

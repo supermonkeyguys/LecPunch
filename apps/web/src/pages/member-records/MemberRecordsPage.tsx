@@ -52,7 +52,7 @@ const recordColumns: ColumnDef<AttendanceSession>[] = [
 ];
 
 export const MemberRecordsPage = () => {
-  const { userId } = useParams();
+  const { memberKey } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const stateDisplayName: string | undefined = (location.state as { displayName?: string } | null)?.displayName;
@@ -66,10 +66,10 @@ export const MemberRecordsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const memberName = stateDisplayName ?? memberInfo?.displayName ?? userId ?? '未知成员';
+  const memberName = stateDisplayName ?? memberInfo?.displayName ?? '未知成员';
 
   useEffect(() => {
-    if (!userId) {
+    if (!memberKey) {
       return;
     }
 
@@ -81,8 +81,8 @@ export const MemberRecordsPage = () => {
 
       try {
         const [recordsData, weeklyData] = await Promise.all([
-          getMemberRecords(userId, { startDate: startDate || undefined, endDate: endDate || undefined }),
-          getMemberWeeklyStats(userId)
+          getMemberRecords(memberKey, { startDate: startDate || undefined, endDate: endDate || undefined }),
+          getMemberWeeklyStats(memberKey)
         ]);
 
         if (cancelled) {
@@ -108,7 +108,7 @@ export const MemberRecordsPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [endDate, reloadToken, startDate, userId]);
+  }, [endDate, memberKey, reloadToken, startDate]);
 
   const latestStat = weeklyStats[0];
 

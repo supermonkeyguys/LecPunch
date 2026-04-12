@@ -28,6 +28,7 @@ describe('RecordsService', () => {
   };
   const usersService = {
     findById: vi.fn(),
+    findByMemberKey: vi.fn(),
     listTeamMembers: vi.fn()
   };
 
@@ -39,12 +40,12 @@ describe('RecordsService', () => {
   });
 
   it('rejects cross-team member record access', async () => {
-    usersService.findById.mockResolvedValue({
+    usersService.findByMemberKey.mockResolvedValue({
       id: 'user-2',
       teamId: 'team-2'
     });
 
-    await expect(service.listMemberRecords(currentUser, 'user-2', undefined, 1, 20)).rejects.toMatchObject({
+    await expect(service.listMemberRecords(currentUser, 'member-key-2', undefined, 1, 20)).rejects.toMatchObject({
       response: {
         code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN
       }
@@ -54,13 +55,13 @@ describe('RecordsService', () => {
   it('returns paginated member records for same-team users', async () => {
     const rows = [{ id: 'session-1' }];
     const filters = { weekKey: '2026-03-30' };
-    usersService.findById.mockResolvedValue({
+    usersService.findByMemberKey.mockResolvedValue({
       id: 'user-2',
       teamId: 'team-1'
     });
     attendanceService.listUserRecords.mockResolvedValue(rows);
 
-    const result = await service.listMemberRecords(currentUser, 'user-2', filters, 2, 10);
+    const result = await service.listMemberRecords(currentUser, 'member-key-2', filters, 2, 10);
 
     expect(attendanceService.listUserRecords).toHaveBeenCalledWith('user-2', filters, { page: 2, pageSize: 10 });
     expect(result).toBe(rows);

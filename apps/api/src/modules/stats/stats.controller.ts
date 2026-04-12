@@ -25,8 +25,8 @@ export class StatsController {
     return { items };
   }
 
-  @Get('member/:userId/weekly')
-  async memberWeeklyStats(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
-    return this.statsService.getMemberWeeklyStats(user.teamId, userId);
+  @Get('member/:memberKey/weekly')
+  async memberWeeklyStats(@CurrentUser() user: AuthUser, @Param('memberKey') memberKey: string) {
+    return this.statsService.getMemberWeeklyStats(user.teamId, memberKey);
   }
 }
