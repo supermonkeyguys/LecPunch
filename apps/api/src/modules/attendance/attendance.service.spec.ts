@@ -19,6 +19,10 @@ describe('AttendanceService', () => {
   const networkPolicyService = {
     assertIpAllowed: vi.fn()
   };
+  const usersService = {
+    findByIds: vi.fn(),
+    getMemberKey: vi.fn((id: string) => `member-key-${id}`)
+  };
 
   const attendanceModel = {
     create,
@@ -31,7 +35,7 @@ describe('AttendanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-    service = new AttendanceService(attendanceModel, networkPolicyService as any);
+    service = new AttendanceService(attendanceModel, networkPolicyService as any, usersService as any);
   });
 
   it('rejects duplicate check-in when an active session already exists', async () => {
@@ -144,5 +148,40 @@ describe('AttendanceService', () => {
       }
     });
     expect(sort).toHaveBeenCalledWith({ checkInAt: -1 });
+  });
+
+  it('lists active team sessions enriched with member profiles and elapsed time', async () => {
+    const exec = vi.fn().mockResolvedValue([
+      {
+        userId: 'user-2',
+        checkInAt: new Date(Date.now() - 120_000),
+        weekKey: '2026-04-06'
+      }
+    ]);
+    const sort = vi.fn().mockReturnValue({ exec });
+    find.mockReturnValue({ sort });
+    usersService.findByIds.mockResolvedValue([
+      {
+        id: 'user-2',
+        displayName: 'Bob',
+        enrollYear: 2025,
+        avatarColor: '#123456'
+      }
+    ]);
+
+    const result = await service.listTeamActiveSessions('team-1');
+
+    expect(find).toHaveBeenCalledWith({ teamId: 'team-1', status: 'active' });
+    expect(sort).toHaveBeenCalledWith({ checkInAt: 1 });
+    expect(result).toEqual([
+      expect.objectContaining({
+        memberKey: 'member-key-user-2',
+        displayName: 'Bob',
+        enrollYear: 2025,
+        avatarColor: '#123456',
+        weekKey: '2026-04-06'
+      })
+    ]);
+    expect(result[0]?.elapsedSeconds).toBeGreaterThanOrEqual(120);
   });
 });

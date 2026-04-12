@@ -15,3 +15,15 @@ export interface AttendanceSession {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface TeamActiveAttendanceItem {
+  memberKey: string;
+  displayName: string;
+  enrollYear: number;
+  avatarColor?: string;
+  avatarEmoji?: string;
+  avatarBase64?: string;
+  checkInAt: string;
+  elapsedSeconds: number;
+  weekKey: string;
+}

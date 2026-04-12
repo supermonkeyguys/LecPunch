@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
+import type { TeamActiveAttendanceItem, TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
 import type { WeekKey } from '@/app/store/root-store';
 import {
   getCurrentAttendance,
+  getTeamActiveAttendances,
   type CurrentAttendanceResponse
 } from '@/features/attendance/attendance.api';
 import { getMyRecords, type AttendanceRecordItem } from '@/features/records/records.api';
@@ -15,6 +16,7 @@ interface DashboardState {
   weeklyStats: WeeklyStatItem[];
   weeklyGoalSeconds: number;
   teamStats: TeamWeeklyStatItem[];
+  activeMembers: TeamActiveAttendanceItem[];
   records: AttendanceRecordItem[];
   loading: boolean;
   error: string | null;
@@ -25,6 +27,7 @@ const INITIAL_STATE: DashboardState = {
   weeklyStats: [],
   weeklyGoalSeconds: 0,
   teamStats: [],
+  activeMembers: [],
   records: [],
   loading: true,
   error: null
@@ -41,10 +44,11 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
       setState((current) => ({ ...current, loading: true, error: null }));
 
       try {
-        const [attendance, weekly, teamStats, records] = await Promise.all([
+        const [attendance, weekly, teamStats, activeMembers, records] = await Promise.all([
           getCurrentAttendance(),
           getMyWeeklyStats(),
           getTeamCurrentWeekStats(true),
+          getTeamActiveAttendances(),
           getMyRecords({ pageSize: 100 })
         ]);
 
@@ -57,6 +61,7 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
           weeklyStats: weekly.items,
           weeklyGoalSeconds: weekly.weeklyGoalSeconds,
           teamStats,
+          activeMembers,
           records,
           loading: false,
           error: null
@@ -80,6 +85,32 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
       cancelled = true;
     };
   }, [reloadToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncActiveMembers = async () => {
+      try {
+        const activeMembers = await getTeamActiveAttendances();
+        if (!cancelled) {
+          setState((current) => ({ ...current, activeMembers }));
+        }
+      } catch {
+        if (!cancelled) {
+          setState((current) => current);
+        }
+      }
+    };
+
+    const interval = setInterval(() => {
+      void syncActiveMembers();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   const selectedWeekKey = useMemo(() => selectedWeekToKey(selectedWeek), [selectedWeek]);
   const selectedWeekStat = useMemo(

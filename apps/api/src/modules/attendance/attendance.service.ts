@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AttendanceSession, AttendanceSessionDocument } from './schemas/attendance-session.schema';
 import { NetworkPolicyService } from '../network-policy/network-policy.service';
+import { UsersService } from '../users/users.service';
 import { ERROR_CODES, ATTENDANCE_MAX_SECONDS, weeklyGoalSeconds } from '@lecpunch/shared';
 import { getShanghaiDateRange, getWeekKey } from '../../common/utils/time.util';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -12,7 +13,8 @@ export class AttendanceService {
   constructor(
     @InjectModel(AttendanceSession.name)
     private readonly attendanceModel: Model<AttendanceSessionDocument>,
-    private readonly networkPolicyService: NetworkPolicyService
+    private readonly networkPolicyService: NetworkPolicyService,
+    private readonly usersService: UsersService
   ) {}
 
   async getCurrentSession(userId: string) {
@@ -111,6 +113,28 @@ export class AttendanceService {
       query.checkInAt = getShanghaiDateRange(filters.startDate, filters.endDate);
     }
     return this.attendanceModel.find(query).sort({ checkInAt: -1 }).exec();
+  }
+
+  async listTeamActiveSessions(teamId: string) {
+    const sessions = await this.attendanceModel.find({ teamId, status: 'active' }).sort({ checkInAt: 1 }).exec();
+    const users = await this.usersService.findByIds(sessions.map((session) => session.userId));
+    const userMap = new Map(users.map((user) => [user.id, user]));
+
+    return sessions.map((session) => {
+      const user = userMap.get(session.userId);
+
+      return {
+        memberKey: this.usersService.getMemberKey(session.userId),
+        displayName: user?.displayName ?? '未知成员',
+        enrollYear: user?.enrollYear ?? 0,
+        avatarColor: user?.avatarColor,
+        avatarEmoji: user?.avatarEmoji,
+        avatarBase64: user?.avatarBase64,
+        checkInAt: session.checkInAt,
+        elapsedSeconds: Math.max(0, Math.floor((Date.now() - session.checkInAt.getTime()) / 1000)),
+        weekKey: session.weekKey
+      };
+    });
   }
 
   getModel() {

@@ -4,6 +4,7 @@ import { AttendanceController } from './attendance.controller';
 describe('AttendanceController', () => {
   const attendanceService = {
     getCurrentSession: vi.fn(),
+    listTeamActiveSessions: vi.fn(),
     checkIn: vi.fn(),
     checkOut: vi.fn()
   };
@@ -74,6 +75,32 @@ describe('AttendanceController', () => {
     expect(result).toMatchObject({
       id: 'session-1',
       teamId: 'team-1'
+    });
+  });
+
+  it('returns team active attendance items inside an items wrapper', async () => {
+    attendanceService.listTeamActiveSessions.mockResolvedValue([
+      {
+        memberKey: 'member-key-user-2',
+        displayName: 'Bob',
+        enrollYear: 2025,
+        checkInAt: '2026-04-11T00:00:00.000Z',
+        elapsedSeconds: 90,
+        weekKey: '2026-04-07'
+      }
+    ]);
+
+    const result = await controller.getTeamActive({ teamId: 'team-1' } as any);
+
+    expect(attendanceService.listTeamActiveSessions).toHaveBeenCalledWith('team-1');
+    expect(result).toMatchObject({
+      items: [
+        {
+          memberKey: 'member-key-user-2',
+          displayName: 'Bob',
+          elapsedSeconds: 90
+        }
+      ]
     });
   });
 });

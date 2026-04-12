@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-import { ATTENDANCE_MAX_SECONDS, WARNING_THRESHOLD_SECONDS, type TeamWeeklyStatItem } from '@lecpunch/shared';
+import {
+  ATTENDANCE_MAX_SECONDS,
+  WARNING_THRESHOLD_SECONDS,
+  type TeamActiveAttendanceItem,
+  type TeamWeeklyStatItem
+} from '@lecpunch/shared';
 import { Alert, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
 import { useRootStore } from '@/app/store/root-store';
@@ -12,6 +17,7 @@ import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { showToast } from '@/shared/ui/toast';
+import { DashboardActiveMembersWidget } from '@/widgets/dashboard/DashboardActiveMembersWidget';
 import { DashboardAttendanceWidget } from '@/widgets/dashboard/DashboardAttendanceWidget';
 import { DashboardHeatmapWidget } from '@/widgets/dashboard/DashboardHeatmapWidget';
 import { DashboardTeamWidget } from '@/widgets/dashboard/DashboardTeamWidget';
@@ -29,6 +35,7 @@ export const DashboardPage = () => {
     attendance,
     weeklyGoalSeconds,
     teamStats,
+    activeMembers,
     records,
     selectedWeekRecords,
     selectedWeekStat,
@@ -72,11 +79,11 @@ export const DashboardPage = () => {
         if (result.status === 'invalidated') {
           showToast('本次打卡已超过 5 小时上限，记录已作废', 'error');
         } else {
-          showToast('下卡成功，辛苦了！');
+          showToast('下卡成功，辛苦了。');
         }
       } else {
         await checkInAttendance();
-        showToast('上卡成功，加油！');
+        showToast('上卡成功，继续加油。');
       }
 
       refresh();
@@ -88,6 +95,12 @@ export const DashboardPage = () => {
   };
 
   const openMemberRecords = (member: TeamWeeklyStatItem) => {
+    navigate(`/members/${member.memberKey}/records`, {
+      state: { displayName: member.displayName }
+    });
+  };
+
+  const openActiveMemberRecords = (member: TeamActiveAttendanceItem) => {
     navigate(`/members/${member.memberKey}/records`, {
       state: { displayName: member.displayName }
     });
@@ -131,31 +144,39 @@ export const DashboardPage = () => {
           />
         </PageSection>
       ) : (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="space-y-6 xl:col-span-2">
-            <DashboardAttendanceWidget
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="space-y-6 xl:col-span-2">
+              <DashboardAttendanceWidget
+                loading={loading}
+                weekLabel={weekLabel}
+                isCurrentWeek={isCurrentWeek}
+                isCheckedIn={isCheckedIn}
+                currentDuration={currentDuration}
+                selectedWeekDuration={selectedWeekDuration}
+                selectedWeekSessionsCount={selectedWeekSessionsCount}
+                weeklyGoalSeconds={weeklyGoalSeconds}
+                submitting={submitting}
+                isWarning={isWarning}
+                isNearLimit={isNearLimit}
+                onAction={handleAttendanceAction}
+              />
+              <DashboardHeatmapWidget loading={loading} records={records} />
+            </div>
+
+            <DashboardTeamWidget
               loading={loading}
-              weekLabel={weekLabel}
+              teamStats={teamStats}
               isCurrentWeek={isCurrentWeek}
-              isCheckedIn={isCheckedIn}
-              currentDuration={currentDuration}
-              selectedWeekDuration={selectedWeekDuration}
-              selectedWeekSessionsCount={selectedWeekSessionsCount}
-              weeklyGoalSeconds={weeklyGoalSeconds}
-              submitting={submitting}
-              isWarning={isWarning}
-              isNearLimit={isNearLimit}
-              onAction={handleAttendanceAction}
+              onOpenMember={openMemberRecords}
+              onOpenMembers={() => navigate('/members', { state: { scope: 'same-grade' } })}
             />
-            <DashboardHeatmapWidget loading={loading} records={records} />
           </div>
 
-          <DashboardTeamWidget
+          <DashboardActiveMembersWidget
             loading={loading}
-            teamStats={teamStats}
-            isCurrentWeek={isCurrentWeek}
-            onOpenMember={openMemberRecords}
-            onOpenMembers={() => navigate('/members', { state: { scope: 'same-grade' } })}
+            activeMembers={activeMembers}
+            onOpenMember={openActiveMemberRecords}
           />
         </div>
       )}

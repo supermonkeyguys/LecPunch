@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { selectedWeekToKey } from '@/shared/lib/time';
 
 const mocks = vi.hoisted(() => ({
   getCurrentAttendance: vi.fn(),
+  getTeamActiveAttendances: vi.fn(),
   checkInAttendance: vi.fn(),
   checkOutAttendance: vi.fn(),
   getMyWeeklyStats: vi.fn(),
@@ -17,6 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/features/attendance/attendance.api', () => ({
   getCurrentAttendance: mocks.getCurrentAttendance,
+  getTeamActiveAttendances: mocks.getTeamActiveAttendances,
   checkInAttendance: mocks.checkInAttendance,
   checkOutAttendance: mocks.checkOutAttendance
 }));
@@ -34,12 +36,13 @@ describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useRootStore.setState({ selectedWeek: 'current' });
-    // Default: empty records for heatmap — overridden per test if needed
     mocks.getMyRecords.mockResolvedValue([]);
+    mocks.getTeamActiveAttendances.mockResolvedValue([]);
   });
 
   afterEach(() => {
     cleanup();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
@@ -56,7 +59,6 @@ describe('DashboardPage', () => {
       {
         memberKey: 'member-key-1',
         displayName: 'Alice',
-        role: 'member',
         enrollYear: 2024,
         totalDurationSeconds: 7200,
         sessionsCount: 2,
@@ -232,5 +234,39 @@ describe('DashboardPage', () => {
     expect(await screen.findByText(/当前查看 上周，不可打卡。/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /上卡|下卡/i })).not.toBeInTheDocument();
     expect(screen.getAllByText('02:00:00').length).toBeGreaterThan(0);
+  });
+
+  it('renders the live active attendance monitor at the bottom of the dashboard', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-04-02T00:02:00.000Z').getTime());
+
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: false,
+      session: null
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    mocks.getTeamActiveAttendances.mockResolvedValue([
+      {
+        memberKey: 'member-key-2',
+        displayName: 'Bob',
+        enrollYear: 2023,
+        avatarColor: '#22c55e',
+        avatarEmoji: '🟢',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 120,
+        weekKey: '2026-03-31'
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('当前在线打卡成员')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getByText('1 人在线')).toBeInTheDocument();
+    expect(screen.getByText('00:02:00')).toBeInTheDocument();
   });
 });

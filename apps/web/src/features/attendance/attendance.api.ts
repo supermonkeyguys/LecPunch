@@ -1,5 +1,7 @@
 import { apiClient } from '@/shared/http/api-client';
 
+import type { TeamActiveAttendanceItem } from '@lecpunch/shared';
+
 export interface CurrentAttendanceResponse {
   hasActiveSession: boolean;
   session: null | {
@@ -15,6 +17,11 @@ export interface CurrentAttendanceResponse {
 export const getCurrentAttendance = async () => {
   const response = await apiClient.get<CurrentAttendanceResponse>('/attendance/current');
   return response.data;
+};
+
+export const getTeamActiveAttendances = async () => {
+  const response = await apiClient.get<{ items: TeamActiveAttendanceItem[] }>('/attendance/team-active');
+  return response.data.items;
 };
 
 export const checkInAttendance = async () => {

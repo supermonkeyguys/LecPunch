@@ -23,6 +23,12 @@ export class AttendanceController {
     };
   }
 
+  @Get('team-active')
+  async getTeamActive(@CurrentUser() user: AuthUser) {
+    const items = await this.attendanceService.listTeamActiveSessions(user.teamId);
+    return { items };
+  }
+
   @Post('check-in')
   async checkIn(@CurrentUser() user: AuthUser, @Req() request: Request) {
     const ip = await this.networkPolicyService.getClientIp(user.teamId, request);
