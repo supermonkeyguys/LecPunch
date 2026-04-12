@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import { Avatar, Button } from '@lecpunch/ui';
+import { Avatar, Badge, Button } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { formatDuration } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
@@ -26,22 +26,15 @@ export const DashboardTeamWidget = ({
         <div>
           <h3 className="flex items-center font-bold text-gray-800">
             <Users className="mr-2 h-5 w-5 text-blue-600" />
-            团队概览
+            同年级排行
           </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {isCurrentWeek ? '展示本周同年级成员的累计时长与打卡次数。' : '团队榜固定展示本周同年级成员数据。'}
-          </p>
         </div>
+        <Badge variant={isCurrentWeek ? 'info' : 'gray'}>{isCurrentWeek ? '本周' : '固定为本周'}</Badge>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
         {loading && teamStats.length === 0 ? (
-          <PageState
-            tone="loading"
-            title="正在加载团队统计..."
-            description="正在同步本周同年级成员数据。"
-            className="px-0 py-10"
-          />
+          <PageState tone="loading" title="正在加载排行..." className="px-0 py-10" />
         ) : teamStats.length > 0 ? (
           <div className="space-y-2">
             {teamStats.map((member) => (
@@ -61,9 +54,7 @@ export const DashboardTeamWidget = ({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-bold text-gray-900">{member.displayName}</div>
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      周累计：{formatDuration(member.totalDurationSeconds)}
-                    </div>
+                    <div className="mt-0.5 text-xs text-gray-500">周累计：{formatDuration(member.totalDurationSeconds)}</div>
                   </div>
                   <div className="flex-shrink-0 text-right">
                     <div className="rounded-md bg-gray-50 px-2 py-1 font-mono text-xs text-gray-600">
@@ -75,12 +66,7 @@ export const DashboardTeamWidget = ({
             ))}
           </div>
         ) : (
-          <PageState
-            tone="empty"
-            title="暂无团队统计"
-            description="当团队成员开始产生日志后，这里会显示本周排行。"
-            className="px-0 py-10"
-          />
+          <PageState tone="empty" title="暂无排行数据" className="px-0 py-10" />
         )}
       </div>
 
@@ -91,7 +77,7 @@ export const DashboardTeamWidget = ({
           className="w-full text-blue-600 hover:text-blue-800"
           onClick={onOpenMembers}
         >
-          查看完整排行榜 →
+          查看同年级成员
         </Button>
       </div>
     </PageSection>

@@ -155,7 +155,7 @@ export const DashboardPage = () => {
             teamStats={teamStats}
             isCurrentWeek={isCurrentWeek}
             onOpenMember={openMemberRecords}
-            onOpenMembers={() => navigate('/members')}
+            onOpenMembers={() => navigate('/members', { state: { scope: 'same-grade' } })}
           />
         </div>
       )}

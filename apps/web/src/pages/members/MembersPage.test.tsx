@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { MembersPage } from './MembersPage';
@@ -70,6 +70,51 @@ describe('MembersPage', () => {
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /2024 级/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '筛选' })).toBeInTheDocument();
+    expect(screen.getByLabelText('scope-team')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('supports switching between same-grade and full-team scopes', async () => {
+    const user = userEvent.setup();
+
+    mocks.getTeamCurrentWeekStats
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-1',
+          displayName: 'Alice',
+          role: 'member',
+          enrollYear: 2024,
+          totalDurationSeconds: 7200,
+          sessionsCount: 2,
+          weekKey: '2026-03-31'
+        }
+      ])
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-2',
+          displayName: 'Bob',
+          role: 'member',
+          enrollYear: 2025,
+          totalDurationSeconds: 3600,
+          sessionsCount: 1,
+          weekKey: '2026-03-31'
+        }
+      ]);
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/members', state: { scope: 'same-grade' } }]}>
+        <MembersPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/Alice/i)).toBeInTheDocument();
+    expect(mocks.getTeamCurrentWeekStats).toHaveBeenNthCalledWith(1, true);
+
+    await user.click(screen.getByLabelText('scope-team'));
+
+    await waitFor(() => {
+      expect(mocks.getTeamCurrentWeekStats).toHaveBeenNthCalledWith(2, false);
+    });
+    expect(await screen.findByText(/Bob/i)).toBeInTheDocument();
   });
 
   it('keeps filters in the card and sorts from the table header controls', async () => {

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
+import { cn } from '@/shared/lib/utils';
 import { formatDuration } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
@@ -15,12 +16,22 @@ interface MembersTableRow extends TeamWeeklyStatItem {
 
 type SortMetric = 'duration' | 'count';
 type SortDirection = 'desc' | 'asc';
+type MembersScope = 'team' | 'same-grade';
+
+const SCOPE_OPTIONS: Array<{ value: MembersScope; label: string }> = [
+  { value: 'team', label: '全团队' },
+  { value: 'same-grade', label: '同年级' }
+];
 
 export const MembersPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialScope = ((location.state as { scope?: MembersScope } | null)?.scope ?? 'team') as MembersScope;
+
   const [members, setMembers] = useState<TeamWeeklyStatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scope, setScope] = useState<MembersScope>(initialScope);
   const [search, setSearch] = useState('');
   const [selectedEnrollYear, setSelectedEnrollYear] = useState('all');
   const [minimumHours, setMinimumHours] = useState('');
@@ -37,7 +48,7 @@ export const MembersPage = () => {
       setError(null);
 
       try {
-        const nextMembers = await getTeamCurrentWeekStats();
+        const nextMembers = await getTeamCurrentWeekStats(scope === 'same-grade');
 
         if (!cancelled) {
           setMembers(nextMembers);
@@ -58,12 +69,23 @@ export const MembersPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, scope]);
 
   const enrollYearOptions = useMemo(
     () => [...new Set(members.map((member) => member.enrollYear))].filter(Boolean).sort((left, right) => right - left),
     [members]
   );
+
+  useEffect(() => {
+    if (selectedEnrollYear === 'all') {
+      return;
+    }
+
+    const hasSelectedYear = enrollYearOptions.some((year) => String(year) === selectedEnrollYear);
+    if (!hasSelectedYear) {
+      setSelectedEnrollYear('all');
+    }
+  }, [enrollYearOptions, selectedEnrollYear]);
 
   const filteredMembers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -205,6 +227,7 @@ export const MembersPage = () => {
   ];
 
   const tableData: MembersTableRow[] = filteredMembers.map((member) => ({ ...member, _action: null }));
+  const scopeLabel = scope === 'same-grade' ? '同年级' : '全团队';
 
   return (
     <div className="mx-auto max-w-7xl p-8">
@@ -214,6 +237,7 @@ export const MembersPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="info">仅本周</Badge>
+          <Badge variant="gray">{scopeLabel}</Badge>
           <Badge variant="gray">{filteredMembers.length} 人</Badge>
         </div>
       </div>
@@ -223,7 +247,6 @@ export const MembersPage = () => {
           <PageState
             tone="error"
             title={error}
-            description="团队榜当前只支持本周视图，请稍后重试。"
             action={
               <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
                 重新加载
@@ -243,9 +266,36 @@ export const MembersPage = () => {
                 </Button>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">成员搜索</span>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <div className="block xl:col-span-1">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    查看范围
+                  </span>
+                  <div className="flex rounded-xl bg-gray-100 p-1">
+                    {SCOPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-label={`scope-${option.value}`}
+                        aria-pressed={scope === option.value}
+                        onClick={() => setScope(option.value)}
+                        className={cn(
+                          'flex-1 rounded-lg px-3 py-2 text-sm font-medium transition',
+                          scope === option.value
+                            ? 'bg-white text-gray-900 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-700'
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="block xl:col-span-1">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    成员搜索
+                  </span>
                   <div className="relative">
                     <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                     <input
@@ -259,8 +309,10 @@ export const MembersPage = () => {
                   </div>
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">年级筛选</span>
+                <label className="block xl:col-span-1">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    年级筛选
+                  </span>
                   <select
                     aria-label="grade-filter"
                     value={selectedEnrollYear}
@@ -276,8 +328,10 @@ export const MembersPage = () => {
                   </select>
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">最低时长 (小时)</span>
+                <label className="block xl:col-span-1">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    最小时长(小时)
+                  </span>
                   <input
                     type="number"
                     min={0}
@@ -289,8 +343,10 @@ export const MembersPage = () => {
                   />
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">最高时长 (小时)</span>
+                <label className="block xl:col-span-1">
+                  <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    最长时长(小时)
+                  </span>
                   <input
                     type="number"
                     min={0}
@@ -306,15 +362,16 @@ export const MembersPage = () => {
           </PageSection>
 
           <PageSection>
-            <div className="border-b border-gray-100 px-6 py-4">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
               <h2 className="text-lg font-semibold text-gray-900">成员统计</h2>
+              <Badge variant="gray">{scopeLabel}</Badge>
             </div>
 
             <DataTable
               columns={columns}
               data={tableData}
               loading={loading}
-              emptyText="暂无符合条件的成员数据"
+              emptyText="当前范围和筛选下暂无成员数据"
               rowKey={(member) => member.userId}
             />
           </PageSection>
