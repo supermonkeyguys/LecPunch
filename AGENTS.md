@@ -7,7 +7,7 @@ This file provides guidance to Codex and similar coding agents when working in t
 Read these before making structural changes:
 
 - `docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md`
-- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+- `docs/superpowers/plans/2026-04-12-member-weekly-follow-ups.md`
 - `CLAUDE.md`
 
 If these documents conflict, prefer the latest execution plan for task order and the architecture spec for product and technical boundaries unless the user says otherwise.
@@ -16,7 +16,7 @@ If these documents conflict, prefer the latest execution plan for task order and
 
 Unless the user says otherwise, continue work by following:
 
-1. Pick the next unfinished item from `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`.
+1. Pick the next unfinished item from `docs/superpowers/plans/2026-04-12-member-weekly-follow-ups.md`.
 2. Complete one self-contained task at a time.
 3. Run the relevant verification for that task.
 4. Create one atomic git commit for the completed task.
@@ -48,7 +48,7 @@ Current execution order:
 
 Priority source:
 
-- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+- `docs/superpowers/plans/2026-04-12-member-weekly-follow-ups.md`
 
 Current P0 items:
 

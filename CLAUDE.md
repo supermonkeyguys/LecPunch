@@ -8,7 +8,7 @@ Read these before making structural changes:
 
 - `AGENTS.md`
 - `docs/superpowers/specs/2026-03-31-lecpunch-architecture-design.md`
-- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+- `docs/superpowers/plans/2026-04-12-member-weekly-follow-ups.md`
 
 If these documents conflict:
 
@@ -174,6 +174,6 @@ Web:
 
 Unless the user says otherwise, continue work by following the next unfinished item in:
 
-- `docs/superpowers/plans/2026-04-09-v1.1-execution-plan.md`
+- `docs/superpowers/plans/2026-04-12-member-weekly-follow-ups.md`
 
 Work one self-contained task at a time, verify the relevant changes, then create one atomic commit and push the current branch.
