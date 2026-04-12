@@ -6,6 +6,7 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
+    "bootstrap-admin": "ts-node src/scripts/bootstrap-admin.ts",
     "seed": "ts-node src/scripts/seed-demo.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "vitest run",

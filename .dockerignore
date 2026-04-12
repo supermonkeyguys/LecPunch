@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+.turbo
+node_modules
+dist
+build
+coverage
+docs
+*.log
+.env
+.env.*
+deploy/*.env
+apps/*/.env
+apps/*/.env.*
