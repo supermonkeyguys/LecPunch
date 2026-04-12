@@ -1,6 +1,7 @@
 FROM node:20-bookworm-slim AS build
 
 ARG NPM_REGISTRY=https://registry.npmjs.org/
+ARG PNPM_VERSION=8.15.4
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
@@ -15,8 +16,8 @@ WORKDIR /app
 RUN rm -f /root/.npmrc /etc/npmrc /usr/local/etc/npmrc
 RUN rm -rf /root/.config/pnpm /tmp/xdg && mkdir -p /tmp/xdg
 RUN printf "registry=%s\nstrict-ssl=true\n" "${NPM_REGISTRY}" > /app/.npmrc
-RUN corepack enable
 RUN npm config get registry
+RUN npm install -g "pnpm@${PNPM_VERSION}" --registry=${NPM_REGISTRY}
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps ./apps
