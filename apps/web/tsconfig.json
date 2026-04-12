@@ -8,6 +8,8 @@
     "noEmit": true,
     "paths": {
       "@/*": ["src/*"],
+      "@lecpunch/shared": ["../../packages/shared/src/index.ts"],
+      "@lecpunch/shared/*": ["../../packages/shared/src/*"],
       "@lecpunch/ui": ["../../packages/ui/src/index.ts"],
       "@lecpunch/ui/*": ["../../packages/ui/src/*"]
     }

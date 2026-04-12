@@ -25,6 +25,7 @@ COPY packages ./packages
 
 RUN pnpm config get registry
 RUN pnpm install --frozen-lockfile --registry=${NPM_REGISTRY}
+RUN pnpm --filter @lecpunch/shared build
 RUN pnpm --filter @lecpunch/web build
 
 FROM nginx:1.27-alpine AS runtime
