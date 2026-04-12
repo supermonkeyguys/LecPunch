@@ -11,9 +11,9 @@ export class StatsService {
     private readonly usersService: UsersService
   ) {}
 
-  getMyWeeklyStats(userId: string, limit = 6) {
+  async getMyWeeklyStats(userId: string, limit = 6) {
     const model = this.attendanceService.getModel();
-    return model
+    const rows = await model
       .aggregate([
         { $match: { userId, status: { $ne: 'active' } } },
         {
@@ -27,6 +27,12 @@ export class StatsService {
         { $limit: limit }
       ])
       .exec();
+
+    return rows.map((row) => ({
+      weekKey: row._id,
+      totalDurationSeconds: row.totalDurationSeconds,
+      sessionsCount: row.sessionsCount
+    }));
   }
 
   async getTeamCurrentWeekStats(teamId: string, enrollYear?: number) {

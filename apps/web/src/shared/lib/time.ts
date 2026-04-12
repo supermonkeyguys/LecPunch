@@ -12,8 +12,16 @@ export const formatDuration = (seconds: number) => {
   return `${hours}:${minutes}:${secs}`;
 };
 
-const parseWeekKey = (weekKey: string) => {
+const parseWeekKey = (weekKey?: string) => {
+  if (!weekKey) {
+    return null;
+  }
+
   const [year, month, day] = weekKey.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) {
+    return null;
+  }
+
   return new Date(Date.UTC(year, month - 1, day));
 };
 
@@ -67,9 +75,13 @@ export const selectedWeekToKey = (selectedWeek: string): string =>
 
 export const formatWeekRangeLabel = (weekKey: string) => {
   const start = parseWeekKey(weekKey);
+  if (!start) {
+    return '-';
+  }
+
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
   return `${formatMonthDay(start)} ~ ${formatMonthDay(end)}`;
 };
 
-export const isCurrentWeekKey = (weekKey: string) => weekKey === weekKeyFromOffset(0);
+export const isCurrentWeekKey = (weekKey?: string) => !!weekKey && weekKey === weekKeyFromOffset(0);

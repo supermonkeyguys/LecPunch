@@ -71,4 +71,14 @@ describe('StatsService', () => {
       { $sort: { totalDurationSeconds: -1 } }
     ]);
   });
+
+  it('maps aggregated weekly rows to the shared weekKey contract', async () => {
+    aggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([{ _id: '2026-04-07', totalDurationSeconds: 5400, sessionsCount: 3 }])
+    });
+
+    const result = await service.getMyWeeklyStats('user-1');
+
+    expect(result).toEqual([{ weekKey: '2026-04-07', totalDurationSeconds: 5400, sessionsCount: 3 }]);
+  });
 });
