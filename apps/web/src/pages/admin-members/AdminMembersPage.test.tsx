@@ -7,14 +7,16 @@ import { AdminMembersPage } from './AdminMembersPage';
 
 const mocks = vi.hoisted(() => ({
   getAdminMembers: vi.fn(),
-  updateAdminMember: vi.fn()
+  updateAdminMember: vi.fn(),
+  deleteAdminMember: vi.fn()
 }));
 
 vi.mock('@/features/users/users.api', () => ({
   updateProfile: vi.fn(),
   updatePassword: vi.fn(),
   getAdminMembers: mocks.getAdminMembers,
-  updateAdminMember: mocks.updateAdminMember
+  updateAdminMember: mocks.updateAdminMember,
+  deleteAdminMember: mocks.deleteAdminMember
 }));
 
 describe('AdminMembersPage', () => {
@@ -103,6 +105,7 @@ describe('AdminMembersPage', () => {
     expect(await screen.findByText('Admin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '降为成员' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '停用' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '销毁账号' })).toBeDisabled();
   });
 
   it('updates a member role from the action buttons', async () => {
@@ -144,5 +147,41 @@ describe('AdminMembersPage', () => {
       expect(mocks.updateAdminMember).toHaveBeenCalledWith('member-1', { role: 'admin' });
     });
     expect(screen.getByText('管理员')).toBeInTheDocument();
+  });
+
+  it('requires a typed confirmation before destroying an account', async () => {
+    mocks.getAdminMembers.mockResolvedValue([
+      {
+        id: 'member-1',
+        teamId: 'team-1',
+        username: 'alice',
+        displayName: 'Alice',
+        role: 'member',
+        status: 'active',
+        enrollYear: 2025,
+        createdAt: '2026-04-11T00:00:00.000Z',
+        updatedAt: '2026-04-11T00:00:00.000Z'
+      }
+    ]);
+    mocks.deleteAdminMember.mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminMembersPage />
+      </MemoryRouter>
+    );
+
+    await user.click(await screen.findByRole('button', { name: '销毁账号' }));
+
+    expect(screen.getByRole('button', { name: '确认销毁' })).toBeDisabled();
+
+    await user.type(screen.getByLabelText('确认语句'), '我确认已知会销毁账号，并清空数据');
+    await user.click(screen.getByRole('button', { name: '确认销毁' }));
+
+    await waitFor(() => {
+      expect(mocks.deleteAdminMember).toHaveBeenCalledWith('member-1');
+    });
+    expect(screen.queryByText('Alice')).not.toBeInTheDocument();
   });
 });

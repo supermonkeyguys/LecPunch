@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
@@ -28,6 +28,13 @@ export class UsersController {
     this.assertAdmin(user);
     const member = await this.usersService.adminUpdateMember(user, userId, dto);
     return this.mapUser(member);
+  }
+
+  @Delete('admin/members/:userId')
+  async adminDeleteMember(@CurrentUser() user: AuthUser, @Param('userId') userId: string) {
+    this.assertAdmin(user);
+    await this.usersService.adminDeleteMember(user, userId);
+    return { success: true };
   }
 
   @Patch('me')

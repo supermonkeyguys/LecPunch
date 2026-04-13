@@ -31,3 +31,7 @@ export const updateAdminMember = async (userId: string, input: AdminUpdateMember
   const response = await apiClient.patch<User>(`/users/admin/members/${userId}`, input);
   return response.data;
 };
+
+export const deleteAdminMember = async (userId: string): Promise<void> => {
+  await apiClient.delete(`/users/admin/members/${userId}`);
+};

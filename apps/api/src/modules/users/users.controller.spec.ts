@@ -24,6 +24,7 @@ describe('UsersController', () => {
   const usersService = {
     listTeamMembers: vi.fn(),
     adminUpdateMember: vi.fn(),
+    adminDeleteMember: vi.fn(),
     updateProfile: vi.fn(),
     updatePassword: vi.fn()
   };
@@ -71,5 +72,6 @@ describe('UsersController', () => {
     await expect(
       controller.adminUpdateMember(memberUser, 'member-2', { role: 'admin' })
     ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.adminDeleteMember(memberUser, 'member-2')).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

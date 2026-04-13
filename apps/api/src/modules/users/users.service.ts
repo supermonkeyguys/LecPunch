@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
+import { AttendanceSession, AttendanceSessionDocument } from '../attendance/schemas/attendance-session.schema';
 import { ERROR_CODES, UserRole, UserStatus } from '@lecpunch/shared';
 import * as bcrypt from 'bcrypt';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -35,6 +36,8 @@ export interface AdminUpdateMemberInput {
 export class UsersService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+    @InjectModel(AttendanceSession.name)
+    private readonly attendanceModel: Model<AttendanceSessionDocument>,
     private readonly configService: ConfigService
   ) {}
 
@@ -181,6 +184,34 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return updated;
+  }
+
+  async adminDeleteMember(currentUser: AuthUser, memberId: string): Promise<void> {
+    const member = await this.userModel.findById(memberId).exec();
+    if (!member) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (member.teamId !== currentUser.teamId) {
+      throw new ForbiddenException({
+        code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN,
+        message: '涓嶅彲绠＄悊鍏朵粬鍥㈤槦鎴愬憳'
+      });
+    }
+
+    if (member.id === currentUser.userId) {
+      throw new BadRequestException({
+        code: 'ADMIN_SELF_DELETE_FORBIDDEN',
+        message: '绠＄悊鍛樹笉鑳介攢姣佽嚜宸辩殑璐﹀彿'
+      });
+    }
+
+    await this.attendanceModel.deleteMany({ userId: member.id }).exec();
+
+    const deleted = await this.userModel.findByIdAndDelete(memberId).exec();
+    if (!deleted) {
+      throw new NotFoundException('User not found');
+    }
   }
 
   private parseMemberKey(memberKey: string) {

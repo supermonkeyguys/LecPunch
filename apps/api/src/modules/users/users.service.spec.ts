@@ -15,8 +15,11 @@ const adminUser: AuthUser = {
 
 describe('UsersService', () => {
   const findByIdAndUpdate = vi.fn();
+  const findByIdAndDelete = vi.fn();
   const findById = vi.fn();
   const find = vi.fn();
+  const attendanceDeleteManyExec = vi.fn();
+  const attendanceDeleteMany = vi.fn();
 
   const userModel = {
     create: vi.fn(),
@@ -24,6 +27,10 @@ describe('UsersService', () => {
     findById,
     find,
     findByIdAndUpdate,
+    findByIdAndDelete,
+  } as any;
+  const attendanceModel = {
+    deleteMany: attendanceDeleteMany
   } as any;
   const configService = {
     get: vi.fn().mockReturnValue('test-secret')
@@ -33,7 +40,8 @@ describe('UsersService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new UsersService(userModel, configService);
+    attendanceDeleteMany.mockReturnValue({ exec: attendanceDeleteManyExec });
+    service = new UsersService(userModel, attendanceModel, configService);
   });
 
   describe('updateProfile - avatar mutual exclusion', () => {
@@ -167,6 +175,29 @@ describe('UsersService', () => {
         { new: true }
       );
       expect(result).toEqual({ id: 'member-1', role: 'admin', status: 'active' });
+    });
+
+    it('rejects admins deleting themselves', async () => {
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'admin-1', teamId: 'team-1', role: 'admin', status: 'active' })
+      });
+
+      await expect(service.adminDeleteMember(adminUser, 'admin-1')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('deletes same-team members and their attendance records', async () => {
+      findById.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1', teamId: 'team-1', role: 'member', status: 'active' })
+      });
+      attendanceDeleteManyExec.mockResolvedValue({ acknowledged: true, deletedCount: 3 });
+      findByIdAndDelete.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({ id: 'member-1' })
+      });
+
+      await expect(service.adminDeleteMember(adminUser, 'member-1')).resolves.toBeUndefined();
+
+      expect(attendanceDeleteMany).toHaveBeenCalledWith({ userId: 'member-1' });
+      expect(findByIdAndDelete).toHaveBeenCalledWith('member-1');
     });
   });
 
