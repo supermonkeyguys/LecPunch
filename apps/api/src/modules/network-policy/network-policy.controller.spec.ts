@@ -23,7 +23,9 @@ const memberUser: AuthUser = {
 describe('NetworkPolicyController', () => {
   const networkPolicyService = {
     getAdminPolicy: vi.fn(),
-    updateAdminPolicy: vi.fn()
+    updateAdminPolicy: vi.fn(),
+    getClientIp: vi.fn(),
+    isIpAllowed: vi.fn()
   };
 
   let controller: NetworkPolicyController;
@@ -81,8 +83,34 @@ describe('NetworkPolicyController', () => {
     expect(networkPolicyService.updateAdminPolicy).toHaveBeenCalledWith('team-1', input);
   });
 
+  it('returns the current request IP debug summary for admins', async () => {
+    networkPolicyService.getClientIp.mockResolvedValue('127.0.0.1');
+    networkPolicyService.isIpAllowed.mockResolvedValue(false);
+
+    const result = await controller.getCurrentDebug(adminUser, {
+      headers: {},
+      ip: '::ffff:127.0.0.1',
+      socket: {
+        remoteAddress: '::ffff:127.0.0.1'
+      }
+    } as never);
+
+    expect(networkPolicyService.getClientIp).toHaveBeenCalledWith('team-1', expect.any(Object));
+    expect(networkPolicyService.isIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
+    expect(result).toEqual({
+      clientIp: '127.0.0.1',
+      isAllowed: false
+    });
+  });
+
   it('rejects member access to admin network policy routes', async () => {
     await expect(controller.getCurrentPolicy(memberUser)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      controller.getCurrentDebug(memberUser, {
+        headers: {},
+        socket: { remoteAddress: '::ffff:127.0.0.1' }
+      } as never)
+    ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(
       controller.updateCurrentPolicy(memberUser, {
         allowAnyNetwork: true,

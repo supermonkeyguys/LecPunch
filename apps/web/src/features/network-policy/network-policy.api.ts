@@ -11,6 +11,11 @@ export interface AdminNetworkPolicy {
   updatedAt: string | null;
 }
 
+export interface AdminNetworkPolicyDebug {
+  clientIp: string;
+  isAllowed: boolean;
+}
+
 export interface UpdateAdminNetworkPolicyInput {
   allowAnyNetwork: boolean;
   allowedPublicIps: string[];
@@ -21,6 +26,11 @@ export interface UpdateAdminNetworkPolicyInput {
 
 export const getAdminNetworkPolicy = async (): Promise<AdminNetworkPolicy> => {
   const response = await apiClient.get<AdminNetworkPolicy>('/network-policy/admin/current');
+  return response.data;
+};
+
+export const getAdminNetworkPolicyDebug = async (): Promise<AdminNetworkPolicyDebug> => {
+  const response = await apiClient.get<AdminNetworkPolicyDebug>('/network-policy/admin/debug');
   return response.data;
 };
 

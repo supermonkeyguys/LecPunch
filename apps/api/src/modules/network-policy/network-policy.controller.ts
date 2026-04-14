@@ -1,9 +1,10 @@
-import { Body, Controller, ForbiddenException, Get, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Patch, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../auth/types/auth-user.type';
 import { NetworkPolicyService, type NetworkPolicySnapshot } from './network-policy.service';
 import { UpdateNetworkPolicyDto } from './dto/update-network-policy.dto';
+import type { Request } from 'express';
 
 @Controller('network-policy')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +23,19 @@ export class NetworkPolicyController {
     this.assertAdmin(user);
     const policy = await this.networkPolicyService.updateAdminPolicy(user.teamId, dto);
     return this.mapPolicy(policy);
+  }
+
+  @Get('admin/debug')
+  async getCurrentDebug(@CurrentUser() user: AuthUser, @Req() request: Request) {
+    this.assertAdmin(user);
+
+    const clientIp = await this.networkPolicyService.getClientIp(user.teamId, request);
+    const isAllowed = await this.networkPolicyService.isIpAllowed(user.teamId, clientIp);
+
+    return {
+      clientIp,
+      isAllowed
+    };
   }
 
   private assertAdmin(user: AuthUser) {

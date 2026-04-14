@@ -2,9 +2,11 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { Shield } from 'lucide-react';
 import { Badge, Button } from '@lecpunch/ui';
 import {
+  getAdminNetworkPolicyDebug,
   getAdminNetworkPolicy,
   updateAdminNetworkPolicy,
-  type AdminNetworkPolicy
+  type AdminNetworkPolicy,
+  type AdminNetworkPolicyDebug
 } from '@/features/network-policy/network-policy.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime } from '@/shared/lib/time';
@@ -44,10 +46,17 @@ const toFormState = (policy: AdminNetworkPolicy): NetworkPolicyFormState => ({
   trustedProxyHops: policy.trustedProxyHops
 });
 
+const isLoopbackIp = (ip: string) =>
+  ip === '::1' ||
+  ip === '0:0:0:0:0:0:0:1' ||
+  ip.startsWith('127.');
+
 export const AdminNetworkPolicyPage = () => {
   const [form, setForm] = useState<NetworkPolicyFormState>(emptyForm);
   const [source, setSource] = useState<AdminNetworkPolicy['source']>('environment');
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<AdminNetworkPolicyDebug | null>(null);
+  const [debugError, setDebugError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,13 +68,30 @@ export const AdminNetworkPolicyPage = () => {
     const loadPolicy = async () => {
       setLoading(true);
       setError(null);
+      setDebugError(null);
 
       try {
-        const policy = await getAdminNetworkPolicy();
+        const [policyResult, debugResult] = await Promise.allSettled([
+          getAdminNetworkPolicy(),
+          getAdminNetworkPolicyDebug()
+        ]);
+
+        if (policyResult.status === 'rejected') {
+          throw policyResult.reason;
+        }
+
+        const policy = policyResult.value;
         if (!cancelled) {
           setForm(toFormState(policy));
           setSource(policy.source);
           setUpdatedAt(policy.updatedAt);
+
+          if (debugResult.status === 'fulfilled') {
+            setDebugInfo(debugResult.value);
+          } else {
+            setDebugInfo(null);
+            setDebugError(getApiErrorMessage(debugResult.reason, '加载当前请求 IP 失败'));
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -97,10 +123,13 @@ export const AdminNetworkPolicyPage = () => {
         trustProxy: form.trustProxy,
         trustedProxyHops: form.trustedProxyHops
       });
+      const nextDebug = await getAdminNetworkPolicyDebug().catch(() => null);
 
       setForm(toFormState(updated));
       setSource(updated.source);
       setUpdatedAt(updated.updatedAt);
+      setDebugInfo(nextDebug);
+      setDebugError(nextDebug ? null : '刷新当前请求 IP 失败');
       showToast('网络策略已更新');
     } catch (error) {
       showToast(getApiErrorMessage(error, '更新网络策略失败'), 'error');
@@ -162,6 +191,38 @@ export const AdminNetworkPolicyPage = () => {
                   只有请求一定会经过自有反向代理时才应启用，否则不要信任 `X-Forwarded-For`。
                 </p>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-semibold text-slate-900">当前请求诊断</p>
+                {debugInfo ? (
+                  <Badge variant={debugInfo.isAllowed ? 'success' : 'warning'}>
+                    {debugInfo.isAllowed ? '当前请求已放行' : '当前请求未放行'}
+                  </Badge>
+                ) : null}
+              </div>
+
+              {debugInfo ? (
+                <>
+                  <p className="mt-2 text-sm text-slate-700">
+                    服务端当前识别到的客户端 IP：<span className="font-mono">{debugInfo.clientIp || '未识别'}</span>
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    保存后可直接刷新本页，确认当前请求是否已经被白名单放行。
+                  </p>
+                  {isLoopbackIp(debugInfo.clientIp) ? (
+                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      当前看到的是 loopback 地址。这通常表示你正在本机通过 `localhost` 或本地 Vite 代理访问页面。
+                      这种情况下切换 WiFi 往往不会改变服务端看到的 IP；要验证某个 WiFi 是否生效，请改用机器的局域网地址访问前端/API，或放到真实反向代理环境下测试。
+                    </p>
+                  ) : null}
+                </>
+              ) : debugError ? (
+                <p className="mt-2 text-sm text-amber-700">{debugError}</p>
+              ) : (
+                <p className="mt-2 text-sm text-slate-600">正在读取当前请求的服务端识别 IP。</p>
+              )}
             </div>
 
             <label className="flex items-start gap-3 rounded-2xl border border-gray-200 p-4">

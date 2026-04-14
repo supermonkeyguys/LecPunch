@@ -7,11 +7,13 @@ import { AdminNetworkPolicyPage } from './AdminNetworkPolicyPage';
 
 const mocks = vi.hoisted(() => ({
   getAdminNetworkPolicy: vi.fn(),
+  getAdminNetworkPolicyDebug: vi.fn(),
   updateAdminNetworkPolicy: vi.fn()
 }));
 
 vi.mock('@/features/network-policy/network-policy.api', () => ({
   getAdminNetworkPolicy: mocks.getAdminNetworkPolicy,
+  getAdminNetworkPolicyDebug: mocks.getAdminNetworkPolicyDebug,
   updateAdminNetworkPolicy: mocks.updateAdminNetworkPolicy
 }));
 
@@ -51,6 +53,10 @@ describe('AdminNetworkPolicyPage', () => {
       trustedProxyHops: 1,
       updatedAt: null
     });
+    mocks.getAdminNetworkPolicyDebug.mockResolvedValue({
+      clientIp: '127.0.0.1',
+      isAllowed: false
+    });
 
     render(
       <MemoryRouter>
@@ -62,6 +68,8 @@ describe('AdminNetworkPolicyPage', () => {
     expect(screen.getByRole('checkbox', { name: '允许任意网络' })).not.toBeChecked();
     expect(screen.getByLabelText('允许的公网 IP')).toHaveValue('203.0.113.10');
     expect(screen.getByLabelText('允许的 CIDR 网段')).toHaveValue('192.168.0.0/16');
+    expect(screen.getByText(/服务端当前识别到的客户端 IP：/)).toBeInTheDocument();
+    expect(screen.getByText(/当前看到的是 loopback 地址/)).toBeInTheDocument();
   });
 
   it('submits normalized lists back to the API', async () => {
@@ -74,6 +82,10 @@ describe('AdminNetworkPolicyPage', () => {
       trustProxy: false,
       trustedProxyHops: 1,
       updatedAt: null
+    });
+    mocks.getAdminNetworkPolicyDebug.mockResolvedValue({
+      clientIp: '198.51.100.8',
+      isAllowed: false
     });
     mocks.updateAdminNetworkPolicy.mockResolvedValue({
       teamId: 'team-1',
