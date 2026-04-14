@@ -24,6 +24,7 @@ describe('RecordsController contract', () => {
         checkOutAt: '2026-04-03T02:00:00.000Z',
         durationSeconds: 7200,
         status: 'completed',
+        isMarked: false,
         weekKey: '2026-03-31'
       }
     ]);
@@ -35,7 +36,8 @@ describe('RecordsController contract', () => {
         expect.objectContaining({
           id: 'session-1',
           durationSeconds: 7200,
-          status: 'completed'
+          status: 'completed',
+          isMarked: false
         })
       ],
       page: 1,

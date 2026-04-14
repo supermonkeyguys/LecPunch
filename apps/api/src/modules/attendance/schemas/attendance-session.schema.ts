@@ -36,6 +36,9 @@ export class AttendanceSession {
 
   @Prop({ type: Number })
   weeklyGoalSecondsSnapshot?: number;
+
+  @Prop({ type: Boolean, default: false })
+  isMarked!: boolean;
 }
 
 export type AttendanceSessionDocument = HydratedDocument<AttendanceSession>;

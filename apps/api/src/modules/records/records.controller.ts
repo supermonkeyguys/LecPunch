@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Query, Res, UseGuards } from '@nestjs/common';
 import { RecordsService, type TeamRecordExportRow } from './records.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -6,6 +6,7 @@ import { AuthUser } from '../auth/types/auth-user.type';
 import type { Response } from 'express';
 import { DateTime } from 'luxon';
 import { TIMEZONE } from '@lecpunch/shared';
+import { AdminUpdateRecordMarkDto } from './dto/admin-update-record-mark.dto';
 
 @Controller('records')
 @UseGuards(JwtAuthGuard)
@@ -49,6 +50,22 @@ export class RecordsController {
     return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 
+  @Patch('admin/:recordId/mark')
+  async adminUpdateRecordMark(
+    @CurrentUser() user: AuthUser,
+    @Param('recordId') recordId: string,
+    @Body() dto: AdminUpdateRecordMarkDto
+  ) {
+    const record = await this.recordsService.adminUpdateRecordMark(user, recordId, dto.isMarked);
+    return this.mapSession(record);
+  }
+
+  @Delete('admin/:recordId')
+  async adminDeleteRecord(@CurrentUser() user: AuthUser, @Param('recordId') recordId: string) {
+    await this.recordsService.adminDeleteRecord(user, recordId);
+    return { success: true };
+  }
+
   @Get('admin/export')
   async exportTeamRecords(
     @CurrentUser() user: AuthUser,
@@ -75,6 +92,7 @@ export class RecordsController {
       durationSeconds: session.durationSeconds,
       status: session.status,
       invalidReason: session.invalidReason,
+      isMarked: Boolean(session.isMarked),
       weekKey: session.weekKey
     };
   }

@@ -11,7 +11,7 @@ export interface RecordFilters {
 
 export type AttendanceRecordItem = Pick<
   AttendanceSession,
-  'id' | 'checkInAt' | 'checkOutAt' | 'durationSeconds' | 'status' | 'invalidReason' | 'weekKey'
+  'id' | 'checkInAt' | 'checkOutAt' | 'durationSeconds' | 'status' | 'invalidReason' | 'isMarked' | 'weekKey'
 >;
 
 export const getMyRecords = async (filters?: RecordFilters) => {
@@ -29,6 +29,15 @@ export const getMemberRecords = async (memberKey: string, filters?: RecordFilter
     }
   );
   return response.data.items;
+};
+
+export const updateAdminRecordMark = async (recordId: string, isMarked: boolean): Promise<AttendanceRecordItem> => {
+  const response = await apiClient.patch<AttendanceRecordItem>(`/records/admin/${recordId}/mark`, { isMarked });
+  return response.data;
+};
+
+export const deleteAdminRecord = async (recordId: string): Promise<void> => {
+  await apiClient.delete(`/records/admin/${recordId}`);
 };
 
 export interface AdminRecordsExportResult {

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AttendanceSession, AttendanceSessionDocument } from './schemas/attendance-session.schema';
@@ -82,6 +82,37 @@ export class AttendanceService {
     session.sourceIpAtCheckOut = clientIp;
     await session.save();
     return session;
+  }
+
+  async setTeamRecordMarked(teamId: string, recordId: string, isMarked: boolean) {
+    const record = await this.attendanceModel.findOneAndUpdate(
+      { _id: recordId, teamId },
+      { $set: { isMarked } },
+      { new: true }
+    );
+
+    if (!record) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    return record;
+  }
+
+  async deleteCompletedTeamRecord(teamId: string, recordId: string) {
+    const record = await this.attendanceModel.findOne({ _id: recordId, teamId }).exec();
+
+    if (!record) {
+      throw new NotFoundException('Attendance record not found');
+    }
+
+    if (record.status === 'active') {
+      throw new BadRequestException({
+        code: 'ADMIN_ACTIVE_RECORD_DELETE_FORBIDDEN',
+        message: 'Active attendance records cannot be deleted'
+      });
+    }
+
+    await record.deleteOne();
   }
 
   listUserRecords(

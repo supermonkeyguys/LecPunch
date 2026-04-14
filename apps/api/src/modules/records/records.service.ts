@@ -64,10 +64,18 @@ export class RecordsService {
     return this.attendanceService.listUserRecords(member.id, filters, { page, pageSize });
   }
 
+  async adminUpdateRecordMark(currentUser: AuthUser, recordId: string, isMarked: boolean) {
+    this.assertAdmin(currentUser);
+    return this.attendanceService.setTeamRecordMarked(currentUser.teamId, recordId, isMarked);
+  }
+
+  async adminDeleteRecord(currentUser: AuthUser, recordId: string) {
+    this.assertAdmin(currentUser);
+    await this.attendanceService.deleteCompletedTeamRecord(currentUser.teamId, recordId);
+  }
+
   async exportTeamRecords(currentUser: AuthUser, filters: TeamRecordExportFilters): Promise<TeamRecordExportRow[]> {
-    if (currentUser.role !== 'admin') {
-      throw new ForbiddenException('Only admins can export team records');
-    }
+    this.assertAdmin(currentUser);
 
     const [records, members] = await Promise.all([
       this.attendanceService.listTeamRecords(currentUser.teamId, filters),
@@ -95,5 +103,11 @@ export class RecordsService {
         invalidReason: record.invalidReason
       };
     });
+  }
+
+  private assertAdmin(currentUser: AuthUser) {
+    if (currentUser.role !== 'admin') {
+      throw new ForbiddenException('Only admins can manage team records');
+    }
   }
 }

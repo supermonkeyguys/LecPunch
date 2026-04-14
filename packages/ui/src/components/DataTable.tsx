@@ -17,6 +17,7 @@ interface DataTableProps<T extends Record<string, any>> {
   emptyText?: string;
   rowKey?: (row: T) => string;
   onRowClick?: (row: T) => void;
+  rowClassName?: (row: T, index: number) => string | undefined;
   className?: string;
 }
 
@@ -27,6 +28,7 @@ export function DataTable<T extends Record<string, any>>({
   emptyText = '暂无数据',
   rowKey,
   onRowClick,
+  rowClassName,
   className,
 }: DataTableProps<T>) {
   return (
@@ -67,7 +69,8 @@ export function DataTable<T extends Record<string, any>>({
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={cn(
                   'group bg-white hover:bg-gray-50 transition-colors',
-                  onRowClick ? 'cursor-pointer' : ''
+                  onRowClick ? 'cursor-pointer' : '',
+                  rowClassName?.(row, rowIndex)
                 )}
               >
                 {columns.map((col) => (

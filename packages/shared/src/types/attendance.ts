@@ -10,6 +10,7 @@ export interface AttendanceSession {
   durationSeconds?: number;
   status: AttendanceStatus;
   invalidReason?: AttendanceInvalidReason;
+  isMarked: boolean;
   weekKey: string;
   weeklyGoalSecondsSnapshot?: number;
   createdAt: string;

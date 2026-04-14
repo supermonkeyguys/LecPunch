@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { BadRequestException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { ERROR_CODES, ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -16,6 +17,7 @@ describe('AttendanceService', () => {
   const create = vi.fn();
   const findOne = vi.fn();
   const find = vi.fn();
+  const findOneAndUpdate = vi.fn();
   const networkPolicyService = {
     assertIpAllowed: vi.fn()
   };
@@ -27,7 +29,8 @@ describe('AttendanceService', () => {
   const attendanceModel = {
     create,
     findOne,
-    find
+    find,
+    findOneAndUpdate
   } as any;
 
   let service: AttendanceService;
@@ -183,5 +186,45 @@ describe('AttendanceService', () => {
       })
     ]);
     expect(result[0]?.elapsedSeconds).toBeGreaterThanOrEqual(120);
+  });
+
+  it('updates marked state for same-team records', async () => {
+    const record = { id: 'session-1', teamId: 'team-1', isMarked: true };
+    findOneAndUpdate.mockResolvedValue(record);
+
+    await expect(service.setTeamRecordMarked('team-1', 'session-1', true)).resolves.toBe(record);
+
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'session-1', teamId: 'team-1' },
+      { $set: { isMarked: true } },
+      { new: true }
+    );
+  });
+
+  it('rejects deleting active records', async () => {
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'session-1',
+        status: 'active'
+      })
+    });
+
+    await expect(service.deleteCompletedTeamRecord('team-1', 'session-1')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('deletes finished records for the same team', async () => {
+    const deleteOne = vi.fn().mockResolvedValue(undefined);
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'session-1',
+        status: 'completed',
+        deleteOne
+      })
+    });
+
+    await service.deleteCompletedTeamRecord('team-1', 'session-1');
+
+    expect(findOne).toHaveBeenCalledWith({ _id: 'session-1', teamId: 'team-1' });
+    expect(deleteOne).toHaveBeenCalledTimes(1);
   });
 });

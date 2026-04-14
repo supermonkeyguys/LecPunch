@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { RecordsService } from './records.service';
 import { ERROR_CODES } from '@lecpunch/shared';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -24,7 +24,9 @@ const adminUser: AuthUser = {
 describe('RecordsService', () => {
   const attendanceService = {
     listUserRecords: vi.fn(),
-    listTeamRecords: vi.fn()
+    listTeamRecords: vi.fn(),
+    setTeamRecordMarked: vi.fn(),
+    deleteCompletedTeamRecord: vi.fn()
   };
   const usersService = {
     findById: vi.fn(),
@@ -71,6 +73,24 @@ describe('RecordsService', () => {
     await expect(service.exportTeamRecords(currentUser, {})).rejects.toBeInstanceOf(ForbiddenException);
   });
 
+  it('updates marked state for admins only', async () => {
+    const record = { id: 'session-1', isMarked: true };
+    attendanceService.setTeamRecordMarked.mockResolvedValue(record);
+
+    await expect(service.adminUpdateRecordMark(currentUser, 'session-1', true)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(service.adminUpdateRecordMark(adminUser, 'session-1', true)).resolves.toBe(record);
+
+    expect(attendanceService.setTeamRecordMarked).toHaveBeenCalledWith('team-1', 'session-1', true);
+  });
+
+  it('deletes records for admins only', async () => {
+    await expect(service.adminDeleteRecord(currentUser, 'session-1')).rejects.toBeInstanceOf(ForbiddenException);
+
+    await service.adminDeleteRecord(adminUser, 'session-1');
+
+    expect(attendanceService.deleteCompletedTeamRecord).toHaveBeenCalledWith('team-1', 'session-1');
+  });
+
   it('exports team records with member metadata for admins', async () => {
     attendanceService.listTeamRecords.mockResolvedValue([
       {
@@ -81,7 +101,8 @@ describe('RecordsService', () => {
         checkInAt: new Date('2026-04-09T01:00:00.000Z'),
         checkOutAt: new Date('2026-04-09T03:00:00.000Z'),
         durationSeconds: 7200,
-        status: 'completed'
+        status: 'completed',
+        isMarked: false
       }
     ]);
     usersService.listTeamMembers.mockResolvedValue([
