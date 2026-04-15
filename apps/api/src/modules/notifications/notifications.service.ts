@@ -30,8 +30,17 @@ export interface CreateAttendanceRecordMarkedNotificationInput {
   createdBy: string;
 }
 
+export type NotificationStreamEventName = 'connected' | 'notification.created' | 'heartbeat';
+
+export interface NotificationStreamEvent {
+  event: NotificationStreamEventName;
+  data: unknown;
+}
+
 @Injectable()
 export class NotificationsService {
+  private readonly subscribers = new Map<string, Set<(event: NotificationStreamEvent) => void>>();
+
   constructor(
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<NotificationDocument>
@@ -62,7 +71,13 @@ export class NotificationsService {
       acknowledgedAt: null
     });
 
-    return this.toNotificationItem(notification);
+    const item = this.toNotificationItem(notification);
+    this.publishToUser(input.userId, {
+      event: 'notification.created',
+      data: item
+    });
+
+    return item;
   }
 
   async listForUser(teamId: string, userId: string, options: ListNotificationsOptions = {}) {
@@ -90,6 +105,53 @@ export class NotificationsService {
     }
 
     return this.toNotificationItem(notification);
+  }
+
+  subscribe(userId: string, subscriber: (event: NotificationStreamEvent) => void) {
+    const subscribers = this.subscribers.get(userId) ?? new Set<(event: NotificationStreamEvent) => void>();
+    subscribers.add(subscriber);
+    this.subscribers.set(userId, subscribers);
+
+    return () => {
+      const current = this.subscribers.get(userId);
+      if (!current) {
+        return;
+      }
+
+      current.delete(subscriber);
+      if (current.size === 0) {
+        this.subscribers.delete(userId);
+      }
+    };
+  }
+
+  createConnectedEvent(): NotificationStreamEvent {
+    return {
+      event: 'connected',
+      data: {
+        connectedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  createHeartbeatEvent(): NotificationStreamEvent {
+    return {
+      event: 'heartbeat',
+      data: {
+        timestamp: new Date().toISOString()
+      }
+    };
+  }
+
+  private publishToUser(userId: string, event: NotificationStreamEvent) {
+    const subscribers = this.subscribers.get(userId);
+    if (!subscribers || subscribers.size === 0) {
+      return;
+    }
+
+    for (const subscriber of subscribers) {
+      subscriber(event);
+    }
   }
 
   toNotificationItem(document: Pick<NotificationDocument, 'id' | 'teamId' | 'userId' | 'type' | 'title' | 'message' | 'payload' | 'sourceType' | 'sourceId' | 'createdBy' | 'createdAt' | 'acknowledgedAt'>): NotificationItem {

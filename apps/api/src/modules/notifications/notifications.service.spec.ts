@@ -159,4 +159,82 @@ describe('NotificationsService', () => {
 
     await expect(service.acknowledge('team-1', 'user-1', 'notification-1')).rejects.toBeInstanceOf(NotFoundException);
   });
+
+  it('pushes new notifications to active subscribers for the same user', async () => {
+    const subscriber = vi.fn();
+    const unsubscribe = service.subscribe('user-1', subscriber);
+    create.mockResolvedValue({
+      id: 'notification-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      type: 'attendance.record_marked',
+      title: '打卡记录已被标记',
+      message: '管理员标记了一条你的打卡记录，请进入记录页查看详情。',
+      payload: {
+        recordId: 'session-1',
+        memberKey: 'member-key-user-1',
+        weekKey: '2026-04-06'
+      },
+      sourceType: 'attendance_record',
+      sourceId: 'session-1',
+      createdBy: 'admin-1',
+      createdAt: new Date('2026-04-16T00:00:00.000Z'),
+      acknowledgedAt: null
+    });
+
+    await service.createForAttendanceRecordMarked({
+      teamId: 'team-1',
+      userId: 'user-1',
+      sourceId: 'session-1',
+      memberKey: 'member-key-user-1',
+      weekKey: '2026-04-06',
+      createdBy: 'admin-1'
+    });
+
+    expect(subscriber).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'notification.created',
+        data: expect.objectContaining({
+          id: 'notification-1'
+        })
+      })
+    );
+
+    unsubscribe();
+  });
+
+  it('stops pushing events after a subscriber disconnects', async () => {
+    const subscriber = vi.fn();
+    const unsubscribe = service.subscribe('user-1', subscriber);
+    unsubscribe();
+    create.mockResolvedValue({
+      id: 'notification-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      type: 'attendance.record_marked',
+      title: '打卡记录已被标记',
+      message: '管理员标记了一条你的打卡记录，请进入记录页查看详情。',
+      payload: {
+        recordId: 'session-1',
+        memberKey: 'member-key-user-1',
+        weekKey: '2026-04-06'
+      },
+      sourceType: 'attendance_record',
+      sourceId: 'session-1',
+      createdBy: 'admin-1',
+      createdAt: new Date('2026-04-16T00:00:00.000Z'),
+      acknowledgedAt: null
+    });
+
+    await service.createForAttendanceRecordMarked({
+      teamId: 'team-1',
+      userId: 'user-1',
+      sourceId: 'session-1',
+      memberKey: 'member-key-user-1',
+      weekKey: '2026-04-06',
+      createdBy: 'admin-1'
+    });
+
+    expect(subscriber).not.toHaveBeenCalled();
+  });
 });
