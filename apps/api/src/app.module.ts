@@ -10,6 +10,7 @@ import { RecordsModule } from './modules/records/records.module';
 import { StatsModule } from './modules/stats/stats.module';
 import { DemoSeedModule } from './modules/demo-seed/demo-seed.module';
 import { NetworkPolicyModule } from './modules/network-policy/network-policy.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { NetworkPolicyModule } from './modules/network-policy/network-policy.mod
     AttendanceModule,
     RecordsModule,
     StatsModule,
+    NotificationsModule,
     DemoSeedModule
   ]
 })
