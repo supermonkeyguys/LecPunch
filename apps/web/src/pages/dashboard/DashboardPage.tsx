@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, BellRing, Clock3 } from 'lucide-react';
 import {
   ATTENDANCE_MAX_SECONDS,
   WARNING_THRESHOLD_SECONDS,
   type TeamActiveAttendanceItem,
   type TeamWeeklyStatItem
 } from '@lecpunch/shared';
-import { Alert, Button } from '@lecpunch/ui';
+import { Alert, Badge, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
 import { useRootStore } from '@/app/store/root-store';
 import { checkInAttendance, checkOutAttendance } from '@/features/attendance/attendance.api';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
+import { useDashboardNotifications } from '@/features/notifications/useDashboardNotifications';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
+import { formatDateTime, formatWeekRangeLabel } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { showToast } from '@/shared/ui/toast';
@@ -27,6 +29,7 @@ export const DashboardPage = () => {
   const navigate = useNavigate();
   const selectedWeek = useRootStore((state) => state.selectedWeek);
   const setSelectedWeek = useRootStore((state) => state.setSelectedWeek);
+  const token = useRootStore((state) => state.auth.token);
   const [actionError, setActionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -43,6 +46,12 @@ export const DashboardPage = () => {
     error,
     refresh
   } = useDashboardData(selectedWeek);
+  const {
+    notifications,
+    error: notificationError,
+    pendingIds,
+    acknowledge
+  } = useDashboardNotifications(token);
 
   const weekLabel = WEEK_LABELS[selectedWeek];
   const currentSession = attendance?.session ?? null;
@@ -106,6 +115,17 @@ export const DashboardPage = () => {
     });
   };
 
+  const handleAcknowledgeNotification = async (notificationId: string) => {
+    await acknowledge(notificationId);
+  };
+
+  const handleOpenRecords = async (notificationId: string) => {
+    const confirmed = await acknowledge(notificationId);
+    if (confirmed) {
+      navigate('/records');
+    }
+  };
+
   return (
     <div className="mx-auto max-w-7xl space-y-6 p-8">
       {actionError ? (
@@ -116,6 +136,79 @@ export const DashboardPage = () => {
         >
           {actionError}
         </Alert>
+      ) : null}
+
+      {notificationError ? (
+        <Alert variant="error" icon={<AlertTriangle className="h-4 w-4" />}>
+          {notificationError}
+        </Alert>
+      ) : null}
+
+      {notifications.length > 0 ? (
+        <PageSection padded className="border-amber-200 bg-gradient-to-r from-amber-50 via-white to-orange-50">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-amber-100 p-2 text-amber-700">
+                  <BellRing className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">待确认通知</h2>
+                    <Badge variant="warning">{notifications.length}</Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">成员记录被管理员标记后，会在这里等待你确认。</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="rounded-2xl border border-amber-200 bg-white/90 p-4 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-gray-900">{notification.title}</p>
+                        <Badge variant="warning">待处理</Badge>
+                      </div>
+                      <p className="text-sm leading-6 text-gray-700">{notification.message}</p>
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {formatDateTime(notification.createdAt)}
+                        </span>
+                        {notification.type === 'attendance.record_marked' ? (
+                          <span>关联周：{formatWeekRangeLabel(notification.payload.weekKey)}</span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        loading={pendingIds.includes(notification.id)}
+                        onClick={() => void handleAcknowledgeNotification(notification.id)}
+                      >
+                        知道了
+                      </Button>
+                      <Button
+                        size="sm"
+                        loading={pendingIds.includes(notification.id)}
+                        onClick={() => void handleOpenRecords(notification.id)}
+                      >
+                        查看记录
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </PageSection>
       ) : null}
 
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
