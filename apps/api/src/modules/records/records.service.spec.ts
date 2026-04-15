@@ -31,14 +31,18 @@ describe('RecordsService', () => {
   const usersService = {
     findById: vi.fn(),
     findByMemberKey: vi.fn(),
-    listTeamMembers: vi.fn()
+    listTeamMembers: vi.fn(),
+    getMemberKey: vi.fn((userId: string) => `member-key-${userId}`)
+  };
+  const notificationsService = {
+    createForAttendanceRecordMarked: vi.fn()
   };
 
   let service: RecordsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new RecordsService(attendanceService as any, usersService as any);
+    service = new RecordsService(attendanceService as any, usersService as any, notificationsService as any);
   });
 
   it('rejects cross-team member record access', async () => {
@@ -75,12 +79,52 @@ describe('RecordsService', () => {
 
   it('updates marked state for admins only', async () => {
     const record = { id: 'session-1', isMarked: true };
-    attendanceService.setTeamRecordMarked.mockResolvedValue(record);
+    attendanceService.setTeamRecordMarked.mockResolvedValue({ record, changed: true });
 
     await expect(service.adminUpdateRecordMark(currentUser, 'session-1', true)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(service.adminUpdateRecordMark(adminUser, 'session-1', true)).resolves.toBe(record);
 
     expect(attendanceService.setTeamRecordMarked).toHaveBeenCalledWith('team-1', 'session-1', true);
+  });
+
+  it('creates a notification when an admin newly marks a record', async () => {
+    const record = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-2',
+      weekKey: '2026-04-06',
+      isMarked: true
+    };
+    attendanceService.setTeamRecordMarked.mockResolvedValue({ record, changed: true });
+
+    await service.adminUpdateRecordMark(adminUser, 'session-1', true);
+
+    expect(notificationsService.createForAttendanceRecordMarked).toHaveBeenCalledWith({
+      teamId: 'team-1',
+      userId: 'user-2',
+      sourceId: 'session-1',
+      memberKey: 'member-key-user-2',
+      weekKey: '2026-04-06',
+      createdBy: 'admin-1'
+    });
+  });
+
+  it('does not create a notification when the marked state was unchanged or cleared', async () => {
+    const record = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-2',
+      weekKey: '2026-04-06',
+      isMarked: true
+    };
+
+    attendanceService.setTeamRecordMarked.mockResolvedValueOnce({ record, changed: false });
+    attendanceService.setTeamRecordMarked.mockResolvedValueOnce({ record: { ...record, isMarked: false }, changed: true });
+
+    await service.adminUpdateRecordMark(adminUser, 'session-1', true);
+    await service.adminUpdateRecordMark(adminUser, 'session-1', false);
+
+    expect(notificationsService.createForAttendanceRecordMarked).not.toHaveBeenCalled();
   });
 
   it('deletes records for admins only', async () => {

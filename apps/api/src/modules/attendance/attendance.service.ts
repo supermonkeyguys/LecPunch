@@ -84,18 +84,27 @@ export class AttendanceService {
     return session;
   }
 
-  async setTeamRecordMarked(teamId: string, recordId: string, isMarked: boolean) {
-    const record = await this.attendanceModel.findOneAndUpdate(
-      { _id: recordId, teamId },
+  async setTeamRecordMarked(
+    teamId: string,
+    recordId: string,
+    isMarked: boolean
+  ): Promise<{ record: AttendanceSessionDocument; changed: boolean }> {
+    const updated = await this.attendanceModel.findOneAndUpdate(
+      { _id: recordId, teamId, isMarked: { $ne: isMarked } },
       { $set: { isMarked } },
       { new: true }
     );
 
+    if (updated) {
+      return { record: updated, changed: true };
+    }
+
+    const record = await this.attendanceModel.findOne({ _id: recordId, teamId }).exec();
     if (!record) {
       throw new NotFoundException('Attendance record not found');
     }
 
-    return record;
+    return { record, changed: false };
   }
 
   async deleteCompletedTeamRecord(teamId: string, recordId: string) {

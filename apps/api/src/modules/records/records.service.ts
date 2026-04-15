@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AttendanceService } from '../attendance/attendance.service';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ERROR_CODES } from '@lecpunch/shared';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
@@ -30,7 +31,8 @@ export interface TeamRecordExportRow {
 export class RecordsService {
   constructor(
     private readonly attendanceService: AttendanceService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService
   ) {}
 
   listMyRecords(
@@ -66,7 +68,20 @@ export class RecordsService {
 
   async adminUpdateRecordMark(currentUser: AuthUser, recordId: string, isMarked: boolean) {
     this.assertAdmin(currentUser);
-    return this.attendanceService.setTeamRecordMarked(currentUser.teamId, recordId, isMarked);
+    const result = await this.attendanceService.setTeamRecordMarked(currentUser.teamId, recordId, isMarked);
+
+    if (isMarked && result.changed) {
+      await this.notificationsService.createForAttendanceRecordMarked({
+        teamId: result.record.teamId,
+        userId: result.record.userId,
+        sourceId: result.record.id,
+        memberKey: this.usersService.getMemberKey(result.record.userId),
+        weekKey: result.record.weekKey,
+        createdBy: currentUser.userId
+      });
+    }
+
+    return result.record;
   }
 
   async adminDeleteRecord(currentUser: AuthUser, recordId: string) {

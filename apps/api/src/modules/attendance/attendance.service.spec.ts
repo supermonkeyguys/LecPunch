@@ -192,13 +192,31 @@ describe('AttendanceService', () => {
     const record = { id: 'session-1', teamId: 'team-1', isMarked: true };
     findOneAndUpdate.mockResolvedValue(record);
 
-    await expect(service.setTeamRecordMarked('team-1', 'session-1', true)).resolves.toBe(record);
+    await expect(service.setTeamRecordMarked('team-1', 'session-1', true)).resolves.toEqual({
+      record,
+      changed: true
+    });
 
     expect(findOneAndUpdate).toHaveBeenCalledWith(
-      { _id: 'session-1', teamId: 'team-1' },
+      { _id: 'session-1', teamId: 'team-1', isMarked: { $ne: true } },
       { $set: { isMarked: true } },
       { new: true }
     );
+  });
+
+  it('returns the existing record without reporting change when the marked state is already current', async () => {
+    const existing = { id: 'session-1', teamId: 'team-1', isMarked: true };
+    findOneAndUpdate.mockResolvedValue(null);
+    findOne.mockReturnValueOnce({
+      exec: vi.fn().mockResolvedValue(existing)
+    });
+
+    await expect(service.setTeamRecordMarked('team-1', 'session-1', true)).resolves.toEqual({
+      record: existing,
+      changed: false
+    });
+
+    expect(findOne).toHaveBeenCalledWith({ _id: 'session-1', teamId: 'team-1' });
   });
 
   it('rejects deleting active records', async () => {
