@@ -334,6 +334,29 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('00:00:10')).toBeInTheDocument();
   });
 
+  it('keeps the server elapsed duration after refresh when credited seconds are still zero', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 12,
+        creditedSeconds: 0,
+        isPaused: false
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('00:00:12')).toBeInTheDocument();
+  });
+
   it('shows paused accumulation hint when the active session is paused', async () => {
     mocks.getCurrentAttendance.mockResolvedValue({
       hasActiveSession: true,

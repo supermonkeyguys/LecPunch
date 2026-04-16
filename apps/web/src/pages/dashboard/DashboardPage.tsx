@@ -75,9 +75,14 @@ export const DashboardPage = () => {
   const selectedWeekSessionsCount = selectedWeekStat?.sessionsCount ?? selectedWeekRecords.length;
 
   useEffect(() => {
-    setCreditedSeconds(currentSession?.creditedSeconds ?? 0);
-    setLiveSliceSeconds(0);
-    setSessionPaused(Boolean(currentSession?.isPaused));
+    const nextCreditedSeconds = currentSession?.creditedSeconds ?? 0;
+    const nextPaused = Boolean(currentSession?.isPaused);
+    const serverElapsedSeconds = currentSession?.elapsedSeconds ?? nextCreditedSeconds;
+    const nextLiveSliceSeconds = nextPaused ? 0 : Math.max(0, serverElapsedSeconds - nextCreditedSeconds);
+
+    setCreditedSeconds(nextCreditedSeconds);
+    setLiveSliceSeconds(nextLiveSliceSeconds);
+    setSessionPaused(nextPaused);
     setPauseReason(currentSession?.pauseReason as AttendancePauseReason | undefined);
     if (currentSession) {
       const syncAt = currentSession.lastKeepaliveAt ? new Date(currentSession.lastKeepaliveAt).getTime() : Date.now();
@@ -85,7 +90,13 @@ export const DashboardPage = () => {
     } else {
       setLastKeepaliveSyncAtMs(null);
     }
-  }, [currentSession?.id, currentSession?.creditedSeconds, currentSession?.isPaused, currentSession?.pauseReason]);
+  }, [
+    currentSession?.id,
+    currentSession?.creditedSeconds,
+    currentSession?.elapsedSeconds,
+    currentSession?.isPaused,
+    currentSession?.pauseReason
+  ]);
 
   useSecondsTicker(() => {
     const now = Date.now();
