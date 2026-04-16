@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
@@ -457,5 +457,84 @@ describe('DashboardPage', () => {
       expect(mocks.acknowledgeNotification).toHaveBeenCalledWith('notification-2');
       expect(mocks.navigate).toHaveBeenCalledWith('/records');
     });
+  });
+
+  it('reconnects the notification stream after an unexpected stream failure', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: false,
+      session: null
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+
+    let handlersRef:
+      | {
+          onError?: (error: unknown) => void;
+        }
+      | undefined;
+    mocks.connectNotificationStream.mockImplementation(async (_token, handlers) => {
+      handlersRef = handlers;
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mocks.connectNotificationStream).toHaveBeenCalledTimes(1);
+    });
+
+    vi.useFakeTimers();
+    await act(async () => {
+      handlersRef?.onError?.(new Error('stream dropped'));
+    });
+
+    expect(screen.getByText('实时通知连接失败，正在重试')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(mocks.connectNotificationStream).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reconnect the notification stream after the dashboard unmounts', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: false,
+      session: null
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+
+    let handlersRef:
+      | {
+          onError?: (error: unknown) => void;
+        }
+      | undefined;
+    mocks.connectNotificationStream.mockImplementation(async (_token, handlers) => {
+      handlersRef = handlers;
+    });
+
+    const view = render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(mocks.connectNotificationStream).toHaveBeenCalledTimes(1);
+    });
+
+    vi.useFakeTimers();
+    handlersRef?.onError?.(new Error('stream dropped'));
+    view.unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(mocks.connectNotificationStream).toHaveBeenCalledTimes(1);
   });
 });

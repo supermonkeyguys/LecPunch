@@ -4,6 +4,8 @@ import { acknowledgeNotification, connectNotificationStream, getMyNotifications,
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { showToast } from '@/shared/ui/toast';
 
+const STREAM_RETRY_DELAY_MS = 3000;
+
 const sortNotifications = (items: NotificationItem[]) =>
   [...items].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 
@@ -18,11 +20,22 @@ export const useDashboardNotifications = (token: string | null) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
+  const [streamRetryToken, setStreamRetryToken] = useState(0);
   const notificationsRef = useRef<NotificationItem[]>([]);
+  const retryTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     notificationsRef.current = notifications;
   }, [notifications]);
+
+  useEffect(
+    () => () => {
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!token) {
@@ -65,9 +78,29 @@ export const useDashboardNotifications = (token: string | null) => {
     }
 
     const controller = new AbortController();
+    const scheduleReconnect = (message: string) => {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setError(message);
+
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+
+      retryTimeoutRef.current = window.setTimeout(() => {
+        retryTimeoutRef.current = null;
+        setStreamRetryToken((current) => current + 1);
+      }, STREAM_RETRY_DELAY_MS);
+    };
 
     const handleEvent = (event: NotificationStreamEvent) => {
       if (event.event === 'connected') {
+        if (retryTimeoutRef.current !== null) {
+          window.clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
         setError(null);
         return;
       }
@@ -90,14 +123,18 @@ export const useDashboardNotifications = (token: string | null) => {
       signal: controller.signal,
       onEvent: handleEvent,
       onError: (error) => {
-        setError(getApiErrorMessage(error, '实时通知连接失败，请刷新页面重试'));
+        scheduleReconnect(getApiErrorMessage(error, '实时通知连接失败，正在重试'));
       }
     });
 
     return () => {
       controller.abort();
+      if (retryTimeoutRef.current !== null) {
+        window.clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
-  }, [token]);
+  }, [token, streamRetryToken]);
 
   const acknowledge = async (notificationId: string) => {
     setPendingIds((current) => [...current, notificationId]);
