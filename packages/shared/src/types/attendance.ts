@@ -1,5 +1,5 @@
 export type AttendanceStatus = 'active' | 'completed' | 'invalidated';
-export type AttendanceInvalidReason = 'overtime_5h';
+export type AttendanceInvalidReason = 'overtime_5h' | 'heartbeat_timeout';
 
 export interface AttendanceSession {
   id: string;
@@ -7,6 +7,7 @@ export interface AttendanceSession {
   userId: string;
   checkInAt: string;
   checkOutAt?: string;
+  lastKeepaliveAt?: string;
   durationSeconds?: number;
   status: AttendanceStatus;
   invalidReason?: AttendanceInvalidReason;

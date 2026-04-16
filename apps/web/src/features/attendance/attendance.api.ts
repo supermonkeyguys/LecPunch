@@ -8,6 +8,7 @@ export interface CurrentAttendanceResponse {
     id: string;
     checkInAt: string;
     elapsedSeconds: number;
+    lastKeepaliveAt?: string;
     status?: string;
     durationSeconds?: number;
     weekKey?: string;
@@ -26,6 +27,11 @@ export const getTeamActiveAttendances = async () => {
 
 export const checkInAttendance = async () => {
   const response = await apiClient.post('/attendance/check-in');
+  return response.data;
+};
+
+export const keepAliveAttendance = async () => {
+  const response = await apiClient.post('/attendance/keepalive');
   return response.data;
 };
 

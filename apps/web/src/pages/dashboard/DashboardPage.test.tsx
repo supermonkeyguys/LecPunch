@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getTeamActiveAttendances: vi.fn(),
   checkInAttendance: vi.fn(),
   checkOutAttendance: vi.fn(),
+  keepAliveAttendance: vi.fn(),
   getMyWeeklyStats: vi.fn(),
   getTeamCurrentWeekStats: vi.fn(),
   getMyRecords: vi.fn(),
@@ -33,7 +34,8 @@ vi.mock('@/features/attendance/attendance.api', () => ({
   getCurrentAttendance: mocks.getCurrentAttendance,
   getTeamActiveAttendances: mocks.getTeamActiveAttendances,
   checkInAttendance: mocks.checkInAttendance,
-  checkOutAttendance: mocks.checkOutAttendance
+  checkOutAttendance: mocks.checkOutAttendance,
+  keepAliveAttendance: mocks.keepAliveAttendance
 }));
 
 vi.mock('@/features/stats/stats.api', () => ({
@@ -78,6 +80,7 @@ describe('DashboardPage', () => {
     mocks.navigate.mockReset();
     mocks.getMyRecords.mockResolvedValue([]);
     mocks.getTeamActiveAttendances.mockResolvedValue([]);
+    mocks.keepAliveAttendance.mockResolvedValue({});
     mocks.getMyNotifications.mockResolvedValue([]);
     mocks.connectNotificationStream.mockResolvedValue(undefined);
   });
@@ -140,6 +143,50 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByRole('button', { name: /下卡/i })).toBeInTheDocument();
     expect(screen.getAllByText('01:01:01').length).toBeGreaterThan(0);
+  });
+
+  it('sends periodic keepalive requests while an active session is running', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 30
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    const originalSetInterval = globalThis.setInterval;
+    const originalClearInterval = globalThis.clearInterval;
+    let keepAliveInterval: (() => void | Promise<void>) | undefined;
+
+    globalThis.setInterval = (((callback: TimerHandler, delay?: number) => {
+      if (delay === 30_000 && typeof callback === 'function') {
+        keepAliveInterval = callback as () => void | Promise<void>;
+      }
+
+      return 1 as unknown as ReturnType<typeof setInterval>;
+    }) as unknown) as typeof setInterval;
+
+    globalThis.clearInterval = ((() => undefined) as unknown) as typeof clearInterval;
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: /下卡/i })).toBeInTheDocument();
+
+    expect(keepAliveInterval).toBeTypeOf('function');
+
+    await act(async () => {
+      await keepAliveInterval?.();
+    });
+
+    expect(mocks.keepAliveAttendance).toHaveBeenCalledTimes(1);
+    globalThis.setInterval = originalSetInterval;
+    globalThis.clearInterval = originalClearInterval;
   });
 
   it('submits check-in and refreshes the current session', async () => {

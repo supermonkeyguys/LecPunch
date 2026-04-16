@@ -16,6 +16,9 @@ export class AttendanceSession {
   @Prop({ type: Date })
   checkOutAt?: Date;
 
+  @Prop({ type: Date })
+  lastKeepaliveAt?: Date;
+
   @Prop({ type: Number })
   durationSeconds?: number;
 

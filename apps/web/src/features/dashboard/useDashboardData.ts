@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TeamActiveAttendanceItem, TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
 import type { WeekKey } from '@/app/store/root-store';
 import {
@@ -36,6 +36,9 @@ const INITIAL_STATE: DashboardState = {
 export const useDashboardData = (selectedWeek: WeekKey) => {
   const [state, setState] = useState<DashboardState>(INITIAL_STATE);
   const [reloadToken, setReloadToken] = useState(0);
+  const refresh = useCallback(() => {
+    setReloadToken((current) => current + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +91,10 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
 
   useEffect(() => {
     let cancelled = false;
+    const setIntervalFn =
+      typeof globalThis.setInterval === 'function' ? globalThis.setInterval : window.setInterval.bind(window);
+    const clearIntervalFn =
+      typeof globalThis.clearInterval === 'function' ? globalThis.clearInterval : window.clearInterval.bind(window);
 
     const syncActiveMembers = async () => {
       try {
@@ -102,13 +109,13 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
       }
     };
 
-    const interval = setInterval(() => {
+    const interval = setIntervalFn(() => {
       void syncActiveMembers();
     }, 15000);
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      clearIntervalFn(interval);
     };
   }, []);
 
@@ -127,6 +134,6 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
     selectedWeekKey,
     selectedWeekStat,
     selectedWeekRecords,
-    refresh: () => setReloadToken((current) => current + 1)
+    refresh
   };
 };

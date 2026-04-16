@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
-import { ERROR_CODES, ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
+import { ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS, ATTENDANCE_MAX_SECONDS, ERROR_CODES } from '@lecpunch/shared';
 import type { AuthUser } from '../auth/types/auth-user.type';
 
 const user: AuthUser = {
@@ -58,6 +58,7 @@ describe('AttendanceService', () => {
     const activeSession = {
       id: 'session-1',
       checkInAt: new Date(Date.now() - ATTENDANCE_MAX_SECONDS * 1000),
+      lastKeepaliveAt: new Date(),
       status: 'active',
       save
     } as any;
@@ -75,13 +76,16 @@ describe('AttendanceService', () => {
   });
 
   it('returns current session payload with elapsed seconds for active attendance', async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
     const activeSession = {
       id: 'session-1',
       teamId: 'team-1',
       userId: 'user-1',
       checkInAt: new Date(Date.now() - 90_000),
+      lastKeepaliveAt: new Date(),
       status: 'active',
-      weekKey: '2026-03-30'
+      weekKey: '2026-03-30',
+      save
     } as any;
 
     findOne.mockReturnValue({
@@ -108,6 +112,84 @@ describe('AttendanceService', () => {
     expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
     expect(result.weekKey).toBe('2026-04-06');
     expect(result.weeklyGoalSecondsSnapshot).toBe(38 * 3600);
+    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-05T16:30:00.000Z'));
+  });
+
+  it('invalidates stale sessions when querying the current attendance state', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:05:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'session-1',
+        teamId: 'team-1',
+        userId: 'user-1',
+        checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+        lastKeepaliveAt: new Date('2026-04-10T00:00:00.000Z'),
+        status: 'active',
+        weekKey: '2026-04-07',
+        save
+      })
+    });
+
+    await expect(service.getCurrentSession(user.userId)).resolves.toBeNull();
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes the keepalive timestamp for an active session', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:01:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const activeSession = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date('2026-04-10T00:00:10.000Z'),
+      status: 'active',
+      weekKey: '2026-04-07',
+      save
+    } as any;
+
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(activeSession)
+    });
+
+    const result = await service.keepAlive(user, '127.0.0.1');
+
+    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
+    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-10T00:01:00.000Z'));
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects check-out once the active session has missed the keepalive timeout', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:02:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const staleSession = {
+      id: 'session-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date(
+        Date.now() - (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000 + 1_000)
+      ),
+      status: 'active',
+      save
+    } as any;
+
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(staleSession)
+    });
+
+    await expect(service.checkOut(user, '127.0.0.1')).rejects.toMatchObject({
+      response: {
+        code: ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED
+      }
+    });
+    expect(staleSession.invalidReason).toBe('heartbeat_timeout');
+    expect(save).toHaveBeenCalledTimes(1);
   });
 
   it('builds record date filters using Asia/Shanghai day boundaries', async () => {
@@ -158,7 +240,9 @@ describe('AttendanceService', () => {
       {
         userId: 'user-2',
         checkInAt: new Date(Date.now() - 120_000),
-        weekKey: '2026-04-06'
+        lastKeepaliveAt: new Date(),
+        weekKey: '2026-04-06',
+        save: vi.fn().mockResolvedValue(undefined)
       }
     ]);
     const sort = vi.fn().mockReturnValue({ exec });

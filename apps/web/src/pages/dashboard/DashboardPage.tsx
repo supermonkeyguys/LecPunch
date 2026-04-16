@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BellRing, Clock3 } from 'lucide-react';
 import {
+  ATTENDANCE_KEEPALIVE_INTERVAL_SECONDS,
   ATTENDANCE_MAX_SECONDS,
   WARNING_THRESHOLD_SECONDS,
   type TeamActiveAttendanceItem,
@@ -10,7 +11,7 @@ import {
 import { Alert, Badge, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
 import { useRootStore } from '@/app/store/root-store';
-import { checkInAttendance, checkOutAttendance } from '@/features/attendance/attendance.api';
+import { checkInAttendance, checkOutAttendance, keepAliveAttendance } from '@/features/attendance/attendance.api';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
 import { useDashboardNotifications } from '@/features/notifications/useDashboardNotifications';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
@@ -69,6 +70,40 @@ export const DashboardPage = () => {
   useSecondsTicker(() => {
     setElapsedSeconds((value) => value + 1);
   }, isCurrentWeek && isCheckedIn);
+
+  useEffect(() => {
+    if (!isCurrentWeek || !isCheckedIn) {
+      return;
+    }
+
+    let cancelled = false;
+    const setIntervalFn =
+      typeof globalThis.setInterval === 'function' ? globalThis.setInterval : window.setInterval.bind(window);
+    const clearIntervalFn =
+      typeof globalThis.clearInterval === 'function' ? globalThis.clearInterval : window.clearInterval.bind(window);
+
+    const syncKeepAlive = async () => {
+      try {
+        await keepAliveAttendance();
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setActionError(getApiErrorMessage(error, '当前打卡已失效，请重新上卡'));
+        refresh();
+      }
+    };
+
+    const interval = setIntervalFn(() => {
+      void syncKeepAlive();
+    }, ATTENDANCE_KEEPALIVE_INTERVAL_SECONDS * 1000);
+
+    return () => {
+      cancelled = true;
+      clearIntervalFn(interval);
+    };
+  }, [isCheckedIn, isCurrentWeek, refresh]);
 
   const currentDuration = currentSession ? elapsedSeconds : 0;
   const isWarning = currentDuration >= WARNING_THRESHOLD_SECONDS;

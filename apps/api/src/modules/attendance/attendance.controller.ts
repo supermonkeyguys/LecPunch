@@ -43,6 +43,13 @@ export class AttendanceController {
     return this.mapSession(session);
   }
 
+  @Post('keepalive')
+  async keepAlive(@CurrentUser() user: AuthUser, @Req() request: Request) {
+    const ip = await this.networkPolicyService.getClientIp(user.teamId, request);
+    const session = await this.attendanceService.keepAlive(user, ip);
+    return this.mapSession(session);
+  }
+
   private mapSession(session: any) {
     return {
       id: session.id,
@@ -50,6 +57,7 @@ export class AttendanceController {
       userId: session.userId,
       checkInAt: session.checkInAt,
       checkOutAt: session.checkOutAt,
+      lastKeepaliveAt: session.lastKeepaliveAt,
       durationSeconds: session.durationSeconds,
       elapsedSeconds: session.elapsedSeconds,
       status: session.status,
