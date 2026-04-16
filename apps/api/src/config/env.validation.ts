@@ -50,6 +50,7 @@ export const validationSchema = Joi.object({
   AUTH_SECRET: Joi.string().min(16).required(),
   DEFAULT_TEAM_NAME: Joi.string().default('FocusTeam'),
   ALLOW_OPEN_REGISTRATION: Joi.boolean().truthy('true').falsy('false').default(true),
+  ATTENDANCE_BALANCED_ACCOUNTING_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   ALLOW_ANY_NETWORK: Joi.boolean().truthy('true').falsy('false').default(true),
   ALLOWED_PUBLIC_IPS: ipListSchema,
   ALLOWED_CIDRS: cidrListSchema,

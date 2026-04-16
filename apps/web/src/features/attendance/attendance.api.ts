@@ -1,6 +1,6 @@
 import { apiClient } from '@/shared/http/api-client';
 
-import type { TeamActiveAttendanceItem } from '@lecpunch/shared';
+import type { AttendancePauseReason, TeamActiveAttendanceItem } from '@lecpunch/shared';
 
 export interface CurrentAttendanceResponse {
   hasActiveSession: boolean;
@@ -9,6 +9,12 @@ export interface CurrentAttendanceResponse {
     checkInAt: string;
     elapsedSeconds: number;
     lastKeepaliveAt?: string;
+    lastCreditedAt?: string;
+    creditedSeconds?: number;
+    pausedAt?: string;
+    pauseReason?: AttendancePauseReason;
+    isPaused?: boolean;
+    segmentsCount?: number;
     status?: string;
     durationSeconds?: number;
     weekKey?: string;
@@ -38,6 +44,7 @@ export const keepAliveAttendance = async () => {
 export interface CheckOutResponse {
   status: 'completed' | 'invalidated';
   invalidReason?: string;
+  durationSeconds?: number;
 }
 
 export const checkOutAttendance = async (): Promise<CheckOutResponse> => {

@@ -1,5 +1,5 @@
 import { AlertTriangle, History, Play, Square } from 'lucide-react';
-import { ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
+import { ATTENDANCE_MAX_SECONDS, type AttendancePauseReason } from '@lecpunch/shared';
 import { Progress } from '@lecpunch/ui';
 import { formatDuration } from '@/shared/lib/time';
 
@@ -8,6 +8,8 @@ interface DashboardAttendanceWidgetProps {
   weekLabel: string;
   isCurrentWeek: boolean;
   isCheckedIn: boolean;
+  isPaused: boolean;
+  pauseReason?: AttendancePauseReason;
   currentDuration: number;
   selectedWeekDuration: number;
   selectedWeekSessionsCount: number;
@@ -23,6 +25,8 @@ export const DashboardAttendanceWidget = ({
   weekLabel,
   isCurrentWeek,
   isCheckedIn,
+  isPaused,
+  pauseReason,
   currentDuration,
   selectedWeekDuration,
   selectedWeekSessionsCount,
@@ -32,6 +36,13 @@ export const DashboardAttendanceWidget = ({
   isNearLimit,
   onAction
 }: DashboardAttendanceWidgetProps) => {
+  const pauseReasonText =
+    pauseReason === 'network_not_allowed'
+      ? '网络不在允许范围'
+      : pauseReason === 'client_offline'
+        ? '设备离线'
+        : 'keepalive 超时';
+
   const spotlightSeconds = isCurrentWeek ? currentDuration : selectedWeekDuration;
   const completedSeconds = selectedWeekDuration + (isCurrentWeek && isCheckedIn ? currentDuration : 0);
   const progressPercent = Math.min((currentDuration / ATTENDANCE_MAX_SECONDS) * 100, 100);
@@ -46,9 +57,11 @@ export const DashboardAttendanceWidget = ({
     ? '正在加载...'
     : isCurrentWeek
       ? isCheckedIn
-        ? '正在记录专注时长...'
+        ? isPaused
+          ? '当前已暂停累计，请恢复网络或返回页面'
+          : '正在记录有效时长...'
         : '当前未打卡，开始今天的努力吧！'
-      : `${weekLabel}累计打卡时长`;
+      : `${weekLabel}累计有效时长`;
 
   return (
     <div className="relative flex flex-col items-center justify-between gap-8 overflow-hidden rounded-2xl border border-gray-200 bg-white p-8 shadow-sm md:flex-row">
@@ -72,7 +85,7 @@ export const DashboardAttendanceWidget = ({
 
         <div className="mb-4 flex flex-wrap gap-3 text-sm">
           <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <p className="text-xs text-gray-500">{weekLabel}累计</p>
+            <p className="text-xs text-gray-500">{weekLabel}有效累计</p>
             <p className="mt-1 font-mono text-lg font-semibold text-gray-900">
               {formatDuration(selectedWeekDuration)}
             </p>
@@ -101,6 +114,12 @@ export const DashboardAttendanceWidget = ({
               已完成 {formatDuration(completedSeconds)} / {goalHours}h
             </p>
           </div>
+        ) : null}
+
+        {isCurrentWeek && isCheckedIn && isPaused ? (
+          <p className="mb-4 rounded-md bg-amber-50 p-2 text-sm text-amber-700">
+            当前打卡处于暂停累计状态（{pauseReasonText}）。
+          </p>
         ) : null}
 
         {isCurrentWeek && isCheckedIn ? (

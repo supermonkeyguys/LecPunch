@@ -56,4 +56,13 @@ describe('validationSchema', () => {
     expect(value.TRUST_PROXY).toBe(true);
     expect(value.TRUSTED_PROXY_HOPS).toBe(2);
   });
+
+  it('enables balanced attendance accounting by default', () => {
+    const { error, value } = validationSchema.validate({
+      ...baseEnv
+    });
+
+    expect(error).toBeUndefined();
+    expect(value.ATTENDANCE_BALANCED_ACCOUNTING_ENABLED).toBe(true);
+  });
 });

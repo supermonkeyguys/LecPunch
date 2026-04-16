@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BellRing, Clock3 } from 'lucide-react';
 import {
   ATTENDANCE_KEEPALIVE_INTERVAL_SECONDS,
+  ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS,
   ATTENDANCE_MAX_SECONDS,
+  ERROR_CODES,
   WARNING_THRESHOLD_SECONDS,
+  type AttendancePauseReason,
   type TeamActiveAttendanceItem,
   type TeamWeeklyStatItem
 } from '@lecpunch/shared';
@@ -16,7 +19,7 @@ import { useDashboardData } from '@/features/dashboard/useDashboardData';
 import { useDashboardNotifications } from '@/features/notifications/useDashboardNotifications';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
-import { formatDateTime, formatWeekRangeLabel } from '@/shared/lib/time';
+import { formatDateTime, formatDuration, formatWeekRangeLabel } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { showToast } from '@/shared/ui/toast';
@@ -26,6 +29,10 @@ import { DashboardHeatmapWidget } from '@/widgets/dashboard/DashboardHeatmapWidg
 import { DashboardTeamWidget } from '@/widgets/dashboard/DashboardTeamWidget';
 import { WEEK_LABELS } from '@/widgets/dashboard/dashboard.lib';
 
+const extractApiErrorCode = (error: unknown) => {
+  return (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
+};
+
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const selectedWeek = useRootStore((state) => state.selectedWeek);
@@ -33,7 +40,11 @@ export const DashboardPage = () => {
   const token = useRootStore((state) => state.auth.token);
   const [actionError, setActionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [creditedSeconds, setCreditedSeconds] = useState(0);
+  const [liveSliceSeconds, setLiveSliceSeconds] = useState(0);
+  const [sessionPaused, setSessionPaused] = useState(false);
+  const [pauseReason, setPauseReason] = useState<AttendancePauseReason | undefined>(undefined);
+  const [lastKeepaliveSyncAtMs, setLastKeepaliveSyncAtMs] = useState<number | null>(null);
 
   const {
     attendance,
@@ -64,12 +75,30 @@ export const DashboardPage = () => {
   const selectedWeekSessionsCount = selectedWeekStat?.sessionsCount ?? selectedWeekRecords.length;
 
   useEffect(() => {
-    setElapsedSeconds(currentSession?.elapsedSeconds ?? 0);
-  }, [currentSession?.elapsedSeconds]);
+    setCreditedSeconds(currentSession?.creditedSeconds ?? 0);
+    setLiveSliceSeconds(0);
+    setSessionPaused(Boolean(currentSession?.isPaused));
+    setPauseReason(currentSession?.pauseReason as AttendancePauseReason | undefined);
+    if (currentSession) {
+      const syncAt = currentSession.lastKeepaliveAt ? new Date(currentSession.lastKeepaliveAt).getTime() : Date.now();
+      setLastKeepaliveSyncAtMs(syncAt);
+    } else {
+      setLastKeepaliveSyncAtMs(null);
+    }
+  }, [currentSession?.id, currentSession?.creditedSeconds, currentSession?.isPaused, currentSession?.pauseReason]);
 
   useSecondsTicker(() => {
-    setElapsedSeconds((value) => value + 1);
-  }, isCurrentWeek && isCheckedIn);
+    const now = Date.now();
+    const timeoutMs = ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000;
+    if (lastKeepaliveSyncAtMs !== null && now - lastKeepaliveSyncAtMs > timeoutMs) {
+      setSessionPaused(true);
+      setPauseReason('heartbeat_timeout');
+      setActionError((current) => current ?? '续记账中断，已暂停累计，请检查网络后重试。');
+      return;
+    }
+
+    setLiveSliceSeconds((value) => value + 1);
+  }, isCurrentWeek && isCheckedIn && !sessionPaused);
 
   useEffect(() => {
     if (!isCurrentWeek || !isCheckedIn) {
@@ -84,14 +113,52 @@ export const DashboardPage = () => {
 
     const syncKeepAlive = async () => {
       try {
-        await keepAliveAttendance();
+        const keepalive = await keepAliveAttendance();
+        const nextCreditedSeconds = keepalive?.creditedSeconds ?? 0;
+        const nextPaused = Boolean(keepalive?.isPaused);
+        setCreditedSeconds(nextCreditedSeconds);
+        setLiveSliceSeconds(0);
+        setSessionPaused(nextPaused);
+        setPauseReason(keepalive?.pauseReason as AttendancePauseReason | undefined);
+        setLastKeepaliveSyncAtMs(
+          keepalive?.lastKeepaliveAt ? new Date(keepalive.lastKeepaliveAt).getTime() : Date.now()
+        );
+
+        if (!nextPaused) {
+          setActionError((current) => (current?.includes('暂停累计') ? null : current));
+        }
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        setActionError(getApiErrorMessage(error, '当前打卡已失效，请重新上卡'));
-        refresh();
+        const errorCode = extractApiErrorCode(error);
+
+        if (errorCode === ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED) {
+          setActionError(getApiErrorMessage(error, '当前打卡已失效，请重新上卡'));
+          refresh();
+          return;
+        }
+
+        if (errorCode === ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED) {
+          setSessionPaused(true);
+          setPauseReason('network_not_allowed');
+          setLiveSliceSeconds(0);
+          setActionError('当前网络不在允许范围内，已暂停累计，请切换网络后重试。');
+          return;
+        }
+
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+          setSessionPaused(true);
+          setPauseReason('client_offline');
+          setLiveSliceSeconds(0);
+          setActionError('当前设备离线，已暂停累计，恢复联网后会继续。');
+          return;
+        }
+
+        setSessionPaused(true);
+        setPauseReason('heartbeat_timeout');
+        setActionError(getApiErrorMessage(error, '续记账失败，已暂停累计，请检查网络后重试。'));
       }
     };
 
@@ -105,7 +172,7 @@ export const DashboardPage = () => {
     };
   }, [isCheckedIn, isCurrentWeek, refresh]);
 
-  const currentDuration = currentSession ? elapsedSeconds : 0;
+  const currentDuration = currentSession ? creditedSeconds + (sessionPaused ? 0 : liveSliceSeconds) : 0;
   const isWarning = currentDuration >= WARNING_THRESHOLD_SECONDS;
   const isNearLimit = currentDuration >= ATTENDANCE_MAX_SECONDS - 360;
 
@@ -123,7 +190,8 @@ export const DashboardPage = () => {
         if (result.status === 'invalidated') {
           showToast('本次打卡已超过 5 小时上限，记录已作废', 'error');
         } else {
-          showToast('下卡成功，辛苦了。');
+          const durationText = formatDuration(result.durationSeconds ?? 0);
+          showToast(`下卡成功，本次有效时长 ${durationText}。`);
         }
       } else {
         await checkInAttendance();
@@ -279,6 +347,8 @@ export const DashboardPage = () => {
                 weekLabel={weekLabel}
                 isCurrentWeek={isCurrentWeek}
                 isCheckedIn={isCheckedIn}
+                isPaused={sessionPaused}
+                pauseReason={pauseReason}
                 currentDuration={currentDuration}
                 selectedWeekDuration={selectedWeekDuration}
                 selectedWeekSessionsCount={selectedWeekSessionsCount}

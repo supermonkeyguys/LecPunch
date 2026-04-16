@@ -129,7 +129,9 @@ describe('DashboardPage', () => {
       session: {
         id: 'session-1',
         checkInAt: '2026-04-02T00:00:00.000Z',
-        elapsedSeconds: 3661
+        elapsedSeconds: 3661,
+        creditedSeconds: 3661,
+        isPaused: false
       }
     });
     mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
@@ -151,7 +153,9 @@ describe('DashboardPage', () => {
       session: {
         id: 'session-1',
         checkInAt: '2026-04-02T00:00:00.000Z',
-        elapsedSeconds: 30
+        elapsedSeconds: 30,
+        creditedSeconds: 30,
+        isPaused: false
       }
     });
     mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
@@ -189,6 +193,61 @@ describe('DashboardPage', () => {
     globalThis.clearInterval = originalClearInterval;
   });
 
+  it('pauses local accumulation when keepalive is rejected by network policy', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 30,
+        creditedSeconds: 30,
+        isPaused: false
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    mocks.keepAliveAttendance.mockRejectedValue({
+      response: {
+        data: {
+          code: 'ATTENDANCE_NETWORK_NOT_ALLOWED',
+          message: 'Current network is not allowed for attendance'
+        }
+      }
+    });
+
+    const originalSetInterval = globalThis.setInterval;
+    const originalClearInterval = globalThis.clearInterval;
+    let keepAliveInterval: (() => void | Promise<void>) | undefined;
+
+    globalThis.setInterval = (((callback: TimerHandler, delay?: number) => {
+      if (delay === 30_000 && typeof callback === 'function') {
+        keepAliveInterval = callback as () => void | Promise<void>;
+      }
+
+      return 1 as unknown as ReturnType<typeof setInterval>;
+    }) as unknown) as typeof setInterval;
+
+    globalThis.clearInterval = ((() => undefined) as unknown) as typeof clearInterval;
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: /下卡/i })).toBeInTheDocument();
+    await act(async () => {
+      await keepAliveInterval?.();
+    });
+
+    expect(mocks.keepAliveAttendance).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/暂停累计状态（网络不在允许范围）/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('已暂停累计');
+
+    globalThis.setInterval = originalSetInterval;
+    globalThis.clearInterval = originalClearInterval;
+  });
+
   it('submits check-in and refreshes the current session', async () => {
     mocks.getCurrentAttendance
       .mockResolvedValueOnce({ hasActiveSession: false, session: null })
@@ -197,7 +256,9 @@ describe('DashboardPage', () => {
         session: {
           id: 'session-2',
           checkInAt: '2026-04-02T01:00:00.000Z',
-          elapsedSeconds: 0
+          elapsedSeconds: 0,
+          creditedSeconds: 0,
+          isPaused: false
         }
       });
     mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
@@ -256,7 +317,9 @@ describe('DashboardPage', () => {
       session: {
         id: 'session-1',
         checkInAt: '2026-04-02T00:00:00.000Z',
-        elapsedSeconds: 10
+        elapsedSeconds: 10,
+        creditedSeconds: 10,
+        isPaused: false
       }
     });
     mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
@@ -271,13 +334,40 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('00:00:10')).toBeInTheDocument();
   });
 
+  it('shows paused accumulation hint when the active session is paused', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 120,
+        creditedSeconds: 120,
+        isPaused: true,
+        pauseReason: 'network_not_allowed'
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('00:02:00')).toBeInTheDocument();
+    expect(screen.getByText(/暂停累计状态/i)).toBeInTheDocument();
+  });
+
   it('shows overtime warning states near the five-hour limit', async () => {
     mocks.getCurrentAttendance.mockResolvedValue({
       hasActiveSession: true,
       session: {
         id: 'session-1',
         checkInAt: '2026-04-02T00:00:00.000Z',
-        elapsedSeconds: 16200
+        elapsedSeconds: 16200,
+        creditedSeconds: 16200,
+        isPaused: false
       }
     });
     mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
@@ -299,7 +389,9 @@ describe('DashboardPage', () => {
       session: {
         id: 'session-1',
         checkInAt: '2026-04-02T00:00:00.000Z',
-        elapsedSeconds: 3661
+        elapsedSeconds: 3661,
+        creditedSeconds: 3661,
+        isPaused: false
       }
     });
     mocks.getMyWeeklyStats.mockResolvedValue({

@@ -175,7 +175,7 @@ export const MemberRecordsPage = () => {
       },
       {
         key: 'durationSeconds',
-        header: '时长',
+        header: '有效时长',
         render: (_, row) => (
           <span
             className={`font-mono font-bold ${
@@ -257,6 +257,7 @@ export const MemberRecordsPage = () => {
             <Avatar name={memberName} size="md" />
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{memberName} 的打卡记录</h1>
+              <p className="mt-1 text-sm text-gray-500">时长统计口径为服务端确认的有效累计时长。</p>
             </div>
           </div>
         </div>
@@ -301,7 +302,7 @@ export const MemberRecordsPage = () => {
                 <span className="font-medium text-gray-900">{latestStat.weekKey}</span>
               </div>
               <div className="text-sm">
-                <span className="text-gray-500">累计时长：</span>
+                <span className="text-gray-500">有效累计时长：</span>
                 <span className="font-mono text-base font-bold text-blue-600">
                   {formatDuration(latestStat.totalDurationSeconds)}
                 </span>
@@ -348,7 +349,8 @@ export const MemberRecordsPage = () => {
                   开始的打卡记录。此操作不可恢复，请确认你已经核对无误。
                 </p>
                 <p className="mt-2 text-sm text-gray-500">
-                  当前记录状态：{deleteTarget.status}，记录时长：{formatDuration(deleteTarget.durationSeconds ?? 0)}
+                  当前记录状态：{deleteTarget.status}，记录有效时长：
+                  {formatDuration(deleteTarget.durationSeconds ?? 0)}
                 </p>
               </div>
             </div>

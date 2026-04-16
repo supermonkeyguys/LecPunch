@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { AttendanceInvalidReason, AttendanceStatus } from '@lecpunch/shared';
+import { AttendanceInvalidReason, AttendancePauseReason, AttendanceStatus } from '@lecpunch/shared';
 
 @Schema({ timestamps: true, collection: 'attendance_sessions' })
 export class AttendanceSession {
@@ -19,13 +19,28 @@ export class AttendanceSession {
   @Prop({ type: Date })
   lastKeepaliveAt?: Date;
 
+  @Prop({ type: Date })
+  lastCreditedAt?: Date;
+
+  @Prop({ type: Number, default: 0 })
+  creditedSeconds!: number;
+
+  @Prop({ type: Date })
+  pausedAt?: Date;
+
+  @Prop({ type: String, enum: ['heartbeat_timeout', 'network_not_allowed', 'client_offline'], required: false })
+  pauseReason?: AttendancePauseReason;
+
+  @Prop({ type: Number, default: 0 })
+  segmentsCount!: number;
+
   @Prop({ type: Number })
   durationSeconds?: number;
 
   @Prop({ type: String, enum: ['active', 'completed', 'invalidated'], default: 'active' })
   status!: AttendanceStatus;
 
-  @Prop({ type: String, enum: ['overtime_5h'], required: false })
+  @Prop({ type: String, enum: ['overtime_5h', 'heartbeat_timeout'], required: false })
   invalidReason?: AttendanceInvalidReason;
 
   @Prop({ required: true, type: String })

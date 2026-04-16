@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AttendanceSession, AttendanceSessionDocument } from './schemas/attendance-session.schema';
@@ -8,7 +9,8 @@ import {
   ERROR_CODES,
   ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS,
   ATTENDANCE_MAX_SECONDS,
-  weeklyGoalSeconds
+  weeklyGoalSeconds,
+  type AttendancePauseReason
 } from '@lecpunch/shared';
 import { getShanghaiDateRange, getWeekKey } from '../../common/utils/time.util';
 import type { AuthUser } from '../auth/types/auth-user.type';
@@ -19,7 +21,8 @@ export class AttendanceService {
     @InjectModel(AttendanceSession.name)
     private readonly attendanceModel: Model<AttendanceSessionDocument>,
     private readonly networkPolicyService: NetworkPolicyService,
-    private readonly usersService: UsersService
+    private readonly usersService: UsersService,
+    @Optional() private readonly configService?: ConfigService
   ) {}
 
   async getCurrentSession(userId: string) {
@@ -28,17 +31,38 @@ export class AttendanceService {
       return null;
     }
 
-    const activeSession = await this.invalidateStaleSessionIfNeeded(session);
-    if (!activeSession) {
+    if (!this.isBalancedAccountingEnabled()) {
+      const activeSession = await this.invalidateStaleSessionIfNeeded(session);
+      if (!activeSession) {
+        return null;
+      }
+
+      const baseSession = typeof activeSession.toObject === 'function' ? activeSession.toObject() : activeSession;
+      return {
+        ...baseSession,
+        id: activeSession.id,
+        elapsedSeconds: this.getLegacyElapsedSeconds(activeSession)
+      };
+    }
+
+    const now = new Date();
+    const isOvertime = await this.invalidateSessionIfOvertime(session, now);
+    if (isOvertime) {
       return null;
     }
 
-    const baseSession = typeof activeSession.toObject === 'function' ? activeSession.toObject() : activeSession;
+    const changed = this.pauseForHeartbeatTimeoutIfNeeded(session, now);
+    if (changed) {
+      await session.save();
+    }
+
+    const baseSession = typeof session.toObject === 'function' ? session.toObject() : session;
 
     return {
       ...baseSession,
-      id: activeSession.id,
-      elapsedSeconds: this.getElapsedSeconds(activeSession)
+      id: session.id,
+      isPaused: this.isSessionPaused(session),
+      elapsedSeconds: this.getBalancedDisplayElapsedSeconds(session)
     };
   }
 
@@ -58,6 +82,9 @@ export class AttendanceService {
       userId: user.userId,
       checkInAt: now,
       lastKeepaliveAt: now,
+      lastCreditedAt: now,
+      creditedSeconds: 0,
+      segmentsCount: 0,
       status: 'active',
       sourceIpAtCheckIn: clientIp,
       weekKey: getWeekKey(now),
@@ -68,40 +95,60 @@ export class AttendanceService {
   }
 
   async checkOut(user: AuthUser, clientIp: string) {
-    await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
     const session = await this.findActiveSession(user.userId);
     if (!session) {
       throw new BadRequestException({
         code: ERROR_CODES.ATTENDANCE_NO_ACTIVE_SESSION,
         message: '当前没有进行中的打卡'
       });
-    }
-
-    const activeSession = await this.invalidateStaleSessionIfNeeded(session);
-    if (!activeSession) {
-      throw this.createSessionInvalidatedException();
     }
 
     const checkOutAt = new Date();
-    const durationSeconds = Math.floor((checkOutAt.getTime() - activeSession.checkInAt.getTime()) / 1000);
 
-    if (durationSeconds >= ATTENDANCE_MAX_SECONDS) {
-      activeSession.status = 'invalidated';
-      activeSession.durationSeconds = 0;
-      activeSession.invalidReason = 'overtime_5h';
-    } else {
-      activeSession.status = 'completed';
-      activeSession.durationSeconds = durationSeconds;
+    if (!this.isBalancedAccountingEnabled()) {
+      await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
+      const activeSession = await this.invalidateStaleSessionIfNeeded(session);
+      if (!activeSession) {
+        throw this.createSessionInvalidatedException();
+      }
+
+      const durationSeconds = Math.floor((checkOutAt.getTime() - activeSession.checkInAt.getTime()) / 1000);
+      if (durationSeconds >= ATTENDANCE_MAX_SECONDS) {
+        activeSession.status = 'invalidated';
+        activeSession.durationSeconds = 0;
+        activeSession.invalidReason = 'overtime_5h';
+      } else {
+        activeSession.status = 'completed';
+        activeSession.durationSeconds = durationSeconds;
+      }
+
+      activeSession.checkOutAt = checkOutAt;
+      activeSession.sourceIpAtCheckOut = clientIp;
+      await activeSession.save();
+      return activeSession;
     }
 
-    activeSession.checkOutAt = checkOutAt;
-    activeSession.sourceIpAtCheckOut = clientIp;
-    await activeSession.save();
-    return activeSession;
+    await this.assertIpAllowedAndPauseOnFailure(user, clientIp, session);
+
+    const isOvertime = await this.invalidateSessionIfOvertime(session, checkOutAt, clientIp);
+    if (isOvertime) {
+      return session;
+    }
+
+    this.pauseForHeartbeatTimeoutIfNeeded(session, checkOutAt);
+    if (!this.isSessionPaused(session)) {
+      this.creditSlice(session, checkOutAt);
+    }
+
+    session.status = 'completed';
+    session.durationSeconds = this.getCreditedSeconds(session);
+    session.checkOutAt = checkOutAt;
+    session.sourceIpAtCheckOut = clientIp;
+    await session.save();
+    return session;
   }
 
   async keepAlive(user: AuthUser, clientIp: string) {
-    await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
     const session = await this.findActiveSession(user.userId);
     if (!session) {
       throw new BadRequestException({
@@ -110,14 +157,40 @@ export class AttendanceService {
       });
     }
 
-    const activeSession = await this.invalidateStaleSessionIfNeeded(session);
-    if (!activeSession) {
+    if (!this.isBalancedAccountingEnabled()) {
+      await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
+      const activeSession = await this.invalidateStaleSessionIfNeeded(session);
+      if (!activeSession) {
+        throw this.createSessionInvalidatedException();
+      }
+
+      activeSession.lastKeepaliveAt = new Date();
+      await activeSession.save();
+      return activeSession;
+    }
+
+    const now = new Date();
+
+    const isOvertime = await this.invalidateSessionIfOvertime(session, now);
+    if (isOvertime) {
       throw this.createSessionInvalidatedException();
     }
 
-    activeSession.lastKeepaliveAt = new Date();
-    await activeSession.save();
-    return activeSession;
+    await this.assertIpAllowedAndPauseOnFailure(user, clientIp, session);
+
+    const pausedByTimeout = this.pauseForHeartbeatTimeoutIfNeeded(session, now);
+    const wasPaused = pausedByTimeout || this.isSessionPaused(session);
+
+    if (wasPaused) {
+      this.clearPauseState(session);
+      this.setLastCreditedAt(session, now);
+    } else {
+      this.creditSlice(session, now);
+    }
+
+    session.lastKeepaliveAt = now;
+    await session.save();
+    return session;
   }
 
   async setTeamRecordMarked(
@@ -193,9 +266,35 @@ export class AttendanceService {
 
   async listTeamActiveSessions(teamId: string) {
     const sessions = await this.attendanceModel.find({ teamId, status: 'active' }).sort({ checkInAt: 1 }).exec();
-    const activeSessions = (
-      await Promise.all(sessions.map((session) => this.invalidateStaleSessionIfNeeded(session)))
-    ).filter((session): session is AttendanceSessionDocument => Boolean(session));
+    let activeSessions: AttendanceSessionDocument[] = [];
+
+    if (!this.isBalancedAccountingEnabled()) {
+      const legacySessions = await Promise.all(sessions.map((session) => this.invalidateStaleSessionIfNeeded(session)));
+      activeSessions = legacySessions.filter(Boolean) as AttendanceSessionDocument[];
+    } else {
+      const balancedSessions = await Promise.all(
+        sessions.map(async (session) => {
+          const now = new Date();
+          const overtime = await this.invalidateSessionIfOvertime(session, now);
+          if (overtime) {
+            return null;
+          }
+
+          const changed = this.pauseForHeartbeatTimeoutIfNeeded(session, now);
+          if (changed) {
+            await session.save();
+          }
+
+          if (this.isSessionPaused(session)) {
+            return null;
+          }
+
+          return session;
+        })
+      );
+      activeSessions = balancedSessions.filter(Boolean) as AttendanceSessionDocument[];
+    }
+
     const users = await this.usersService.findByIds(activeSessions.map((session) => session.userId));
     const userMap = new Map(users.map((user) => [user.id, user]));
 
@@ -210,7 +309,9 @@ export class AttendanceService {
         avatarEmoji: user?.avatarEmoji,
         avatarBase64: user?.avatarBase64,
         checkInAt: session.checkInAt,
-        elapsedSeconds: this.getElapsedSeconds(session),
+        elapsedSeconds: this.isBalancedAccountingEnabled()
+          ? this.getBalancedDisplayElapsedSeconds(session)
+          : this.getLegacyElapsedSeconds(session),
         weekKey: session.weekKey
       };
     });
@@ -224,8 +325,19 @@ export class AttendanceService {
     return this.attendanceModel.findOne({ userId, status: 'active' }).exec();
   }
 
-  private getElapsedSeconds(session: AttendanceSessionDocument) {
+  private getLegacyElapsedSeconds(session: AttendanceSessionDocument) {
     return Math.max(0, Math.floor((Date.now() - session.checkInAt.getTime()) / 1000));
+  }
+
+  private getBalancedDisplayElapsedSeconds(session: AttendanceSessionDocument) {
+    const creditedSeconds = this.getCreditedSeconds(session);
+    if (this.isSessionPaused(session)) {
+      return creditedSeconds;
+    }
+
+    const lastCreditedAt = this.getLastCreditedAt(session);
+    const liveSliceSeconds = Math.max(0, Math.floor((Date.now() - lastCreditedAt.getTime()) / 1000));
+    return creditedSeconds + liveSliceSeconds;
   }
 
   private async invalidateStaleSessionIfNeeded(session: AttendanceSessionDocument) {
@@ -242,6 +354,114 @@ export class AttendanceService {
     session.checkOutAt ??= new Date();
     await session.save();
     return null;
+  }
+
+  private isBalancedAccountingEnabled() {
+    return this.configService?.get<boolean>('ATTENDANCE_BALANCED_ACCOUNTING_ENABLED', true) ?? true;
+  }
+
+  private getCreditedSeconds(session: AttendanceSessionDocument) {
+    return Math.max(0, session.creditedSeconds ?? 0);
+  }
+
+  private setLastCreditedAt(session: AttendanceSessionDocument, at: Date) {
+    session.lastCreditedAt = at;
+  }
+
+  private getLastCreditedAt(session: AttendanceSessionDocument) {
+    return session.lastCreditedAt ?? session.checkInAt;
+  }
+
+  private isSessionPaused(session: AttendanceSessionDocument) {
+    return Boolean(session.pauseReason || session.pausedAt);
+  }
+
+  private pauseForHeartbeatTimeoutIfNeeded(session: AttendanceSessionDocument, now: Date) {
+    if (this.isSessionPaused(session)) {
+      return false;
+    }
+
+    const timeoutMs = ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000;
+    const lastKeepaliveAt = session.lastKeepaliveAt ?? session.checkInAt;
+    if (now.getTime() - lastKeepaliveAt.getTime() <= timeoutMs) {
+      return false;
+    }
+
+    return this.markPaused(session, 'heartbeat_timeout', now);
+  }
+
+  private markPaused(session: AttendanceSessionDocument, reason: AttendancePauseReason, pausedAt: Date) {
+    let changed = false;
+    if (session.pauseReason !== reason) {
+      session.pauseReason = reason;
+      changed = true;
+    }
+    if (!session.pausedAt) {
+      session.pausedAt = pausedAt;
+      changed = true;
+    }
+    return changed;
+  }
+
+  private clearPauseState(session: AttendanceSessionDocument) {
+    let changed = false;
+    if (session.pauseReason !== undefined) {
+      session.pauseReason = undefined;
+      changed = true;
+    }
+    if (session.pausedAt !== undefined) {
+      session.pausedAt = undefined;
+      changed = true;
+    }
+    return changed;
+  }
+
+  private creditSlice(session: AttendanceSessionDocument, now: Date) {
+    const lastCreditedAt = this.getLastCreditedAt(session);
+    const deltaSeconds = Math.max(0, Math.floor((now.getTime() - lastCreditedAt.getTime()) / 1000));
+    if (deltaSeconds > 0) {
+      session.creditedSeconds = this.getCreditedSeconds(session) + deltaSeconds;
+      session.segmentsCount = (session.segmentsCount ?? 0) + 1;
+    }
+
+    this.setLastCreditedAt(session, now);
+    return deltaSeconds;
+  }
+
+  private hasExceededMaxNaturalDuration(session: AttendanceSessionDocument, now: Date) {
+    const naturalDurationSeconds = Math.max(0, Math.floor((now.getTime() - session.checkInAt.getTime()) / 1000));
+    return naturalDurationSeconds >= ATTENDANCE_MAX_SECONDS;
+  }
+
+  private async invalidateSessionIfOvertime(
+    session: AttendanceSessionDocument,
+    now: Date,
+    sourceIpAtCheckOut?: string
+  ) {
+    if (!this.hasExceededMaxNaturalDuration(session, now)) {
+      return false;
+    }
+
+    session.status = 'invalidated';
+    session.durationSeconds = 0;
+    session.invalidReason = 'overtime_5h';
+    session.checkOutAt ??= now;
+    if (sourceIpAtCheckOut) {
+      session.sourceIpAtCheckOut = sourceIpAtCheckOut;
+    }
+    await session.save();
+    return true;
+  }
+
+  private async assertIpAllowedAndPauseOnFailure(user: AuthUser, clientIp: string, session: AttendanceSessionDocument) {
+    try {
+      await this.networkPolicyService.assertIpAllowed(user.teamId, clientIp);
+    } catch (error) {
+      if (this.markPaused(session, 'network_not_allowed', new Date())) {
+        await session.save();
+      }
+      throw error;
+    }
   }
 
   private createSessionInvalidatedException() {

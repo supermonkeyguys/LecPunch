@@ -38,6 +38,7 @@ describe('AttendanceService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
+    networkPolicyService.assertIpAllowed.mockResolvedValue(undefined);
     service = new AttendanceService(attendanceModel, networkPolicyService as any, usersService as any);
   });
 
@@ -53,12 +54,216 @@ describe('AttendanceService', () => {
     });
   });
 
-  it('invalidates a check-out when session duration reaches five hours', async () => {
+  it('stores week keys and balanced accounting fields on check-in', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-05T16:30:00.000Z'));
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(null)
+    });
+    create.mockImplementation(async (payload) => payload);
+
+    const result = await service.checkIn(user, '127.0.0.1');
+
+    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
+    expect(result.weekKey).toBe('2026-04-06');
+    expect(result.weeklyGoalSecondsSnapshot).toBe(38 * 3600);
+    expect(result.creditedSeconds).toBe(0);
+    expect(result.segmentsCount).toBe(0);
+    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-05T16:30:00.000Z'));
+    expect(result.lastCreditedAt).toEqual(new Date('2026-04-05T16:30:00.000Z'));
+  });
+
+  it('returns current session payload with balanced elapsed seconds', async () => {
+    const save = vi.fn().mockResolvedValue(undefined);
+    const activeSession = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date(Date.now() - 120_000),
+      lastKeepaliveAt: new Date(),
+      lastCreditedAt: new Date(Date.now() - 90_000),
+      creditedSeconds: 30,
+      status: 'active',
+      weekKey: '2026-03-30',
+      save
+    } as any;
+
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(activeSession)
+    });
+
+    const result = await service.getCurrentSession(user.userId);
+
+    expect(result).toBeTruthy();
+    expect(result?.isPaused).toBe(false);
+    expect(typeof result?.elapsedSeconds).toBe('number');
+    expect(result?.elapsedSeconds).toBeGreaterThanOrEqual(120);
+  });
+
+  it('pauses stale sessions instead of invalidating them when querying current state', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:05:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'session-1',
+        teamId: 'team-1',
+        userId: 'user-1',
+        checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+        lastKeepaliveAt: new Date('2026-04-10T00:00:00.000Z'),
+        lastCreditedAt: new Date('2026-04-10T00:00:00.000Z'),
+        creditedSeconds: 120,
+        status: 'active',
+        weekKey: '2026-04-07',
+        save
+      })
+    });
+
+    const result = await service.getCurrentSession(user.userId);
+    expect(result).toMatchObject({
+      status: 'active',
+      isPaused: true,
+      pauseReason: 'heartbeat_timeout',
+      creditedSeconds: 120
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('increments credited seconds on keepalive while session stays valid', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:01:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const activeSession = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date('2026-04-10T00:00:30.000Z'),
+      lastCreditedAt: new Date('2026-04-10T00:00:30.000Z'),
+      creditedSeconds: 30,
+      segmentsCount: 1,
+      status: 'active',
+      weekKey: '2026-04-07',
+      save
+    } as any;
+
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(activeSession)
+    });
+
+    const result = await service.keepAlive(user, '127.0.0.1');
+
+    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
+    expect(result.creditedSeconds).toBe(60);
+    expect(result.segmentsCount).toBe(2);
+    expect(result.pauseReason).toBeUndefined();
+    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-10T00:01:00.000Z'));
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops accumulation when keepalive resumes after heartbeat timeout and does not backfill the gap', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:02:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const session = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastCreditedAt: new Date('2026-04-10T00:00:00.000Z'),
+      creditedSeconds: 0,
+      status: 'active',
+      weekKey: '2026-04-07',
+      save
+    } as any;
+
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(session)
+    });
+
+    const result = await service.keepAlive(user, '127.0.0.1');
+
+    expect(result.status).toBe('active');
+    expect(result.creditedSeconds).toBe(0);
+    expect(result.pauseReason).toBeUndefined();
+    expect(result.pausedAt).toBeUndefined();
+    expect(result.lastCreditedAt).toEqual(new Date('2026-04-10T00:02:00.000Z'));
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('pauses accumulation when keepalive request comes from disallowed network', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:01:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const session = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date('2026-04-10T00:00:30.000Z'),
+      lastCreditedAt: new Date('2026-04-10T00:00:30.000Z'),
+      creditedSeconds: 30,
+      status: 'active',
+      weekKey: '2026-04-07',
+      save
+    } as any;
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(session)
+    });
+    networkPolicyService.assertIpAllowed.mockRejectedValueOnce(
+      new BadRequestException({
+        code: ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED,
+        message: 'Current network is not allowed for attendance'
+      })
+    );
+
+    await expect(service.keepAlive(user, '203.0.113.1')).rejects.toBeInstanceOf(BadRequestException);
+    expect(session.pauseReason).toBe('network_not_allowed');
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('completes check-out with credited seconds even after keepalive timeout pause', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10T00:03:00.000Z'));
+
+    const save = vi.fn().mockResolvedValue(undefined);
+    const session = {
+      id: 'session-1',
+      teamId: 'team-1',
+      userId: 'user-1',
+      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
+      lastKeepaliveAt: new Date('2026-04-10T00:00:10.000Z'),
+      lastCreditedAt: new Date('2026-04-10T00:00:10.000Z'),
+      creditedSeconds: 600,
+      status: 'active',
+      weekKey: '2026-04-07',
+      save
+    } as any;
+    findOne.mockReturnValue({
+      exec: vi.fn().mockResolvedValue(session)
+    });
+
+    const result = await service.checkOut(user, '127.0.0.1');
+
+    expect(result.status).toBe('completed');
+    expect(result.durationSeconds).toBe(600);
+    expect(result.pauseReason).toBe('heartbeat_timeout');
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('invalidates a check-out when natural session duration reaches five hours', async () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const activeSession = {
       id: 'session-1',
       checkInAt: new Date(Date.now() - ATTENDANCE_MAX_SECONDS * 1000),
       lastKeepaliveAt: new Date(),
+      lastCreditedAt: new Date(),
+      creditedSeconds: ATTENDANCE_MAX_SECONDS,
       status: 'active',
       save
     } as any;
@@ -72,123 +277,6 @@ describe('AttendanceService', () => {
     expect(result.status).toBe('invalidated');
     expect(result.durationSeconds).toBe(0);
     expect(result.invalidReason).toBe('overtime_5h');
-    expect(save).toHaveBeenCalledTimes(1);
-  });
-
-  it('returns current session payload with elapsed seconds for active attendance', async () => {
-    const save = vi.fn().mockResolvedValue(undefined);
-    const activeSession = {
-      id: 'session-1',
-      teamId: 'team-1',
-      userId: 'user-1',
-      checkInAt: new Date(Date.now() - 90_000),
-      lastKeepaliveAt: new Date(),
-      status: 'active',
-      weekKey: '2026-03-30',
-      save
-    } as any;
-
-    findOne.mockReturnValue({
-      exec: vi.fn().mockResolvedValue(activeSession)
-    });
-
-    const result = await service.getCurrentSession(user.userId);
-
-    expect(result).toBeTruthy();
-    expect(typeof result?.elapsedSeconds).toBe('number');
-    expect(result?.elapsedSeconds).toBeGreaterThanOrEqual(90);
-  });
-
-  it('stores week keys using Asia/Shanghai boundaries on check-in', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-05T16:30:00.000Z'));
-    findOne.mockReturnValue({
-      exec: vi.fn().mockResolvedValue(null)
-    });
-    create.mockImplementation(async (payload) => payload);
-
-    const result = await service.checkIn(user, '127.0.0.1');
-
-    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
-    expect(result.weekKey).toBe('2026-04-06');
-    expect(result.weeklyGoalSecondsSnapshot).toBe(38 * 3600);
-    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-05T16:30:00.000Z'));
-  });
-
-  it('invalidates stale sessions when querying the current attendance state', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-10T00:05:00.000Z'));
-
-    const save = vi.fn().mockResolvedValue(undefined);
-    findOne.mockReturnValue({
-      exec: vi.fn().mockResolvedValue({
-        id: 'session-1',
-        teamId: 'team-1',
-        userId: 'user-1',
-        checkInAt: new Date('2026-04-10T00:00:00.000Z'),
-        lastKeepaliveAt: new Date('2026-04-10T00:00:00.000Z'),
-        status: 'active',
-        weekKey: '2026-04-07',
-        save
-      })
-    });
-
-    await expect(service.getCurrentSession(user.userId)).resolves.toBeNull();
-    expect(save).toHaveBeenCalledTimes(1);
-  });
-
-  it('refreshes the keepalive timestamp for an active session', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-10T00:01:00.000Z'));
-
-    const save = vi.fn().mockResolvedValue(undefined);
-    const activeSession = {
-      id: 'session-1',
-      teamId: 'team-1',
-      userId: 'user-1',
-      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
-      lastKeepaliveAt: new Date('2026-04-10T00:00:10.000Z'),
-      status: 'active',
-      weekKey: '2026-04-07',
-      save
-    } as any;
-
-    findOne.mockReturnValue({
-      exec: vi.fn().mockResolvedValue(activeSession)
-    });
-
-    const result = await service.keepAlive(user, '127.0.0.1');
-
-    expect(networkPolicyService.assertIpAllowed).toHaveBeenCalledWith('team-1', '127.0.0.1');
-    expect(result.lastKeepaliveAt).toEqual(new Date('2026-04-10T00:01:00.000Z'));
-    expect(save).toHaveBeenCalledTimes(1);
-  });
-
-  it('rejects check-out once the active session has missed the keepalive timeout', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-10T00:02:00.000Z'));
-
-    const save = vi.fn().mockResolvedValue(undefined);
-    const staleSession = {
-      id: 'session-1',
-      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
-      lastKeepaliveAt: new Date(
-        Date.now() - (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000 + 1_000)
-      ),
-      status: 'active',
-      save
-    } as any;
-
-    findOne.mockReturnValue({
-      exec: vi.fn().mockResolvedValue(staleSession)
-    });
-
-    await expect(service.checkOut(user, '127.0.0.1')).rejects.toMatchObject({
-      response: {
-        code: ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED
-      }
-    });
-    expect(staleSession.invalidReason).toBe('heartbeat_timeout');
     expect(save).toHaveBeenCalledTimes(1);
   });
 
@@ -235,12 +323,24 @@ describe('AttendanceService', () => {
     expect(sort).toHaveBeenCalledWith({ checkInAt: -1 });
   });
 
-  it('lists active team sessions enriched with member profiles and elapsed time', async () => {
+  it('lists only non-paused active team sessions enriched with member profiles and elapsed time', async () => {
+    const now = Date.now();
     const exec = vi.fn().mockResolvedValue([
       {
         userId: 'user-2',
-        checkInAt: new Date(Date.now() - 120_000),
-        lastKeepaliveAt: new Date(),
+        checkInAt: new Date(now - 120_000),
+        lastKeepaliveAt: new Date(now - 10_000),
+        lastCreditedAt: new Date(now - 120_000),
+        creditedSeconds: 0,
+        weekKey: '2026-04-06',
+        save: vi.fn().mockResolvedValue(undefined)
+      },
+      {
+        userId: 'user-3',
+        checkInAt: new Date(now - (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000 + 10_000)),
+        lastKeepaliveAt: new Date(now - (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000 + 10_000)),
+        lastCreditedAt: new Date(now - 30_000),
+        creditedSeconds: 60,
         weekKey: '2026-04-06',
         save: vi.fn().mockResolvedValue(undefined)
       }

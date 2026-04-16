@@ -162,6 +162,7 @@ API:
 
 - copy `apps/api/.env.example` to `apps/api/.env`
 - set `AUTH_SECRET` to at least 16 characters
+- keep `ATTENDANCE_BALANCED_ACCOUNTING_ENABLED=true` to enable server-credited attendance slices
 - when `ALLOW_ANY_NETWORK=false`, configure `ALLOWED_PUBLIC_IPS` or `ALLOWED_CIDRS`
 
 Web:

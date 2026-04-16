@@ -41,7 +41,7 @@ const columns: ColumnDef<AttendanceRecordItem>[] = [
   },
   {
     key: 'durationSeconds',
-    header: '本次时长',
+    header: '本次有效时长',
     render: (_, row) => (
       <span
         className={`font-mono font-bold ${
@@ -109,6 +109,7 @@ export const RecordsPage = () => {
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">我的打卡记录</h1>
+          <p className="mt-1 text-sm text-gray-500">时长口径为服务端确认的有效累计时长。</p>
         </div>
         <DateRangePicker
           startDate={startDate}

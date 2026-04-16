@@ -51,6 +51,7 @@ export class AttendanceController {
   }
 
   private mapSession(session: any) {
+    const isPaused = Boolean(session.pauseReason || session.pausedAt);
     return {
       id: session.id,
       teamId: session.teamId,
@@ -58,6 +59,12 @@ export class AttendanceController {
       checkInAt: session.checkInAt,
       checkOutAt: session.checkOutAt,
       lastKeepaliveAt: session.lastKeepaliveAt,
+      lastCreditedAt: session.lastCreditedAt,
+      creditedSeconds: session.creditedSeconds,
+      pausedAt: session.pausedAt,
+      pauseReason: session.pauseReason,
+      isPaused,
+      segmentsCount: session.segmentsCount,
       durationSeconds: session.durationSeconds,
       elapsedSeconds: session.elapsedSeconds,
       status: session.status,
