@@ -157,7 +157,6 @@ export const DashboardPage = () => {
                     <h2 className="text-lg font-semibold text-gray-900">待确认通知</h2>
                     <Badge variant="warning">{notifications.length}</Badge>
                   </div>
-                  <p className="text-sm text-gray-600">成员记录被管理员标记后，会在这里等待你确认。</p>
                 </div>
               </div>
             </div>

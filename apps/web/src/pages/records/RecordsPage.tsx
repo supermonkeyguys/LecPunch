@@ -7,14 +7,22 @@ import { DateRangePicker } from '@/shared/ui/DateRangePicker';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
-const statusBadge = (status: string) => {
-  if (status === 'completed') {
-    return <Badge variant="success">正常</Badge>;
-  }
-  if (status === 'invalidated') {
-    return <Badge variant="danger">超时作废</Badge>;
-  }
-  return <Badge variant="info">进行中</Badge>;
+const statusBadge = (status: string, isMarked: boolean) => {
+  const statusNode =
+    status === 'completed' ? (
+      <Badge variant="success">正常</Badge>
+    ) : status === 'invalidated' ? (
+      <Badge variant="danger">超时作废</Badge>
+    ) : (
+      <Badge variant="info">进行中</Badge>
+    );
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {statusNode}
+      {isMarked ? <Badge variant="warning">已标记</Badge> : null}
+    </div>
+  );
 };
 
 const columns: ColumnDef<AttendanceRecordItem>[] = [
@@ -44,7 +52,11 @@ const columns: ColumnDef<AttendanceRecordItem>[] = [
       </span>
     )
   },
-  { key: 'status', header: '状态', render: (value) => statusBadge(value) }
+  {
+    key: 'status',
+    header: '状态',
+    render: (_, row) => statusBadge(row.status, row.isMarked)
+  }
 ];
 
 export const RecordsPage = () => {
@@ -65,7 +77,8 @@ export const RecordsPage = () => {
       try {
         const nextRecords = await getMyRecords({
           startDate: startDate || undefined,
-          endDate: endDate || undefined
+          endDate: endDate || undefined,
+          pageSize: 100
         });
 
         if (cancelled) {
@@ -127,6 +140,7 @@ export const RecordsPage = () => {
             loading={loading}
             emptyText="当前筛选条件下暂无打卡记录"
             rowKey={(record) => record.id}
+            rowClassName={(record) => (record.isMarked ? 'bg-amber-50/80 hover:bg-amber-100/80' : undefined)}
           />
         )}
       </PageSection>

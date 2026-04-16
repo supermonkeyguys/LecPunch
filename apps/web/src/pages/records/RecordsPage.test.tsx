@@ -65,5 +65,32 @@ describe('RecordsPage', () => {
     expect(await screen.findByText(/2026-03-31/i)).toBeInTheDocument();
     expect(screen.getByText(/02:00:00/i)).toBeInTheDocument();
     expect(screen.getByText(/正常/i)).toBeInTheDocument();
+    expect(mocks.getMyRecords).toHaveBeenCalledWith({
+      startDate: undefined,
+      endDate: undefined,
+      pageSize: 100
+    });
+  });
+
+  it('shows marked records in my records list', async () => {
+    mocks.getMyRecords.mockResolvedValue([
+      {
+        id: 'session-1',
+        checkInAt: '2026-04-02T01:00:00.000Z',
+        checkOutAt: '2026-04-02T03:00:00.000Z',
+        durationSeconds: 7200,
+        status: 'completed',
+        isMarked: true,
+        weekKey: '2026-03-31'
+      }
+    ]);
+
+    render(
+      <MemoryRouter>
+        <RecordsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('已标记')).toBeInTheDocument();
   });
 });

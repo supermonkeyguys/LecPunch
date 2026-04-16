@@ -318,13 +318,6 @@ export const MemberRecordsPage = () => {
               ) : null}
             </div>
           ) : null}
-
-          {isAdmin ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              橙黄色高亮表示该打卡记录已被管理员标记。进行中的打卡记录不能删除。
-            </div>
-          ) : null}
-
           <PageSection>
             <DataTable
               columns={columns}
