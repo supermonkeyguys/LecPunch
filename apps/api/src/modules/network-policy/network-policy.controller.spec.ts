@@ -103,6 +103,26 @@ describe('NetworkPolicyController', () => {
     });
   });
 
+  it('returns the current request network status for members', async () => {
+    networkPolicyService.getClientIp.mockResolvedValue('203.0.113.10');
+    networkPolicyService.isIpAllowed.mockResolvedValue(true);
+
+    const result = await controller.getCurrentStatus(memberUser, {
+      headers: {},
+      ip: '::ffff:203.0.113.10',
+      socket: {
+        remoteAddress: '::ffff:203.0.113.10'
+      }
+    } as never);
+
+    expect(networkPolicyService.getClientIp).toHaveBeenCalledWith('team-1', expect.any(Object));
+    expect(networkPolicyService.isIpAllowed).toHaveBeenCalledWith('team-1', '203.0.113.10');
+    expect(result).toEqual({
+      clientIp: '203.0.113.10',
+      isAllowed: true
+    });
+  });
+
   it('rejects member access to admin network policy routes', async () => {
     await expect(controller.getCurrentPolicy(memberUser)).rejects.toBeInstanceOf(ForbiddenException);
     await expect(

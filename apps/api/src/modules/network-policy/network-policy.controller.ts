@@ -11,6 +11,11 @@ import type { Request } from 'express';
 export class NetworkPolicyController {
   constructor(private readonly networkPolicyService: NetworkPolicyService) {}
 
+  @Get('current-status')
+  async getCurrentStatus(@CurrentUser() user: AuthUser, @Req() request: Request) {
+    return this.getRequestStatus(user.teamId, request);
+  }
+
   @Get('admin/current')
   async getCurrentPolicy(@CurrentUser() user: AuthUser) {
     this.assertAdmin(user);
@@ -28,20 +33,23 @@ export class NetworkPolicyController {
   @Get('admin/debug')
   async getCurrentDebug(@CurrentUser() user: AuthUser, @Req() request: Request) {
     this.assertAdmin(user);
-
-    const clientIp = await this.networkPolicyService.getClientIp(user.teamId, request);
-    const isAllowed = await this.networkPolicyService.isIpAllowed(user.teamId, clientIp);
-
-    return {
-      clientIp,
-      isAllowed
-    };
+    return this.getRequestStatus(user.teamId, request);
   }
 
   private assertAdmin(user: AuthUser) {
     if (user.role !== 'admin') {
       throw new ForbiddenException('Only admins can manage network policy');
     }
+  }
+
+  private async getRequestStatus(teamId: string, request: Request) {
+    const clientIp = await this.networkPolicyService.getClientIp(teamId, request);
+    const isAllowed = await this.networkPolicyService.isIpAllowed(teamId, clientIp);
+
+    return {
+      clientIp,
+      isAllowed
+    };
   }
 
   private mapPolicy(policy: NetworkPolicySnapshot) {
