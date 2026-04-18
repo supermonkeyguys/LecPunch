@@ -1,0 +1,38 @@
+import { createContext, useContext, type ReactNode } from 'react';
+import type { AttendancePauseReason } from '@lecpunch/shared';
+
+export interface DashboardContextValue {
+  loading: boolean;
+  weekLabel: string;
+  isCurrentWeek: boolean;
+  isCheckedIn: boolean;
+  isPaused: boolean;
+  pauseReason?: AttendancePauseReason;
+  currentDuration: number;
+  selectedWeekDuration: number;
+  selectedWeekSessionsCount: number;
+  weeklyGoalSeconds: number;
+  submitting: boolean;
+  isWarning: boolean;
+  isNearLimit: boolean;
+  onAttendanceAction: () => void;
+}
+
+const DashboardContext = createContext<DashboardContextValue | null>(null);
+
+interface DashboardContextProviderProps {
+  value: DashboardContextValue;
+  children: ReactNode;
+}
+
+export const DashboardContextProvider = ({ value, children }: DashboardContextProviderProps) => {
+  return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
+};
+
+export const useDashboardContext = () => {
+  const context = useContext(DashboardContext);
+  if (!context) {
+    throw new Error('useDashboardContext must be used within DashboardContextProvider');
+  }
+  return context;
+};

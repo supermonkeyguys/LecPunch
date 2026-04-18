@@ -1,42 +1,28 @@
 import { memo } from 'react';
 import { AlertTriangle, History, Play, Square } from 'lucide-react';
-import { ATTENDANCE_MAX_SECONDS, type AttendancePauseReason } from '@lecpunch/shared';
+import { ATTENDANCE_MAX_SECONDS } from '@lecpunch/shared';
 import { Progress } from '@lecpunch/ui';
+import { useDashboardContext } from '@/features/dashboard/context/DashboardContext';
 import { formatDuration } from '@/shared/lib/time';
 
-interface DashboardAttendanceWidgetProps {
-  loading: boolean;
-  weekLabel: string;
-  isCurrentWeek: boolean;
-  isCheckedIn: boolean;
-  isPaused: boolean;
-  pauseReason?: AttendancePauseReason;
-  currentDuration: number;
-  selectedWeekDuration: number;
-  selectedWeekSessionsCount: number;
-  weeklyGoalSeconds: number;
-  submitting: boolean;
-  isWarning: boolean;
-  isNearLimit: boolean;
-  onAction: () => void;
-}
+const DashboardAttendanceWidgetComponent = () => {
+  const {
+    loading,
+    weekLabel,
+    isCurrentWeek,
+    isCheckedIn,
+    isPaused,
+    pauseReason,
+    currentDuration,
+    selectedWeekDuration,
+    selectedWeekSessionsCount,
+    weeklyGoalSeconds,
+    submitting,
+    isWarning,
+    isNearLimit,
+    onAttendanceAction
+  } = useDashboardContext();
 
-const DashboardAttendanceWidgetComponent = ({
-  loading,
-  weekLabel,
-  isCurrentWeek,
-  isCheckedIn,
-  isPaused,
-  pauseReason,
-  currentDuration,
-  selectedWeekDuration,
-  selectedWeekSessionsCount,
-  weeklyGoalSeconds,
-  submitting,
-  isWarning,
-  isNearLimit,
-  onAction
-}: DashboardAttendanceWidgetProps) => {
   const pauseReasonText =
     pauseReason === 'network_not_allowed'
       ? '网络不在允许范围'
@@ -148,7 +134,7 @@ const DashboardAttendanceWidgetComponent = ({
       <div className="flex-shrink-0">
         {isCurrentWeek ? (
           <button
-            onClick={onAction}
+            onClick={onAttendanceAction}
             disabled={loading || submitting}
             className={`flex h-40 w-40 flex-col items-center justify-center rounded-full text-white shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
               isCheckedIn

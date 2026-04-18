@@ -193,6 +193,107 @@ describe('DashboardPage', () => {
     globalThis.clearInterval = originalClearInterval;
   });
 
+  it('retries keepalive before entering heartbeat-timeout pause for transient network failures', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 30,
+        creditedSeconds: 30,
+        isPaused: false
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    mocks.keepAliveAttendance.mockRejectedValue(new Error('network timeout'));
+
+    const originalSetInterval = globalThis.setInterval;
+    const originalClearInterval = globalThis.clearInterval;
+    let keepAliveInterval: (() => void | Promise<void>) | undefined;
+
+    globalThis.setInterval = (((callback: TimerHandler, delay?: number) => {
+      if (delay === 30_000 && typeof callback === 'function') {
+        keepAliveInterval = callback as () => void | Promise<void>;
+      }
+
+      return 1 as unknown as ReturnType<typeof setInterval>;
+    }) as unknown) as typeof setInterval;
+
+    try {
+      render(
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
+      );
+
+      expect(await screen.findByRole('button', { name: /下卡/i })).toBeInTheDocument();
+      expect(keepAliveInterval).toBeTypeOf('function');
+
+      vi.useFakeTimers();
+      await act(async () => {
+        keepAliveInterval?.();
+        await vi.advanceTimersByTimeAsync(2_000);
+        await vi.advanceTimersByTimeAsync(5_000);
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+
+      expect(mocks.keepAliveAttendance).toHaveBeenCalledTimes(4);
+      expect(screen.getByText(/暂停累计状态（keepalive 超时）/)).toBeInTheDocument();
+      expect(screen.queryByText(/正在尝试恢复连接/)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+      globalThis.setInterval = originalSetInterval;
+      globalThis.clearInterval = originalClearInterval;
+    }
+  });
+
+  it('sends keepalive immediately when the page becomes visible again', async () => {
+    mocks.getCurrentAttendance.mockResolvedValue({
+      hasActiveSession: true,
+      session: {
+        id: 'session-1',
+        checkInAt: '2026-04-02T00:00:00.000Z',
+        elapsedSeconds: 30,
+        creditedSeconds: 30,
+        isPaused: false
+      }
+    });
+    mocks.getMyWeeklyStats.mockResolvedValue({ items: [], weeklyGoalSeconds: 0 });
+    mocks.getTeamCurrentWeekStats.mockResolvedValue([]);
+    mocks.keepAliveAttendance.mockResolvedValue({
+      creditedSeconds: 60,
+      isPaused: false,
+      lastKeepaliveAt: '2026-04-02T00:01:00.000Z'
+    });
+
+    const visibilityDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible'
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('button', { name: /下卡/i })).toBeInTheDocument();
+
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await waitFor(() => {
+      expect(mocks.keepAliveAttendance).toHaveBeenCalledTimes(1);
+    });
+
+    if (visibilityDescriptor) {
+      Object.defineProperty(Document.prototype, 'visibilityState', visibilityDescriptor);
+    }
+  });
+
   it('pauses local accumulation when keepalive is rejected by network policy', async () => {
     mocks.getCurrentAttendance.mockResolvedValue({
       hasActiveSession: true,

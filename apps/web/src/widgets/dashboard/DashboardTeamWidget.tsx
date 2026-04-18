@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Users } from 'lucide-react';
-import { Avatar, Badge, Button } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
+import { Avatar, Badge, Button } from '@lecpunch/ui';
 import { formatDuration } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
