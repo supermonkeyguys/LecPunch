@@ -31,6 +31,17 @@ export function DataTable<T extends Record<string, any>>({
   rowClassName,
   className,
 }: DataTableProps<T>) {
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, row: T) => {
+    if (!onRowClick) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onRowClick(row);
+    }
+  };
+
   return (
     <div className={cn('overflow-x-auto', className)}>
       <table className="w-full text-left border-collapse">
@@ -67,6 +78,9 @@ export function DataTable<T extends Record<string, any>>({
               <tr
                 key={rowKey ? rowKey(row) : rowIndex}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={(event) => handleRowKeyDown(event, row)}
+                role="row"
+                tabIndex={onRowClick ? 0 : undefined}
                 className={cn(
                   'group bg-white hover:bg-gray-50 transition-colors',
                   onRowClick ? 'cursor-pointer' : '',
