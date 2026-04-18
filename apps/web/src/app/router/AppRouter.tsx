@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom';
 import { AppProviders } from '../providers/AppProviders';
 import { ToastContainer } from '@/shared/ui/toast';
+import { ErrorBoundary } from '@/app/components/ErrorBoundary';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { MainLayout } from '../layouts/MainLayout';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -19,7 +20,9 @@ import { AdminRecordsExportPage } from '@/pages/admin-records-export/AdminRecord
 // Root wrapper inside the router context — safe to use useNavigate here
 const Root = () => (
   <AppProviders>
-    <Outlet />
+    <ErrorBoundary>
+      <Outlet />
+    </ErrorBoundary>
     <ToastContainer />
   </AppProviders>
 );
