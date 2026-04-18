@@ -95,8 +95,6 @@ export const LoginPage = () => {
               mode: 'register',
             });
 
-      localStorage.setItem('lecpunch.token', payload.accessToken);
-      localStorage.setItem('lecpunch.user', JSON.stringify(payload.user));
       setAuth({ token: payload.accessToken, user: payload.user });
       navigate('/');
     } catch (error) {

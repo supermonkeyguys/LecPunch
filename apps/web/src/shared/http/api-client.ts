@@ -16,7 +16,7 @@ export const setNavigateToLogin = (fn: () => void) => {
 };
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('lecpunch.token');
+  const token = useRootStore.getState().auth.token;
   if (token) {
     const headers = AxiosHeaders.from(config.headers);
     headers.set('Authorization', `Bearer ${token}`);
@@ -29,8 +29,6 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('lecpunch.token');
-      localStorage.removeItem('lecpunch.user');
       useRootStore.getState().setAuth({ token: null, user: null });
       _navigateToLogin?.();
     }

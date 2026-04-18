@@ -65,10 +65,9 @@ export const ProfilePage = () => {
           : { avatarBase64: selection.base64 };
 
     const updated = await updateProfile(input);
-    // sync store and localStorage
+    // sync store auth snapshot
     const newUser = { ...user!, ...updated };
     setAuth({ token, user: newUser });
-    localStorage.setItem('lecpunch.user', JSON.stringify(newUser));
     showToast('头像已更新');
     setShowAvatarEditor(false);
   };
@@ -79,7 +78,6 @@ export const ProfilePage = () => {
       const updated = await updateProfile({ displayName: values.displayName.trim() });
       const newUser = { ...user!, ...updated };
       setAuth({ token, user: newUser });
-      localStorage.setItem('lecpunch.user', JSON.stringify(newUser));
       profileForm.reset({ displayName: newUser.displayName });
       showToast('资料已保存');
     } catch {

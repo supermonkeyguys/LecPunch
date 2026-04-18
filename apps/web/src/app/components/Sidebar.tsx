@@ -16,8 +16,6 @@ export const Sidebar = () => {
   const user = useRootStore((s) => s.auth.user);
 
   const handleLogout = () => {
-    localStorage.removeItem('lecpunch.token');
-    localStorage.removeItem('lecpunch.user');
     setAuth({ token: null, user: null });
     navigate('/login');
   };

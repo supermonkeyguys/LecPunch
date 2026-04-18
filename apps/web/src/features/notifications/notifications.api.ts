@@ -37,8 +37,6 @@ const buildApiUrl = (path: string) => {
 };
 
 const resetAuth = () => {
-  localStorage.removeItem('lecpunch.token');
-  localStorage.removeItem('lecpunch.user');
   useRootStore.getState().setAuth({ token: null, user: null });
 };
 
@@ -153,4 +151,3 @@ export const connectNotificationStream = async (token: string, handlers: Notific
     handlers.onError?.(new Error('通知连接已断开'));
   }
 };
-
