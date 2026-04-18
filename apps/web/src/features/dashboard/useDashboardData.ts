@@ -8,86 +8,56 @@ import {
 } from '@/features/attendance/attendance.api';
 import { getMyRecords, type AttendanceRecordItem } from '@/features/records/records.api';
 import { getMyWeeklyStats, getTeamCurrentWeekStats } from '@/features/stats/stats.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { selectedWeekToKey } from '@/shared/lib/time';
 
-interface DashboardState {
+interface DashboardData {
   attendance: CurrentAttendanceResponse | null;
   weeklyStats: WeeklyStatItem[];
   weeklyGoalSeconds: number;
   teamStats: TeamWeeklyStatItem[];
   activeMembers: TeamActiveAttendanceItem[];
   records: AttendanceRecordItem[];
-  loading: boolean;
-  error: string | null;
 }
 
-const INITIAL_STATE: DashboardState = {
+const INITIAL_DATA: DashboardData = {
   attendance: null,
   weeklyStats: [],
   weeklyGoalSeconds: 0,
   teamStats: [],
   activeMembers: [],
-  records: [],
-  loading: true,
-  error: null
+  records: []
 };
 
 export const useDashboardData = (selectedWeek: WeekKey) => {
-  const [state, setState] = useState<DashboardState>(INITIAL_STATE);
-  const [reloadToken, setReloadToken] = useState(0);
-  const refresh = useCallback(() => {
-    setReloadToken((current) => current + 1);
+  const fetchDashboardData = useCallback(async (_signal: AbortSignal): Promise<DashboardData> => {
+    const [attendance, weekly, teamStats, activeMembers, records] = await Promise.all([
+      getCurrentAttendance(),
+      getMyWeeklyStats(),
+      getTeamCurrentWeekStats(true),
+      getTeamActiveAttendances(),
+      getMyRecords({ pageSize: 100 })
+    ]);
+
+    return {
+      attendance,
+      weeklyStats: weekly.items,
+      weeklyGoalSeconds: weekly.weeklyGoalSeconds,
+      teamStats,
+      activeMembers,
+      records
+    };
   }, []);
 
+  const { data, loading, error, refresh } = useAsyncData(fetchDashboardData, [], {
+    initialData: INITIAL_DATA
+  });
+  const [activeMembers, setActiveMembers] = useState<TeamActiveAttendanceItem[]>(INITIAL_DATA.activeMembers);
+
   useEffect(() => {
-    let cancelled = false;
-
-    const loadDashboard = async () => {
-      setState((current) => ({ ...current, loading: true, error: null }));
-
-      try {
-        const [attendance, weekly, teamStats, activeMembers, records] = await Promise.all([
-          getCurrentAttendance(),
-          getMyWeeklyStats(),
-          getTeamCurrentWeekStats(true),
-          getTeamActiveAttendances(),
-          getMyRecords({ pageSize: 100 })
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        setState({
-          attendance,
-          weeklyStats: weekly.items,
-          weeklyGoalSeconds: weekly.weeklyGoalSeconds,
-          teamStats,
-          activeMembers,
-          records,
-          loading: false,
-          error: null
-        });
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        setState((current) => ({
-          ...current,
-          loading: false,
-          error: getApiErrorMessage(error, '加载工作台失败，请稍后重试')
-        }));
-      }
-    };
-
-    void loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
+    setActiveMembers(data.activeMembers);
+  }, [data.activeMembers]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,14 +68,12 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
 
     const syncActiveMembers = async () => {
       try {
-        const activeMembers = await getTeamActiveAttendances();
+        const nextActiveMembers = await getTeamActiveAttendances();
         if (!cancelled) {
-          setState((current) => ({ ...current, activeMembers }));
+          setActiveMembers(nextActiveMembers);
         }
       } catch {
-        if (!cancelled) {
-          setState((current) => current);
-        }
+        // Keep the latest successful active-members snapshot on polling failures.
       }
     };
 
@@ -121,16 +89,23 @@ export const useDashboardData = (selectedWeek: WeekKey) => {
 
   const selectedWeekKey = useMemo(() => selectedWeekToKey(selectedWeek), [selectedWeek]);
   const selectedWeekStat = useMemo(
-    () => state.weeklyStats.find((item) => item.weekKey === selectedWeekKey) ?? null,
-    [selectedWeekKey, state.weeklyStats]
+    () => data.weeklyStats.find((item) => item.weekKey === selectedWeekKey) ?? null,
+    [selectedWeekKey, data.weeklyStats]
   );
   const selectedWeekRecords = useMemo(
-    () => state.records.filter((record) => record.weekKey === selectedWeekKey),
-    [selectedWeekKey, state.records]
+    () => data.records.filter((record) => record.weekKey === selectedWeekKey),
+    [selectedWeekKey, data.records]
   );
 
   return {
-    ...state,
+    attendance: data.attendance,
+    weeklyStats: data.weeklyStats,
+    weeklyGoalSeconds: data.weeklyGoalSeconds,
+    teamStats: data.teamStats,
+    activeMembers,
+    records: data.records,
+    loading,
+    error: error ? getApiErrorMessage(error, '加载工作台失败，请稍后重试') : null,
     selectedWeekKey,
     selectedWeekStat,
     selectedWeekRecords,
