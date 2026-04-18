@@ -3,6 +3,7 @@ import { Avatar, Button, Input } from '@lecpunch/ui';
 import { useRootStore } from '@/app/store/root-store';
 import { showToast } from '@/shared/ui/toast';
 import { updateProfile, updatePassword } from '@/features/users/users.api';
+import { getApiErrorCode } from '@/shared/lib/api-error';
 import { AvatarEditor, type AvatarSelection } from './AvatarEditor';
 
 export const ProfilePage = () => {
@@ -69,8 +70,8 @@ export const ProfilePage = () => {
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      const code = err?.response?.data?.code;
+    } catch (err: unknown) {
+      const code = getApiErrorCode(err);
       setPasswordError(code === 'WRONG_PASSWORD' ? '当前密码不正确' : '修改失败，请稍后重试');
     } finally {
       setSavingPassword(false);

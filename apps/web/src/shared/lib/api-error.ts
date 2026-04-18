@@ -16,6 +16,10 @@ const extractApiErrorPayload = (error: unknown) => {
   return response?.data;
 };
 
+export const getApiErrorCode = (error: unknown) => {
+  return extractApiErrorPayload(error)?.code;
+};
+
 export const getApiErrorMessage = (error: unknown, fallback = '操作失败，请稍后重试') => {
   const payload = extractApiErrorPayload(error);
   const mappedMessage = payload?.code ? ERROR_MESSAGE_MAP[payload.code as ErrorCode] : undefined;
