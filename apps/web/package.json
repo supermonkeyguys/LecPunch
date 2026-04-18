@@ -15,7 +15,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@lecpunch/shared": "workspace:*",
     "@radix-ui/react-slot": "^1.2.4",
-    "ahooks": "^3.9.7",
     "axios": "^1.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
