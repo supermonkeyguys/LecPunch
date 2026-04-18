@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Users } from 'lucide-react';
 import { Avatar, Badge, Button } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
@@ -13,7 +14,7 @@ interface DashboardTeamWidgetProps {
   onOpenMembers: () => void;
 }
 
-export const DashboardTeamWidget = ({
+const DashboardTeamWidgetComponent = ({
   loading,
   teamStats,
   isCurrentWeek,
@@ -83,3 +84,7 @@ export const DashboardTeamWidget = ({
     </PageSection>
   );
 };
+
+export const DashboardTeamWidget = memo(DashboardTeamWidgetComponent);
+
+DashboardTeamWidget.displayName = 'DashboardTeamWidget';

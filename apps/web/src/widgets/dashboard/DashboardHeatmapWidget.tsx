@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { History } from 'lucide-react';
 import type { AttendanceRecordItem } from '@/features/records/records.api';
 import { PageSection } from '@/shared/ui/PageSection';
@@ -10,7 +10,7 @@ interface DashboardHeatmapWidgetProps {
   records: AttendanceRecordItem[];
 }
 
-export const DashboardHeatmapWidget = ({ loading, records }: DashboardHeatmapWidgetProps) => {
+const DashboardHeatmapWidgetComponent = ({ loading, records }: DashboardHeatmapWidgetProps) => {
   const [hoveredCell, setHoveredCell] = useState<{
     dateStr: string;
     cell: HeatmapCell;
@@ -140,3 +140,7 @@ export const DashboardHeatmapWidget = ({ loading, records }: DashboardHeatmapWid
     </PageSection>
   );
 };
+
+export const DashboardHeatmapWidget = memo(DashboardHeatmapWidgetComponent);
+
+DashboardHeatmapWidget.displayName = 'DashboardHeatmapWidget';

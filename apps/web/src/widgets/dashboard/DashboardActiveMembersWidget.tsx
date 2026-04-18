@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Activity, Clock3, Radio, Users } from 'lucide-react';
 import type { TeamActiveAttendanceItem } from '@lecpunch/shared';
 import { Avatar, Badge } from '@lecpunch/ui';
@@ -13,7 +13,7 @@ interface DashboardActiveMembersWidgetProps {
   onOpenMember: (member: TeamActiveAttendanceItem) => void;
 }
 
-export const DashboardActiveMembersWidget = ({
+const DashboardActiveMembersWidgetComponent = ({
   loading,
   activeMembers,
   onOpenMember
@@ -120,3 +120,7 @@ export const DashboardActiveMembersWidget = ({
     </PageSection>
   );
 };
+
+export const DashboardActiveMembersWidget = memo(DashboardActiveMembersWidgetComponent);
+
+DashboardActiveMembersWidget.displayName = 'DashboardActiveMembersWidget';

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { AlertTriangle, History, Play, Square } from 'lucide-react';
 import { ATTENDANCE_MAX_SECONDS, type AttendancePauseReason } from '@lecpunch/shared';
 import { Progress } from '@lecpunch/ui';
@@ -20,7 +21,7 @@ interface DashboardAttendanceWidgetProps {
   onAction: () => void;
 }
 
-export const DashboardAttendanceWidget = ({
+const DashboardAttendanceWidgetComponent = ({
   loading,
   weekLabel,
   isCurrentWeek,
@@ -176,3 +177,7 @@ export const DashboardAttendanceWidget = ({
     </div>
   );
 };
+
+export const DashboardAttendanceWidget = memo(DashboardAttendanceWidgetComponent);
+
+DashboardAttendanceWidget.displayName = 'DashboardAttendanceWidget';
