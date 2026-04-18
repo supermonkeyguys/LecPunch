@@ -1,9 +1,42 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
+import { useRootStore } from '@/app/store/root-store';
+
+const mocks = vi.hoisted(() => ({
+  login: vi.fn(),
+  navigate: vi.fn()
+}));
+
+vi.mock('@/features/auth/auth.api', () => ({
+  login: mocks.login
+}));
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mocks.navigate
+  };
+});
 
 describe('LoginPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useRootStore.setState({
+      auth: {
+        token: null,
+        user: null
+      }
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders login form fields and submit action', () => {
     render(
       <MemoryRouter>
@@ -21,5 +54,81 @@ describe('LoginPage', () => {
     expect(loginButtons[0]).toHaveAttribute('type', 'button');
 
     expect(screen.getByRole('button', { name: /登录系统/i })).toBeInTheDocument();
+  });
+
+  it('submits login credentials and redirects on success', async () => {
+    mocks.login.mockResolvedValue({
+      accessToken: 'token-1',
+      user: {
+        id: 'user-1',
+        teamId: 'team-1',
+        username: 'alice',
+        displayName: 'Alice',
+        role: 'member',
+        status: 'active',
+        enrollYear: 2024,
+        createdAt: '2026-04-01T00:00:00.000Z',
+        updatedAt: '2026-04-01T00:00:00.000Z'
+      }
+    });
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText('用户名'), 'alice');
+    await user.type(screen.getByLabelText('密码'), '123456');
+    await user.click(screen.getByRole('button', { name: '登录系统' }));
+
+    await waitFor(() => {
+      expect(mocks.login).toHaveBeenCalledWith({ username: 'alice', password: '123456' });
+      expect(mocks.navigate).toHaveBeenCalledWith('/');
+    });
+
+    expect(useRootStore.getState().auth.token).toBe('token-1');
+    expect(useRootStore.getState().auth.user?.username).toBe('alice');
+  });
+
+  it('shows zod validation messages for invalid input', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText('用户名'), 'alice');
+    await user.type(screen.getByLabelText('密码'), '123');
+    await user.click(screen.getByRole('button', { name: '登录系统' }));
+
+    expect(await screen.findByText('密码至少 6 位')).toBeInTheDocument();
+    expect(mocks.login).not.toHaveBeenCalled();
+  });
+
+  it('surfaces API login errors to users', async () => {
+    mocks.login.mockRejectedValue({
+      response: {
+        data: {
+          code: 'AUTH_INVALID_CREDENTIALS',
+          message: '用户名或密码错误'
+        }
+      }
+    });
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>
+    );
+
+    await user.type(screen.getByLabelText('用户名'), 'alice');
+    await user.type(screen.getByLabelText('密码'), '123456');
+    await user.click(screen.getByRole('button', { name: '登录系统' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('用户名或密码错误');
   });
 });
