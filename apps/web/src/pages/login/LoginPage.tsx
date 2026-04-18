@@ -1,46 +1,97 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { Button, Input, Alert } from '@lecpunch/ui';
 import { useRootStore } from '@/app/store/root-store';
 import { login } from '@/features/auth/auth.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 
+const loginModeSchema = z.enum(['login', 'register']);
+
+const loginFormSchema = z
+  .object({
+    mode: loginModeSchema,
+    username: z.string().trim().min(1, '请输入用户名'),
+    password: z.string().min(6, '密码至少 6 位'),
+    displayName: z.string(),
+    realName: z.string(),
+    studentId: z.string()
+  })
+  .superRefine((value, context) => {
+    if (value.mode !== 'register') {
+      return;
+    }
+
+    const displayName = value.displayName.trim() || value.username.trim();
+    if (displayName.length < 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['displayName'],
+        message: '显示名称至少 2 个字符'
+      });
+    }
+
+    if (value.realName.trim().length < 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['realName'],
+        message: '真实姓名至少 2 个字符'
+      });
+    }
+
+    if (!/^\d{12}$/.test(value.studentId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['studentId'],
+        message: '学号必须为 12 位数字'
+      });
+    }
+  });
+
+type LoginFormValues = z.infer<typeof loginFormSchema>;
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const setAuth = useRootStore((state) => state.setAuth);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [realName, setRealName] = useState('');
-  const [studentId, setStudentId] = useState('');
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-
-    if (!username.trim()) { setError('请输入用户名'); return; }
-    if (password.length < 6) { setError('密码至少 6 位'); return; }
-    if (mode === 'register') {
-      const trimmedName = displayName.trim() || username.trim();
-      if (trimmedName.length < 2) { setError('显示名称至少 2 个字符'); return; }
-      if (realName.trim().length < 2) { setError('真实姓名至少 2 个字符'); return; }
-      if (!/^\d{12}$/.test(studentId)) { setError('学号必须为 12 位数字'); return; }
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    clearErrors,
+    formState: { errors }
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      mode: 'login',
+      username: '',
+      password: '',
+      displayName: '',
+      realName: '',
+      studentId: ''
     }
+  });
+  const mode = watch('mode');
+
+  const onSubmit = async (values: LoginFormValues) => {
+    setError(null);
 
     setSubmitting(true);
     try {
+      const displayName = values.displayName.trim() || values.username.trim();
       const payload =
-        mode === 'login'
-          ? await login({ username, password })
+        values.mode === 'login'
+          ? await login({ username: values.username, password: values.password })
           : await login({
-              username,
-              password,
+              username: values.username,
+              password: values.password,
               displayName,
-              studentId,
-              realName,
+              studentId: values.studentId,
+              realName: values.realName,
               mode: 'register',
             });
 
@@ -49,7 +100,7 @@ export const LoginPage = () => {
       setAuth({ token: payload.accessToken, user: payload.user });
       navigate('/');
     } catch (error) {
-      setError(getApiErrorMessage(error, mode === 'login' ? '登录失败，请稍后重试' : '注册失败，请稍后重试'));
+      setError(getApiErrorMessage(error, values.mode === 'login' ? '登录失败，请稍后重试' : '注册失败，请稍后重试'));
     } finally {
       setSubmitting(false);
     }
@@ -68,7 +119,11 @@ export const LoginPage = () => {
           <button
             key={m}
             type="button"
-            onClick={() => setMode(m)}
+            onClick={() => {
+              setValue('mode', m);
+              clearErrors();
+              setError(null);
+            }}
             className={`flex-1 rounded-lg px-3 py-2 font-medium transition-colors ${
               mode === m ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
@@ -78,44 +133,79 @@ export const LoginPage = () => {
         ))}
       </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         {mode === 'register' ? (
           <>
-            <Input
-              id="displayName"
-              label="显示名称"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+            <Controller
+              control={control}
+              name="displayName"
+              render={({ field }) => (
+                <Input
+                  id="displayName"
+                  label="显示名称"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.displayName?.message}
+                />
+              )}
             />
-            <Input
-              id="realName"
-              label="真实姓名"
-              value={realName}
-              onChange={(e) => setRealName(e.target.value)}
+            <Controller
+              control={control}
+              name="realName"
+              render={({ field }) => (
+                <Input
+                  id="realName"
+                  label="真实姓名"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.realName?.message}
+                />
+              )}
             />
-            <Input
-              id="studentId"
-              label="学号（12位数字）"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              maxLength={12}
+            <Controller
+              control={control}
+              name="studentId"
+              render={({ field }) => (
+                <Input
+                  id="studentId"
+                  label="学号（12位数字）"
+                  value={field.value}
+                  onChange={field.onChange}
+                  maxLength={12}
+                  error={errors.studentId?.message}
+                />
+              )}
             />
           </>
         ) : null}
 
-        <Input
-          id="username"
-          label="用户名"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+        <Controller
+          control={control}
+          name="username"
+          render={({ field }) => (
+            <Input
+              id="username"
+              label="用户名"
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.username?.message}
+            />
+          )}
         />
 
-        <Input
-          id="password"
-          label="密码"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field }) => (
+            <Input
+              id="password"
+              label="密码"
+              type="password"
+              value={field.value}
+              onChange={field.onChange}
+              error={errors.password?.message}
+            />
+          )}
         />
 
         {error ? (
