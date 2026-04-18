@@ -1,0 +1,2 @@
+export const NETWORK_STATUS_REFRESH_MS = 30_000;
+export const STREAM_RETRY_DELAY_MS = 3_000;

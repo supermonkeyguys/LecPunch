@@ -3,9 +3,8 @@ import { Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@lecpunch/ui';
 import { getCurrentNetworkStatus, type CurrentNetworkStatus } from '@/features/network-policy/network-policy.api';
+import { NETWORK_STATUS_REFRESH_MS } from '@/shared/constants/timing';
 import { useRootStore } from '../store/root-store';
-
-const NETWORK_STATUS_REFRESH_MS = 30_000;
 
 export const AppHeader = () => {
   const user = useRootStore((s) => s.auth.user);

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NotificationItem } from '@lecpunch/shared';
 import { acknowledgeNotification, connectNotificationStream, getMyNotifications, type NotificationStreamEvent } from './notifications.api';
+import { STREAM_RETRY_DELAY_MS } from '@/shared/constants/timing';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { showToast } from '@/shared/ui/toast';
-
-const STREAM_RETRY_DELAY_MS = 3000;
 
 const sortNotifications = (items: NotificationItem[]) =>
   [...items].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
