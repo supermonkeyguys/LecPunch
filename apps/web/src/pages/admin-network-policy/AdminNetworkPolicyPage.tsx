@@ -1,6 +1,9 @@
-import { type FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
 import { Shield } from 'lucide-react';
 import { Badge, Button } from '@lecpunch/ui';
+import { z } from 'zod';
 import {
   getAdminNetworkPolicyDebug,
   getAdminNetworkPolicy,
@@ -14,15 +17,17 @@ import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { showToast } from '@/shared/ui/toast';
 
-interface NetworkPolicyFormState {
-  allowAnyNetwork: boolean;
-  allowedPublicIps: string;
-  allowedCidrs: string;
-  trustProxy: boolean;
-  trustedProxyHops: number;
-}
+const networkPolicyFormSchema = z.object({
+  allowAnyNetwork: z.boolean(),
+  allowedPublicIps: z.string(),
+  allowedCidrs: z.string(),
+  trustProxy: z.boolean(),
+  trustedProxyHops: z.number().int().min(1, '受信任代理层数至少为 1')
+});
 
-const emptyForm: NetworkPolicyFormState = {
+type NetworkPolicyFormValues = z.infer<typeof networkPolicyFormSchema>;
+
+const emptyForm: NetworkPolicyFormValues = {
   allowAnyNetwork: true,
   allowedPublicIps: '',
   allowedCidrs: '',
@@ -38,7 +43,7 @@ const textareaToList = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const toFormState = (policy: AdminNetworkPolicy): NetworkPolicyFormState => ({
+const toFormState = (policy: AdminNetworkPolicy): NetworkPolicyFormValues => ({
   allowAnyNetwork: policy.allowAnyNetwork,
   allowedPublicIps: listToTextarea(policy.allowedPublicIps),
   allowedCidrs: listToTextarea(policy.allowedCidrs),
@@ -52,7 +57,6 @@ const isLoopbackIp = (ip: string) =>
   ip.startsWith('127.');
 
 export const AdminNetworkPolicyPage = () => {
-  const [form, setForm] = useState<NetworkPolicyFormState>(emptyForm);
   const [source, setSource] = useState<AdminNetworkPolicy['source']>('environment');
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<AdminNetworkPolicyDebug | null>(null);
@@ -61,6 +65,17 @@ export const AdminNetworkPolicyPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors }
+  } = useForm<NetworkPolicyFormValues>({
+    resolver: zodResolver(networkPolicyFormSchema),
+    defaultValues: emptyForm
+  });
+  const allowAnyNetwork = watch('allowAnyNetwork');
 
   useEffect(() => {
     let cancelled = false;
@@ -82,7 +97,7 @@ export const AdminNetworkPolicyPage = () => {
 
         const policy = policyResult.value;
         if (!cancelled) {
-          setForm(toFormState(policy));
+          reset(toFormState(policy));
           setSource(policy.source);
           setUpdatedAt(policy.updatedAt);
 
@@ -111,21 +126,20 @@ export const AdminNetworkPolicyPage = () => {
     };
   }, [reloadToken]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmitForm = handleSubmit(async (values) => {
     setSaving(true);
 
     try {
       const updated = await updateAdminNetworkPolicy({
-        allowAnyNetwork: form.allowAnyNetwork,
-        allowedPublicIps: textareaToList(form.allowedPublicIps),
-        allowedCidrs: textareaToList(form.allowedCidrs),
-        trustProxy: form.trustProxy,
-        trustedProxyHops: form.trustedProxyHops
+        allowAnyNetwork: values.allowAnyNetwork,
+        allowedPublicIps: textareaToList(values.allowedPublicIps),
+        allowedCidrs: textareaToList(values.allowedCidrs),
+        trustProxy: values.trustProxy,
+        trustedProxyHops: values.trustedProxyHops
       });
       const nextDebug = await getAdminNetworkPolicyDebug().catch(() => null);
 
-      setForm(toFormState(updated));
+      reset(toFormState(updated));
       setSource(updated.source);
       setUpdatedAt(updated.updatedAt);
       setDebugInfo(nextDebug);
@@ -136,7 +150,7 @@ export const AdminNetworkPolicyPage = () => {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <div className="mx-auto max-w-5xl p-8">
@@ -177,7 +191,7 @@ export const AdminNetworkPolicyPage = () => {
             }
           />
         ) : (
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmitForm}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-sm font-semibold text-gray-900">生效方式</p>
@@ -226,17 +240,18 @@ export const AdminNetworkPolicyPage = () => {
             </div>
 
             <label className="flex items-start gap-3 rounded-2xl border border-gray-200 p-4">
-              <input
-                type="checkbox"
-                aria-label="允许任意网络"
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
-                checked={form.allowAnyNetwork}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    allowAnyNetwork: event.target.checked
-                  }))
-                }
+              <Controller
+                control={control}
+                name="allowAnyNetwork"
+                render={({ field }) => (
+                  <input
+                    type="checkbox"
+                    aria-label="允许任意网络"
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                    checked={field.value}
+                    onChange={(event) => field.onChange(event.target.checked)}
+                  />
+                )}
               />
               <span>
                 <span className="block text-sm font-semibold text-gray-900">允许任意网络</span>
@@ -249,38 +264,40 @@ export const AdminNetworkPolicyPage = () => {
             <div className="grid gap-6 md:grid-cols-2">
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-gray-900">允许的公网 IP</span>
-                <textarea
-                  aria-label="允许的公网 IP"
-                  rows={8}
-                  value={form.allowedPublicIps}
-                  disabled={form.allowAnyNetwork}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      allowedPublicIps: event.target.value
-                    }))
-                  }
-                  placeholder={'203.0.113.10\n198.51.100.8'}
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
+                <Controller
+                  control={control}
+                  name="allowedPublicIps"
+                  render={({ field }) => (
+                    <textarea
+                      aria-label="允许的公网 IP"
+                      rows={8}
+                      value={field.value}
+                      disabled={allowAnyNetwork}
+                      onChange={field.onChange}
+                      placeholder={'203.0.113.10\n198.51.100.8'}
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
+                    />
+                  )}
                 />
                 <span className="mt-2 block text-sm text-gray-500">每行一个 IP，也支持逗号分隔。</span>
               </label>
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-gray-900">允许的 CIDR 网段</span>
-                <textarea
-                  aria-label="允许的 CIDR 网段"
-                  rows={8}
-                  value={form.allowedCidrs}
-                  disabled={form.allowAnyNetwork}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      allowedCidrs: event.target.value
-                    }))
-                  }
-                  placeholder={'192.168.0.0/16\n10.0.0.0/8'}
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
+                <Controller
+                  control={control}
+                  name="allowedCidrs"
+                  render={({ field }) => (
+                    <textarea
+                      aria-label="允许的 CIDR 网段"
+                      rows={8}
+                      value={field.value}
+                      disabled={allowAnyNetwork}
+                      onChange={field.onChange}
+                      placeholder={'192.168.0.0/16\n10.0.0.0/8'}
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
+                    />
+                  )}
                 />
                 <span className="mt-2 block text-sm text-gray-500">用于办公 LAN、VPN 或宿舍网段白名单。</span>
               </label>
@@ -288,17 +305,18 @@ export const AdminNetworkPolicyPage = () => {
 
             <div className="grid gap-6 rounded-2xl border border-gray-200 p-4 md:grid-cols-[1fr_220px]">
               <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  aria-label="信任反向代理"
-                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
-                  checked={form.trustProxy}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      trustProxy: event.target.checked
-                    }))
-                  }
+                <Controller
+                  control={control}
+                  name="trustProxy"
+                  render={({ field }) => (
+                    <input
+                      type="checkbox"
+                      aria-label="信任反向代理"
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                      checked={field.value}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                    />
+                  )}
                 />
                 <span>
                   <span className="block text-sm font-semibold text-gray-900">信任反向代理</span>
@@ -310,19 +328,23 @@ export const AdminNetworkPolicyPage = () => {
 
               <label className="block">
                 <span className="mb-2 block text-sm font-semibold text-gray-900">受信任代理层数</span>
-                <input
-                  type="number"
-                  aria-label="受信任代理层数"
-                  min={1}
-                  value={form.trustedProxyHops}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      trustedProxyHops: Math.max(1, Number(event.target.value) || 1)
-                    }))
-                  }
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                <Controller
+                  control={control}
+                  name="trustedProxyHops"
+                  render={({ field }) => (
+                    <input
+                      type="number"
+                      aria-label="受信任代理层数"
+                      min={1}
+                      value={field.value}
+                      onChange={(event) => field.onChange(Math.max(1, Number(event.target.value) || 1))}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    />
+                  )}
                 />
+                {errors.trustedProxyHops?.message ? (
+                  <span className="mt-2 block text-xs text-red-600">{errors.trustedProxyHops.message}</span>
+                ) : null}
               </label>
             </div>
 
