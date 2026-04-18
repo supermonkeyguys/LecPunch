@@ -18,7 +18,7 @@ import { checkInAttendance, checkOutAttendance, keepAliveAttendance } from '@/fe
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
 import { useDashboardNotifications } from '@/features/notifications/useDashboardNotifications';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
-import { getApiErrorMessage } from '@/shared/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime, formatDuration, formatWeekRangeLabel } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
@@ -28,10 +28,6 @@ import { DashboardAttendanceWidget } from '@/widgets/dashboard/DashboardAttendan
 import { DashboardHeatmapWidget } from '@/widgets/dashboard/DashboardHeatmapWidget';
 import { DashboardTeamWidget } from '@/widgets/dashboard/DashboardTeamWidget';
 import { WEEK_LABELS } from '@/widgets/dashboard/dashboard.lib';
-
-const extractApiErrorCode = (error: unknown) => {
-  return (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
-};
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
@@ -143,7 +139,7 @@ export const DashboardPage = () => {
           return;
         }
 
-        const errorCode = extractApiErrorCode(error);
+        const errorCode = getApiErrorCode(error);
 
         if (errorCode === ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED) {
           setActionError(getApiErrorMessage(error, '当前打卡已失效，请重新上卡'));
