@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
+import { z } from 'zod';
 import { Avatar, Button, Input } from '@lecpunch/ui';
 import { useRootStore } from '@/app/store/root-store';
 import { showToast } from '@/shared/ui/toast';
@@ -6,20 +9,52 @@ import { updateProfile, updatePassword } from '@/features/users/users.api';
 import { getApiErrorCode } from '@/shared/lib/api-error';
 import { AvatarEditor, type AvatarSelection } from './AvatarEditor';
 
+const profileFormSchema = z.object({
+  displayName: z.string().trim().min(2, '显示名称至少 2 个字符')
+});
+
+const passwordFormSchema = z
+  .object({
+    oldPassword: z.string().min(1, '请输入当前密码'),
+    newPassword: z.string().min(6, '新密码至少 6 位'),
+    confirmPassword: z.string().min(1, '请确认新密码')
+  })
+  .refine((value) => value.newPassword === value.confirmPassword, {
+    path: ['confirmPassword'],
+    message: '两次输入的密码不一致'
+  });
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
 export const ProfilePage = () => {
   const user = useRootStore((s) => s.auth.user);
   const setAuth = useRootStore((s) => s.setAuth);
   const token = useRootStore((s) => s.auth.token);
 
-  const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
-
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      displayName: user?.displayName ?? ''
+    }
+  });
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  });
+
+  useEffect(() => {
+    profileForm.reset({
+      displayName: user?.displayName ?? ''
+    });
+  }, [profileForm, user?.displayName]);
 
   const handleAvatarSave = async (selection: AvatarSelection) => {
     const input =
@@ -38,45 +73,40 @@ export const ProfilePage = () => {
     setShowAvatarEditor(false);
   };
 
-  const handleProfileSave = async () => {
-    if (!displayName.trim() || displayName.trim().length < 2) {
-      showToast('显示名称至少 2 个字符', 'error');
-      return;
-    }
+  const handleProfileSave = profileForm.handleSubmit(async (values) => {
     setSavingProfile(true);
     try {
-      const updated = await updateProfile({ displayName: displayName.trim() });
+      const updated = await updateProfile({ displayName: values.displayName.trim() });
       const newUser = { ...user!, ...updated };
       setAuth({ token, user: newUser });
       localStorage.setItem('lecpunch.user', JSON.stringify(newUser));
+      profileForm.reset({ displayName: newUser.displayName });
       showToast('资料已保存');
     } catch {
       showToast('保存失败，请稍后重试', 'error');
     } finally {
       setSavingProfile(false);
     }
-  };
+  });
 
-  const handlePasswordSave = async () => {
-    setPasswordError(null);
-    if (!oldPassword) { setPasswordError('请输入当前密码'); return; }
-    if (newPassword.length < 6) { setPasswordError('新密码至少 6 位'); return; }
-    if (newPassword !== confirmPassword) { setPasswordError('两次输入的密码不一致'); return; }
-
+  const handlePasswordSave = passwordForm.handleSubmit(async (values) => {
+    passwordForm.clearErrors();
     setSavingPassword(true);
     try {
-      await updatePassword(oldPassword, newPassword);
+      await updatePassword(values.oldPassword, values.newPassword);
       showToast('密码已修改');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      passwordForm.reset();
     } catch (err: unknown) {
       const code = getApiErrorCode(err);
-      setPasswordError(code === 'WRONG_PASSWORD' ? '当前密码不正确' : '修改失败，请稍后重试');
+      if (code === 'WRONG_PASSWORD') {
+        passwordForm.setError('oldPassword', { message: '当前密码不正确' });
+      } else {
+        passwordForm.setError('root', { message: '修改失败，请稍后重试' });
+      }
     } finally {
       setSavingPassword(false);
     }
-  };
+  });
 
   const roleLabel = user?.role === 'admin' ? '管理员' : '成员';
 
@@ -103,14 +133,21 @@ export const ProfilePage = () => {
       </div>
 
       {/* Basic Info Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+      <form className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4" onSubmit={handleProfileSave}>
         <h2 className="font-bold text-gray-800">基本信息</h2>
 
-        <Input
-          id="displayName"
-          label="显示名称"
-          value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+        <Controller
+          control={profileForm.control}
+          name="displayName"
+          render={({ field }) => (
+            <Input
+              id="displayName"
+              label="显示名称"
+              value={field.value}
+              onChange={field.onChange}
+              error={profileForm.formState.errors.displayName?.message}
+            />
+          )}
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -137,48 +174,69 @@ export const ProfilePage = () => {
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button loading={savingProfile} onClick={handleProfileSave}>
+          <Button type="submit" loading={savingProfile}>
             保存修改
           </Button>
         </div>
-      </div>
+      </form>
 
       {/* Password Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
+      <form className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4" onSubmit={handlePasswordSave}>
         <h2 className="font-bold text-gray-800">修改密码</h2>
 
-        <Input
-          id="oldPassword"
-          label="当前密码"
-          type="password"
-          value={oldPassword}
-          onChange={(e) => setOldPassword(e.target.value)}
+        <Controller
+          control={passwordForm.control}
+          name="oldPassword"
+          render={({ field }) => (
+            <Input
+              id="oldPassword"
+              label="当前密码"
+              type="password"
+              value={field.value}
+              onChange={field.onChange}
+              error={passwordForm.formState.errors.oldPassword?.message}
+            />
+          )}
         />
-        <Input
-          id="newPassword"
-          label="新密码"
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+        <Controller
+          control={passwordForm.control}
+          name="newPassword"
+          render={({ field }) => (
+            <Input
+              id="newPassword"
+              label="新密码"
+              type="password"
+              value={field.value}
+              onChange={field.onChange}
+              error={passwordForm.formState.errors.newPassword?.message}
+            />
+          )}
         />
-        <Input
-          id="confirmPassword"
-          label="确认新密码"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+        <Controller
+          control={passwordForm.control}
+          name="confirmPassword"
+          render={({ field }) => (
+            <Input
+              id="confirmPassword"
+              label="确认新密码"
+              type="password"
+              value={field.value}
+              onChange={field.onChange}
+              error={passwordForm.formState.errors.confirmPassword?.message}
+            />
+          )}
         />
 
-        {passwordError ? (
-          <p className="text-sm text-red-600">{passwordError}</p>
+        {passwordForm.formState.errors.root?.message ? (
+          <p className="text-sm text-red-600">{passwordForm.formState.errors.root.message}</p>
         ) : null}
 
         <div className="flex justify-end pt-2">
-          <Button loading={savingPassword} onClick={handlePasswordSave}>
+          <Button type="submit" loading={savingPassword}>
             修改密码
           </Button>
         </div>
-      </div>
+      </form>
 
       {/* Avatar Editor Modal */}
       {showAvatarEditor ? (
