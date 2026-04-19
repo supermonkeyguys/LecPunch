@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, ArrowUpDown, Eye, Search, X } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { getTeamCurrentWeekStats } from '@/features/stats/stats.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDuration } from '@/shared/lib/time';
 import { cn } from '@/shared/lib/utils';
@@ -97,11 +98,6 @@ export const MembersPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const fallbackScope = parseScope((location.state as { scope?: string } | null)?.scope ?? null) ?? 'team';
 
-  const [members, setMembers] = useState<TeamWeeklyStatItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
   const { sortMetric, sortDirection } = useMemo(() => parseSort(searchParams.get('sort')), [searchParams]);
   const scope = parseScope(searchParams.get('scope')) ?? fallbackScope;
   const search = searchParams.get('search') ?? '';
@@ -137,36 +133,14 @@ export const MembersPage = () => {
     setSearchParams(buildSearchParams(nextState), { replace });
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadMembers = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const nextMembers = await getTeamCurrentWeekStats(scope === 'same-grade');
-
-        if (!cancelled) {
-          setMembers(nextMembers);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载成员统计失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadMembers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken, scope]);
+  const fetchMembers = useCallback(
+    async (_signal: AbortSignal) => getTeamCurrentWeekStats(scope === 'same-grade'),
+    [scope]
+  );
+  const { data: members, loading, error, refresh } = useAsyncData(fetchMembers, [scope], {
+    initialData: [] as TeamWeeklyStatItem[]
+  });
+  const loadError = error ? getApiErrorMessage(error, '加载成员统计失败') : null;
 
   const enrollYearOptions = useMemo(
     () => [...new Set(members.map((member) => member.enrollYear))].filter(Boolean).sort((left, right) => right - left),
@@ -349,13 +323,13 @@ export const MembersPage = () => {
         </div>
       </div>
 
-      {error ? (
+      {loadError ? (
         <PageSection>
           <PageState
             tone="error"
-            title={error}
+            title={loadError}
             action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+              <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
               </Button>
             }
