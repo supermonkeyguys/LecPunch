@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ChevronLeft, Flag, Trash2 } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, Input, type ColumnDef } from '@lecpunch/ui';
@@ -11,6 +11,7 @@ import {
   type AttendanceRecordItem
 } from '@/features/records/records.api';
 import { getMemberWeeklyStats, type MemberWeeklyStatsResponse } from '@/features/stats/stats.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime, formatDuration } from '@/shared/lib/time';
 import { DateRangePicker } from '@/shared/ui/DateRangePicker';
@@ -23,6 +24,18 @@ const DELETE_CONFIRMATION_TEXT = '我确认要删除这条打卡记录，且该�
 interface MemberRecordRow extends AttendanceRecordItem {
   _actions: null;
 }
+
+interface MemberRecordsData {
+  records: AttendanceRecordItem[];
+  weeklyStats: WeeklyStatItem[];
+  memberInfo: MemberWeeklyStatsResponse['member'] | null;
+}
+
+const INITIAL_MEMBER_RECORDS_DATA: MemberRecordsData = {
+  records: [],
+  weeklyStats: [],
+  memberInfo: null
+};
 
 const statusBadge = (status: string, isMarked: boolean) => {
   const statusNode =
@@ -54,9 +67,6 @@ export const MemberRecordsPage = () => {
   const [records, setRecords] = useState<AttendanceRecordItem[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatItem[]>([]);
   const [memberInfo, setMemberInfo] = useState<MemberWeeklyStatsResponse['member'] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
   const [savingRecordId, setSavingRecordId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AttendanceRecordItem | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
@@ -64,47 +74,36 @@ export const MemberRecordsPage = () => {
   const isAdmin = currentUser?.role === 'admin';
   const memberName = stateDisplayName ?? memberInfo?.displayName ?? '未知成员';
 
-  useEffect(() => {
-    if (!memberKey) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadMemberDetails = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [recordsData, weeklyData] = await Promise.all([
-          getMemberRecords(memberKey, { startDate: startDate || undefined, endDate: endDate || undefined }),
-          getMemberWeeklyStats(memberKey)
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        setRecords(recordsData);
-        setWeeklyStats(weeklyData.items);
-        setMemberInfo(weeklyData.member);
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载成员记录失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  const fetchMemberRecordsData = useCallback(
+    async (_signal: AbortSignal): Promise<MemberRecordsData> => {
+      if (!memberKey) {
+        return INITIAL_MEMBER_RECORDS_DATA;
       }
-    };
 
-    void loadMemberDetails();
+      const [recordsData, weeklyData] = await Promise.all([
+        getMemberRecords(memberKey, { startDate: startDate || undefined, endDate: endDate || undefined }),
+        getMemberWeeklyStats(memberKey)
+      ]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [endDate, memberKey, reloadToken, startDate]);
+      return {
+        records: recordsData,
+        weeklyStats: weeklyData.items,
+        memberInfo: weeklyData.member
+      };
+    },
+    [endDate, memberKey, startDate]
+  );
+
+  const { data, loading, error, refresh } = useAsyncData(fetchMemberRecordsData, [memberKey], {
+    initialData: INITIAL_MEMBER_RECORDS_DATA
+  });
+  const loadError = error ? getApiErrorMessage(error, '加载成员记录失败') : null;
+
+  useEffect(() => {
+    setRecords(data.records);
+    setWeeklyStats(data.weeklyStats);
+    setMemberInfo(data.memberInfo);
+  }, [data]);
 
   const applyRecordPatch = (updatedRecord: AttendanceRecordItem) => {
     setRecords((current) => current.map((item) => (item.id === updatedRecord.id ? updatedRecord : item)));
@@ -277,13 +276,13 @@ export const MemberRecordsPage = () => {
         <PageSection>
           <PageState tone="loading" title="正在加载成员记录..." />
         </PageSection>
-      ) : error ? (
+      ) : loadError ? (
         <PageSection>
           <PageState
             tone="error"
-            title={error}
+            title={loadError}
             action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+              <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
               </Button>
             }
