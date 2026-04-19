@@ -1,52 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Badge, Button, DataTable, Progress, type ColumnDef } from '@lecpunch/ui';
 import type { WeeklyStatItem } from '@lecpunch/shared';
 import { getMyWeeklyStats } from '@/features/stats/stats.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDuration, formatWeekRangeLabel, isCurrentWeekKey } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
 export const WeeklyHistoryPage = () => {
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStatItem[]>([]);
-  const [weeklyGoalSeconds, setWeeklyGoalSeconds] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadWeeklyHistory = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const result = await getMyWeeklyStats();
-
-        if (cancelled) {
-          return;
-        }
-
-        setWeeklyStats(result.items);
-        setWeeklyGoalSeconds(result.weeklyGoalSeconds);
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载周历史统计失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadWeeklyHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
+  const fetchWeeklyHistory = useCallback(async (_signal: AbortSignal) => getMyWeeklyStats(), []);
+  const { data, loading, error, refresh } = useAsyncData(fetchWeeklyHistory, [], {
+    initialData: {
+      items: [] as WeeklyStatItem[],
+      weeklyGoalSeconds: 0
+    }
+  });
+  const weeklyStats = data.items;
+  const weeklyGoalSeconds = data.weeklyGoalSeconds;
+  const loadError = error ? getApiErrorMessage(error, '加载周历史统计失败') : null;
 
   const columns: ColumnDef<WeeklyStatItem>[] = [
     {
@@ -101,12 +73,12 @@ export const WeeklyHistoryPage = () => {
       </div>
 
       <PageSection>
-        {error ? (
+        {loadError ? (
           <PageState
             tone="error"
-            title={error}
+            title={loadError}
             action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+              <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
               </Button>
             }
