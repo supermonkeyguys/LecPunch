@@ -12,8 +12,12 @@
     }
   },
   "scripts": {
+    "guard:no-js-src": "node ./scripts/assert-no-js-in-src.cjs",
+    "prebuild": "pnpm run guard:no-js-src",
     "build": "tsc -b --force",
     "lint": "eslint \"src/**/*.ts\"",
-    "typecheck": "tsc -b"
+    "pretypecheck": "pnpm run guard:no-js-src",
+    "typecheck": "tsc -b",
+    "test": "pnpm run guard:no-js-src"
   }
 }
