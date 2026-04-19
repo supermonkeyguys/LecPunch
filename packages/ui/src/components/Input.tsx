@@ -1,14 +1,27 @@
+import { useId } from 'react';
 import * as RadixLabel from '@radix-ui/react-label';
 import { cn } from '../lib/cn';
 
 interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix'> {
   label?: string;
   error?: string;
+  description?: string;
   prefix?: React.ReactNode;
 }
 
-export function Input({ label, error, prefix, id, className, ...props }: InputProps) {
-  const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-');
+export function Input({ label, error, description, prefix, id, className, ...props }: InputProps) {
+  const generatedId = useId();
+  const fallbackId = `input-${generatedId.replace(/:/g, '')}`;
+  const inputId = id ?? label?.toLowerCase().replace(/\s+/g, '-') ?? fallbackId;
+  const errorId = `${inputId}-error`;
+  const descriptionId = `${inputId}-description`;
+  const describedBy = [
+    props['aria-describedby'],
+    description ? descriptionId : null,
+    error ? errorId : null
+  ]
+    .filter(Boolean)
+    .join(' ') || undefined;
 
   return (
     <div className="flex flex-col gap-1">
@@ -29,6 +42,8 @@ export function Input({ label, error, prefix, id, className, ...props }: InputPr
         <input
           id={inputId}
           {...props}
+          aria-describedby={describedBy}
+          aria-invalid={error ? true : props['aria-invalid']}
           className={cn(
             'w-full rounded-lg border bg-gray-50 px-4 py-2.5 text-sm text-gray-900 transition-all',
             'placeholder:text-gray-400',
@@ -39,8 +54,9 @@ export function Input({ label, error, prefix, id, className, ...props }: InputPr
           )}
         />
       </div>
+      {description ? <p id={descriptionId} className="text-xs text-gray-500">{description}</p> : null}
       {error ? (
-        <p className="text-xs text-red-600">{error}</p>
+        <p id={errorId} className="text-xs text-red-600">{error}</p>
       ) : null}
     </div>
   );

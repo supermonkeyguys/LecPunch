@@ -104,7 +104,11 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('密码'), '123');
     await user.click(screen.getByRole('button', { name: '登录系统' }));
 
-    expect(await screen.findByText('密码至少 6 位')).toBeInTheDocument();
+    const passwordError = await screen.findByText('密码至少 6 位');
+    expect(passwordError).toBeInTheDocument();
+    expect(passwordError).toHaveAttribute('id', 'password-error');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('密码')).toHaveAttribute('aria-describedby', expect.stringContaining('password-error'));
     expect(mocks.login).not.toHaveBeenCalled();
   });
 
