@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useAuthStore } from '@/app/store/auth-store';
+import { NETWORK_STATUS_ERROR_RETRY_MS, NETWORK_STATUS_REFRESH_MS } from '@/shared/constants/timing';
 import { AppHeader } from './AppHeader';
 
 const mocks = vi.hoisted(() => ({
@@ -35,6 +36,7 @@ describe('AppHeader', () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
   });
 
   it('shows a blocked network state when the current request is not allowed', async () => {
@@ -66,5 +68,26 @@ describe('AppHeader', () => {
     );
 
     expect(await screen.findByText('已连接团队网络')).toBeInTheDocument();
+  });
+
+  it('uses a longer retry delay when network status requests fail', async () => {
+    vi.useFakeTimers();
+    mocks.getCurrentNetworkStatus.mockRejectedValue(new Error('offline'));
+
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>
+    );
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mocks.getCurrentNetworkStatus).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(NETWORK_STATUS_REFRESH_MS);
+    expect(mocks.getCurrentNetworkStatus).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(NETWORK_STATUS_ERROR_RETRY_MS - NETWORK_STATUS_REFRESH_MS);
+    expect(mocks.getCurrentNetworkStatus).toHaveBeenCalledTimes(2);
   });
 });

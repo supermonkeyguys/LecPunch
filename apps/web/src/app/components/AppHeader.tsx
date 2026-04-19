@@ -3,7 +3,7 @@ import { Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@lecpunch/ui';
 import { getCurrentNetworkStatus, type CurrentNetworkStatus } from '@/features/network-policy/network-policy.api';
-import { NETWORK_STATUS_REFRESH_MS } from '@/shared/constants/timing';
+import { NETWORK_STATUS_ERROR_RETRY_MS, NETWORK_STATUS_REFRESH_MS } from '@/shared/constants/timing';
 import { useAuthStore } from '../store/auth-store';
 
 export const AppHeader = () => {
@@ -16,10 +16,12 @@ export const AppHeader = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const setIntervalFn =
-      typeof globalThis.setInterval === 'function' ? globalThis.setInterval : window.setInterval.bind(window);
-    const clearIntervalFn =
-      typeof globalThis.clearInterval === 'function' ? globalThis.clearInterval : window.clearInterval.bind(window);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let consecutiveFailures = 0;
+    const setTimeoutFn =
+      typeof globalThis.setTimeout === 'function' ? globalThis.setTimeout : window.setTimeout.bind(window);
+    const clearTimeoutFn =
+      typeof globalThis.clearTimeout === 'function' ? globalThis.clearTimeout : window.clearTimeout.bind(window);
 
     if (!token) {
       setNetworkStatus(null);
@@ -34,6 +36,7 @@ export const AppHeader = () => {
         if (cancelled) {
           return;
         }
+        consecutiveFailures = 0;
 
         setNetworkStatus(nextStatus);
         setNetworkStatusLoaded(true);
@@ -42,10 +45,20 @@ export const AppHeader = () => {
         if (cancelled) {
           return;
         }
+        consecutiveFailures += 1;
 
         setNetworkStatus(null);
         setNetworkStatusLoaded(true);
         setNetworkStatusError(true);
+      } finally {
+        if (cancelled) {
+          return;
+        }
+
+        const retryDelayMs = consecutiveFailures > 0 ? NETWORK_STATUS_ERROR_RETRY_MS : NETWORK_STATUS_REFRESH_MS;
+        timeoutId = setTimeoutFn(() => {
+          void loadNetworkStatus();
+        }, retryDelayMs);
       }
     };
 
@@ -54,13 +67,11 @@ export const AppHeader = () => {
     setNetworkStatusError(false);
     void loadNetworkStatus();
 
-    const interval = setIntervalFn(() => {
-      void loadNetworkStatus();
-    }, NETWORK_STATUS_REFRESH_MS);
-
     return () => {
       cancelled = true;
-      clearIntervalFn(interval);
+      if (timeoutId !== null) {
+        clearTimeoutFn(timeoutId);
+      }
     };
   }, [token]);
 
