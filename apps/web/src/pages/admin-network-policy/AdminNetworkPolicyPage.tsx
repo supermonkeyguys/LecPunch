@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { Shield } from 'lucide-react';
@@ -11,6 +11,7 @@ import {
   type AdminNetworkPolicy,
   type AdminNetworkPolicyDebug
 } from '@/features/network-policy/network-policy.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
@@ -56,15 +57,19 @@ const isLoopbackIp = (ip: string) =>
   ip === '0:0:0:0:0:0:0:1' ||
   ip.startsWith('127.');
 
+interface AdminNetworkPolicyPageData {
+  policy: AdminNetworkPolicy | null;
+  debugInfo: AdminNetworkPolicyDebug | null;
+  debugError: string | null;
+}
+
 export const AdminNetworkPolicyPage = () => {
   const [source, setSource] = useState<AdminNetworkPolicy['source']>('environment');
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<AdminNetworkPolicyDebug | null>(null);
   const [debugError, setDebugError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isFormHydrated, setIsFormHydrated] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
   const {
     control,
     handleSubmit,
@@ -76,55 +81,47 @@ export const AdminNetworkPolicyPage = () => {
     defaultValues: emptyForm
   });
   const allowAnyNetwork = watch('allowAnyNetwork');
+  const fetchPolicyData = useCallback(async (_signal: AbortSignal): Promise<AdminNetworkPolicyPageData> => {
+    const [policyResult, debugResult] = await Promise.allSettled([
+      getAdminNetworkPolicy(),
+      getAdminNetworkPolicyDebug()
+    ]);
+
+    if (policyResult.status === 'rejected') {
+      throw policyResult.reason;
+    }
+
+    return {
+      policy: policyResult.value,
+      debugInfo: debugResult.status === 'fulfilled' ? debugResult.value : null,
+      debugError:
+        debugResult.status === 'rejected'
+          ? getApiErrorMessage(debugResult.reason, '加载当前请求 IP 失败')
+          : null
+    };
+  }, []);
+  const { data, loading, error, refresh } = useAsyncData(fetchPolicyData, [], {
+    initialData: {
+      policy: null,
+      debugInfo: null,
+      debugError: null
+    }
+  });
+  const loadError = error ? getApiErrorMessage(error, '加载网络策略失败') : null;
 
   useEffect(() => {
-    let cancelled = false;
+    if (!data.policy) {
+      setIsFormHydrated(false);
+      return;
+    }
 
-    const loadPolicy = async () => {
-      setLoading(true);
-      setError(null);
-      setDebugError(null);
-
-      try {
-        const [policyResult, debugResult] = await Promise.allSettled([
-          getAdminNetworkPolicy(),
-          getAdminNetworkPolicyDebug()
-        ]);
-
-        if (policyResult.status === 'rejected') {
-          throw policyResult.reason;
-        }
-
-        const policy = policyResult.value;
-        if (!cancelled) {
-          reset(toFormState(policy));
-          setSource(policy.source);
-          setUpdatedAt(policy.updatedAt);
-
-          if (debugResult.status === 'fulfilled') {
-            setDebugInfo(debugResult.value);
-          } else {
-            setDebugInfo(null);
-            setDebugError(getApiErrorMessage(debugResult.reason, '加载当前请求 IP 失败'));
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载网络策略失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadPolicy();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
+    reset(toFormState(data.policy));
+    setSource(data.policy.source);
+    setUpdatedAt(data.policy.updatedAt);
+    setDebugInfo(data.debugInfo);
+    setDebugError(data.debugError);
+    setIsFormHydrated(true);
+  }, [data, reset]);
 
   const handleSubmitForm = handleSubmit(async (values) => {
     setSaving(true);
@@ -173,22 +170,22 @@ export const AdminNetworkPolicyPage = () => {
       </div>
 
       <PageSection padded>
-        {loading ? (
+        {loadError ? (
+          <PageState
+            tone="error"
+            title={loadError}
+            description="请确认当前账号具备管理员权限，然后重新加载网络策略。"
+            action={
+              <Button variant="outline" size="sm" onClick={refresh}>
+                重新加载
+              </Button>
+            }
+          />
+        ) : loading || !isFormHydrated ? (
           <PageState
             tone="loading"
             title="正在加载网络策略"
             description="正在读取当前团队的生效配置。"
-          />
-        ) : error ? (
-          <PageState
-            tone="error"
-            title={error}
-            description="请确认当前账号具备管理员权限，然后重新加载网络策略。"
-            action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
-                重新加载
-              </Button>
-            }
           />
         ) : (
           <form className="space-y-6" onSubmit={handleSubmitForm}>
@@ -353,7 +350,7 @@ export const AdminNetworkPolicyPage = () => {
                 type="button"
                 variant="outline"
                 disabled={saving}
-                onClick={() => setReloadToken((value) => value + 1)}
+                onClick={refresh}
               >
                 从服务端重载
               </Button>

@@ -65,7 +65,8 @@ describe('AdminNetworkPolicyPage', () => {
     );
 
     expect(await screen.findByText('环境变量兜底')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: '允许任意网络' })).not.toBeChecked();
+    const allowAnyNetworkCheckbox = await screen.findByRole('checkbox', { name: '允许任意网络' });
+    expect(allowAnyNetworkCheckbox).not.toBeChecked();
     expect(screen.getByLabelText('允许的公网 IP')).toHaveValue('203.0.113.10');
     expect(screen.getByLabelText('允许的 CIDR 网段')).toHaveValue('192.168.0.0/16');
     expect(screen.getByText(/服务端当前识别到的客户端 IP：/)).toBeInTheDocument();
