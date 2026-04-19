@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { AlertTriangle, Search, Shield } from 'lucide-react';
 import { Badge, Button, DataTable, Input, type ColumnDef } from '@lecpunch/ui';
 import type { User } from '@lecpunch/shared';
 import { deleteAdminMember, getAdminMembers, updateAdminMember } from '@/features/users/users.api';
 import { useAuthStore } from '@/app/store/auth-store';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
@@ -18,43 +19,26 @@ const DESTROY_CONFIRMATION_TEXT = '我确认已知会销毁账号，并清空数
 export const AdminMembersPage = () => {
   const currentUser = useAuthStore((state) => state.auth.user);
   const [members, setMembers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
   const [destroyTarget, setDestroyTarget] = useState<User | null>(null);
   const [destroyConfirmation, setDestroyConfirmation] = useState('');
 
+  const fetchMembers = useCallback(async (_signal: AbortSignal) => getAdminMembers(), []);
+  const {
+    data: loadedMembers,
+    loading,
+    error,
+    refresh
+  } = useAsyncData(fetchMembers, [], {
+    initialData: [] as User[]
+  });
+
   useEffect(() => {
-    let cancelled = false;
+    setMembers(loadedMembers);
+  }, [loadedMembers]);
 
-    const loadMembers = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const nextMembers = await getAdminMembers();
-        if (!cancelled) {
-          setMembers(nextMembers);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载成员列表失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadMembers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
+  const loadError = error ? getApiErrorMessage(error, '加载成员列表失败') : null;
 
   const filteredMembers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -231,13 +215,13 @@ export const AdminMembersPage = () => {
       </div>
 
       <PageSection>
-        {error ? (
+        {loadError ? (
           <PageState
             tone="error"
-            title={error}
+            title={loadError}
             description="请确认当前账号具备管理员权限，然后重新加载成员列表。"
             action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+              <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
               </Button>
             }
