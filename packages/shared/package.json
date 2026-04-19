@@ -13,11 +13,13 @@
   },
   "scripts": {
     "guard:no-js-src": "node ./scripts/assert-no-js-in-src.cjs",
-    "prebuild": "pnpm run guard:no-js-src",
+    "lint:src-artifacts": "eslint \"src/**/*.{js,cjs,mjs}\" --no-error-on-unmatched-pattern",
+    "prebuild": "pnpm run lint:src-artifacts",
     "build": "tsc -b --force",
     "lint": "eslint \"src/**/*.ts\"",
-    "pretypecheck": "pnpm run guard:no-js-src",
+    "pretypecheck": "pnpm run lint:src-artifacts",
     "typecheck": "tsc -b",
+    "pretest": "pnpm run lint:src-artifacts",
     "test": "pnpm run guard:no-js-src"
   }
 }

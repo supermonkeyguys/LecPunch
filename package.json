@@ -11,6 +11,8 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
+    "@lecpunch/eslint-config": "workspace:^",
+    "eslint": "^8.57.1",
     "ttypescript": "^1.5.15",
     "turbo": "^2.0.4",
     "typescript": "^5.5.4",
