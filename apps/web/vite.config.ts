@@ -18,11 +18,15 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@lecpunch/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
-      '@lecpunch/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts')
+      '@lecpunch/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts')
     }
   },
   optimizeDeps: {
-    force: true
+    include: ['@lecpunch/shared']
+  },
+  build: {
+    commonjsOptions: {
+      include: [/@lecpunch\/shared/, /node_modules/]
+    }
   }
 });
