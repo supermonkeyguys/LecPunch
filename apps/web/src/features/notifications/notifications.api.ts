@@ -1,5 +1,5 @@
 import type { NotificationItem } from '@lecpunch/shared';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { apiClient } from '@/shared/http/api-client';
 
 export interface NotificationFilters {
@@ -37,7 +37,7 @@ const buildApiUrl = (path: string) => {
 };
 
 const resetAuth = () => {
-  useRootStore.getState().setAuth({ token: null, user: null });
+  useAuthStore.getState().setAuth({ token: null, user: null });
 };
 
 const parseEventChunk = (chunk: string): NotificationStreamEvent | null => {

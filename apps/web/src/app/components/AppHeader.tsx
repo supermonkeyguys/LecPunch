@@ -4,11 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@lecpunch/ui';
 import { getCurrentNetworkStatus, type CurrentNetworkStatus } from '@/features/network-policy/network-policy.api';
 import { NETWORK_STATUS_REFRESH_MS } from '@/shared/constants/timing';
-import { useRootStore } from '../store/root-store';
+import { useAuthStore } from '../store/auth-store';
 
 export const AppHeader = () => {
-  const user = useRootStore((s) => s.auth.user);
-  const token = useRootStore((s) => s.auth.token);
+  const user = useAuthStore((s) => s.auth.user);
+  const token = useAuthStore((s) => s.auth.token);
   const navigate = useNavigate();
   const [networkStatus, setNetworkStatus] = useState<CurrentNetworkStatus | null>(null);
   const [networkStatusLoaded, setNetworkStatusLoaded] = useState(false);

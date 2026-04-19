@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { TeamActiveAttendanceItem, TeamWeeklyStatItem, WeeklyStatItem } from '@lecpunch/shared';
-import type { WeekKey } from '@/app/store/root-store';
+import type { WeekKey } from '@/app/store/ui-store';
 import {
   getCurrentAttendance,
   getTeamActiveAttendances,

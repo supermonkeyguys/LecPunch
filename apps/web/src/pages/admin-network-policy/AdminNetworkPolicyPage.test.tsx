@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AdminNetworkPolicyPage } from './AdminNetworkPolicyPage';
 
 const mocks = vi.hoisted(() => ({
@@ -20,7 +20,7 @@ vi.mock('@/features/network-policy/network-policy.api', () => ({
 describe('AdminNetworkPolicyPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: 'token',
         user: {

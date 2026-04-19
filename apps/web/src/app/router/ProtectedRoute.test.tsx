@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { cleanup, render, screen } from '@testing-library/react';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { ProtectedRoute } from './ProtectedRoute';
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: null,
         user: null
@@ -35,7 +35,7 @@ describe('ProtectedRoute', () => {
   });
 
   it('allows authenticated users to access protected routes', () => {
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: 'token-1',
         user: {

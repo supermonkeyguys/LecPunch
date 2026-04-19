@@ -1,5 +1,5 @@
 import type { AttendanceRecordItem } from '@/features/records/records.api';
-import type { WeekKey } from '@/app/store/root-store';
+import type { WeekKey } from '@/app/store/ui-store';
 
 export const HEATMAP_WEEKS = 20;
 

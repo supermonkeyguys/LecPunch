@@ -13,7 +13,8 @@ import {
 } from '@lecpunch/shared';
 import { Alert, Badge, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useUIStore } from '@/app/store/ui-store';
 import { checkInAttendance, checkOutAttendance, keepAliveAttendance } from '@/features/attendance/attendance.api';
 import { DashboardContextProvider } from '@/features/dashboard/context/DashboardContext';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
@@ -33,9 +34,9 @@ import { WEEK_LABELS } from '@/widgets/dashboard/dashboard.lib';
 const KEEPALIVE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000] as const;
 export const DashboardPage = () => {
   const navigate = useNavigate();
-  const selectedWeek = useRootStore((state) => state.selectedWeek);
-  const setSelectedWeek = useRootStore((state) => state.setSelectedWeek);
-  const token = useRootStore((state) => state.auth.token);
+  const selectedWeek = useUIStore((state) => state.selectedWeek);
+  const setSelectedWeek = useUIStore((state) => state.setSelectedWeek);
+  const token = useAuthStore((state) => state.auth.token);
   const [actionError, setActionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [creditedSeconds, setCreditedSeconds] = useState(0);

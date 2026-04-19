@@ -3,7 +3,8 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
+import { useUIStore } from '@/app/store/ui-store';
 import { selectedWeekToKey } from '@/shared/lib/time';
 
 const mocks = vi.hoisted(() => ({
@@ -60,8 +61,10 @@ vi.mock('@/shared/ui/toast', () => ({
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useRootStore.setState({
-      selectedWeek: 'current',
+    useUIStore.setState({
+      selectedWeek: 'current'
+    });
+    useAuthStore.setState({
       auth: {
         token: 'token-1',
         user: {
@@ -507,7 +510,7 @@ describe('DashboardPage', () => {
   });
 
   it('shows a historical summary and disables attendance actions for non-current weeks', async () => {
-    useRootStore.setState({ selectedWeek: 'prev1' });
+    useUIStore.setState({ selectedWeek: 'prev1' });
     mocks.getCurrentAttendance.mockResolvedValue({
       hasActiveSession: true,
       session: {

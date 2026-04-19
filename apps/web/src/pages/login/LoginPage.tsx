@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button, Input, Alert } from '@lecpunch/ui';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { login } from '@/features/auth/auth.api';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 
@@ -54,7 +54,7 @@ type LoginFormValues = z.infer<typeof loginFormSchema>;
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const setAuth = useRootStore((state) => state.setAuth);
+  const setAuth = useAuthStore((state) => state.setAuth);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {

@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Avatar, Button, Input } from '@lecpunch/ui';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { showToast } from '@/shared/ui/toast';
 import { updateProfile, updatePassword } from '@/features/users/users.api';
 import { getApiErrorCode } from '@/shared/lib/api-error';
@@ -28,9 +28,9 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 export const ProfilePage = () => {
-  const user = useRootStore((s) => s.auth.user);
-  const setAuth = useRootStore((s) => s.setAuth);
-  const token = useRootStore((s) => s.auth.token);
+  const user = useAuthStore((s) => s.auth.user);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const token = useAuthStore((s) => s.auth.token);
 
   const [showAvatarEditor, setShowAvatarEditor] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);

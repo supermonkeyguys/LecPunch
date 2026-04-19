@@ -3,7 +3,7 @@ import { AlertTriangle, Search, Shield } from 'lucide-react';
 import { Badge, Button, DataTable, Input, type ColumnDef } from '@lecpunch/ui';
 import type { User } from '@lecpunch/shared';
 import { deleteAdminMember, getAdminMembers, updateAdminMember } from '@/features/users/users.api';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
@@ -16,7 +16,7 @@ interface AdminMembersRow extends User {
 const DESTROY_CONFIRMATION_TEXT = '我确认已知会销毁账号，并清空数据';
 
 export const AdminMembersPage = () => {
-  const currentUser = useRootStore((state) => state.auth.user);
+  const currentUser = useAuthStore((state) => state.auth.user);
   const [members, setMembers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,12 +1,12 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AdminRoute } from './AdminRoute';
 
 describe('AdminRoute', () => {
   beforeEach(() => {
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: 'token',
         user: {
@@ -41,7 +41,7 @@ describe('AdminRoute', () => {
   });
 
   it('allows admin users to enter admin routes', () => {
-    useRootStore.setState((state) => ({
+    useAuthStore.setState((state) => ({
       auth: {
         ...state.auth,
         user: state.auth.user ? { ...state.auth.user, role: 'admin' } : null

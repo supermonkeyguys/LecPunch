@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   deleteAdminRecord: vi.fn(),
   getMemberWeeklyStats: vi.fn(),
   showToast: vi.fn(),
-  useRootStore: vi.fn()
+  useAuthStore: vi.fn()
 }));
 
 vi.mock('@/features/records/records.api', () => ({
@@ -26,8 +26,8 @@ vi.mock('@/features/stats/stats.api', () => ({
   getMemberWeeklyStats: mocks.getMemberWeeklyStats
 }));
 
-vi.mock('@/app/store/root-store', () => ({
-  useRootStore: mocks.useRootStore
+vi.mock('@/app/store/auth-store', () => ({
+  useAuthStore: mocks.useAuthStore
 }));
 
 vi.mock('@/shared/ui/toast', async () => {
@@ -41,7 +41,7 @@ vi.mock('@/shared/ui/toast', async () => {
 describe('MemberRecordsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.useRootStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
+    mocks.useAuthStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
       selector({ auth: { user: { role: 'member' } } })
     );
   });
@@ -117,7 +117,7 @@ describe('MemberRecordsPage', () => {
   });
 
   it('shows admin actions and updates marked records', async () => {
-    mocks.useRootStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
+    mocks.useAuthStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
       selector({ auth: { user: { role: 'admin' } } })
     );
     mocks.getMemberRecords.mockResolvedValue([
@@ -165,7 +165,7 @@ describe('MemberRecordsPage', () => {
   });
 
   it('requires modal confirmation before deleting admin records', async () => {
-    mocks.useRootStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
+    mocks.useAuthStore.mockImplementation((selector: (state: { auth: { user: { role: string } | null } }) => unknown) =>
       selector({ auth: { user: { role: 'admin' } } })
     );
     mocks.getMemberRecords.mockResolvedValue([

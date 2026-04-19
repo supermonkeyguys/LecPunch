@@ -8,8 +8,8 @@ const state = {
   setAuth: vi.fn()
 };
 
-vi.mock('@/app/store/root-store', () => ({
-  useRootStore: {
+vi.mock('@/app/store/auth-store', () => ({
+  useAuthStore: {
     getState: () => ({
       auth: {
         token: state.auth.token

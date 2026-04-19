@@ -1,5 +1,5 @@
 import axios, { AxiosHeaders } from 'axios';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -16,7 +16,7 @@ export const setNavigateToLogin = (fn: () => void) => {
 };
 
 apiClient.interceptors.request.use((config) => {
-  const token = useRootStore.getState().auth.token;
+  const token = useAuthStore.getState().auth.token;
   if (token) {
     const headers = AxiosHeaders.from(config.headers);
     headers.set('Authorization', `Bearer ${token}`);
@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useRootStore.getState().setAuth({ token: null, user: null });
+      useAuthStore.getState().setAuth({ token: null, user: null });
       _navigateToLogin?.();
     }
     return Promise.reject(error);

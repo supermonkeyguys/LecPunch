@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 
 const mocks = vi.hoisted(() => ({
   login: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('react-router-dom', async () => {
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: null,
         user: null
@@ -88,8 +88,8 @@ describe('LoginPage', () => {
       expect(mocks.navigate).toHaveBeenCalledWith('/');
     });
 
-    expect(useRootStore.getState().auth.token).toBe('token-1');
-    expect(useRootStore.getState().auth.user?.username).toBe('alice');
+    expect(useAuthStore.getState().auth.token).toBe('token-1');
+    expect(useAuthStore.getState().auth.user?.username).toBe('alice');
   });
 
   it('shows zod validation messages for invalid input', async () => {

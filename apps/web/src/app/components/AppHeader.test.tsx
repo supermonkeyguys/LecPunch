@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AppHeader } from './AppHeader';
 
 const mocks = vi.hoisted(() => ({
@@ -15,7 +15,7 @@ vi.mock('@/features/network-policy/network-policy.api', () => ({
 describe('AppHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: 'token',
         user: {

@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut, Shield, Wifi, Download } from 'lucide-react';
 import { Button } from '@lecpunch/ui';
-import { useRootStore } from '../store/root-store';
+import { useAuthStore } from '../store/auth-store';
 
 const navItems = [
   { label: '工作台', to: '/', icon: LayoutDashboard },
@@ -12,8 +12,8 @@ const navItems = [
 
 export const Sidebar = () => {
   const navigate = useNavigate();
-  const setAuth = useRootStore((s) => s.setAuth);
-  const user = useRootStore((s) => s.auth.user);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const user = useAuthStore((s) => s.auth.user);
 
   const handleLogout = () => {
     setAuth({ token: null, user: null });

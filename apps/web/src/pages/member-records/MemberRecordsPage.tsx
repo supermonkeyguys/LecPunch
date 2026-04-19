@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, ChevronLeft, Flag, Trash2 } from 'lucide-react';
 import { Avatar, Badge, Button, DataTable, Input, type ColumnDef } from '@lecpunch/ui';
 import type { WeeklyStatItem } from '@lecpunch/shared';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import {
   deleteAdminRecord,
   getMemberRecords,
@@ -46,7 +46,7 @@ export const MemberRecordsPage = () => {
   const { memberKey } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const currentUser = useRootStore((state) => state.auth.user);
+  const currentUser = useAuthStore((state) => state.auth.user);
   const stateDisplayName: string | undefined = (location.state as { displayName?: string } | null)?.displayName;
 
   const [startDate, setStartDate] = useState('');

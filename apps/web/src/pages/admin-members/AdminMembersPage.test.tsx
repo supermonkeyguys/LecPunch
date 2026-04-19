@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { useRootStore } from '@/app/store/root-store';
+import { useAuthStore } from '@/app/store/auth-store';
 import { AdminMembersPage } from './AdminMembersPage';
 
 const mocks = vi.hoisted(() => ({
@@ -22,7 +22,7 @@ vi.mock('@/features/users/users.api', () => ({
 describe('AdminMembersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useRootStore.setState({
+    useAuthStore.setState({
       auth: {
         token: 'token',
         user: {
