@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import { getMyRecords, type AttendanceRecordItem } from '@/features/records/records.api';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { formatDateTime, formatDuration } from '@/shared/lib/time';
 import { DateRangePicker } from '@/shared/ui/DateRangePicker';
@@ -62,47 +63,19 @@ const columns: ColumnDef<AttendanceRecordItem>[] = [
 export const RecordsPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [records, setRecords] = useState<AttendanceRecordItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadRecords = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const nextRecords = await getMyRecords({
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          pageSize: 100
-        });
-
-        if (cancelled) {
-          return;
-        }
-
-        setRecords(nextRecords);
-      } catch (error) {
-        if (!cancelled) {
-          setError(getApiErrorMessage(error, '加载打卡记录失败'));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadRecords();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [endDate, reloadToken, startDate]);
+  const fetchRecords = useCallback(
+    async (_signal: AbortSignal) =>
+      getMyRecords({
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        pageSize: 100
+      }),
+    [endDate, startDate]
+  );
+  const { data: records, loading, error, refresh } = useAsyncData(fetchRecords, [startDate, endDate], {
+    initialData: [] as AttendanceRecordItem[]
+  });
+  const loadError = error ? getApiErrorMessage(error, '加载打卡记录失败') : null;
 
   return (
     <div className="mx-auto max-w-7xl p-8">
@@ -124,12 +97,12 @@ export const RecordsPage = () => {
       </div>
 
       <PageSection>
-        {error ? (
+        {loadError ? (
           <PageState
             tone="error"
-            title={error}
+            title={loadError}
             action={
-              <Button variant="outline" size="sm" onClick={() => setReloadToken((value) => value + 1)}>
+              <Button variant="outline" size="sm" onClick={refresh}>
                 重新加载
               </Button>
             }
