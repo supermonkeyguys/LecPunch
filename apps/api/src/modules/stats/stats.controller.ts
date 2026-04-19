@@ -3,6 +3,7 @@ import { StatsService } from './stats.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
+import { TeamCurrentWeekQueryDto } from './dto/team-current-week-query.dto';
 
 @Controller('stats')
 @UseGuards(JwtAuthGuard)
@@ -18,9 +19,9 @@ export class StatsController {
   @Get('team/current-week')
   async teamCurrentWeek(
     @CurrentUser() user: AuthUser,
-    @Query('sameGrade') sameGrade?: string
+    @Query() query: TeamCurrentWeekQueryDto
   ) {
-    const enrollYear = sameGrade === 'true' ? user.enrollYear : undefined;
+    const enrollYear = query.sameGrade === 'true' ? user.enrollYear : undefined;
     const items = await this.statsService.getTeamCurrentWeekStats(user.teamId, enrollYear);
     return { items };
   }

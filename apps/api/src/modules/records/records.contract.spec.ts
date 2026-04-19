@@ -29,7 +29,7 @@ describe('RecordsController contract', () => {
       }
     ]);
 
-    const result = await controller.myRecords({ userId: 'user-1' } as any, undefined, '1', '20');
+    const result = await controller.myRecords({ userId: 'user-1' } as any, { page: 1, pageSize: 20 });
 
     expect(result).toMatchObject({
       items: [

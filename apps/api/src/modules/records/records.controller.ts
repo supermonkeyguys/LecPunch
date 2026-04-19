@@ -7,6 +7,7 @@ import type { Response } from 'express';
 import { DateTime } from 'luxon';
 import { TIMEZONE } from '@lecpunch/shared';
 import { AdminUpdateRecordMarkDto } from './dto/admin-update-record-mark.dto';
+import { ListRecordsQueryDto, RecordFiltersQueryDto } from './dto/records-query.dto';
 
 @Controller('records')
 @UseGuards(JwtAuthGuard)
@@ -16,15 +17,16 @@ export class RecordsController {
   @Get('me')
   async myRecords(
     @CurrentUser() user: AuthUser,
-    @Query('weekKey') weekKey?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('page') page = '1',
-    @Query('pageSize') pageSize = '20'
+    @Query() query: ListRecordsQueryDto
   ) {
-    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-    const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 100);
-    const records = await this.recordsService.listMyRecords(user.userId, { weekKey, startDate, endDate }, pageNum, sizeNum);
+    const pageNum = Math.max(query.page, 1);
+    const sizeNum = Math.min(Math.max(query.pageSize, 1), 100);
+    const records = await this.recordsService.listMyRecords(
+      user.userId,
+      { weekKey: query.weekKey, startDate: query.startDate, endDate: query.endDate },
+      pageNum,
+      sizeNum
+    );
     return { items: records.map(this.mapSession), page: pageNum, pageSize: sizeNum };
   }
 
@@ -32,18 +34,14 @@ export class RecordsController {
   async memberRecords(
     @CurrentUser() user: AuthUser,
     @Param('memberKey') memberKey: string,
-    @Query('weekKey') weekKey?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-    @Query('page') page = '1',
-    @Query('pageSize') pageSize = '20'
+    @Query() query: ListRecordsQueryDto
   ) {
-    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
-    const sizeNum = Math.min(Math.max(parseInt(pageSize, 10) || 20, 1), 100);
+    const pageNum = Math.max(query.page, 1);
+    const sizeNum = Math.min(Math.max(query.pageSize, 1), 100);
     const records = await this.recordsService.listMemberRecords(
       user,
       memberKey,
-      { weekKey, startDate, endDate },
+      { weekKey: query.weekKey, startDate: query.startDate, endDate: query.endDate },
       pageNum,
       sizeNum
     );
@@ -70,11 +68,8 @@ export class RecordsController {
   async exportTeamRecords(
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) response: Response,
-    @Query('weekKey') weekKey?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string
+    @Query() filters: RecordFiltersQueryDto
   ) {
-    const filters = { weekKey, startDate, endDate };
     const rows = await this.recordsService.exportTeamRecords(user, filters);
     const filename = this.buildExportFilename(filters);
 

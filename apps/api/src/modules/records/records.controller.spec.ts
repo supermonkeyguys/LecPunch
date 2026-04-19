@@ -35,7 +35,8 @@ describe('RecordsController', () => {
 
     const result = await controller.memberRecords(
       { userId: 'user-1', teamId: 'team-1', role: 'member' } as any,
-      'member-key-2'
+      'member-key-2',
+      { page: 1, pageSize: 20 }
     );
 
     expect(recordsService.listMemberRecords).toHaveBeenCalledWith(
@@ -131,7 +132,7 @@ describe('RecordsController', () => {
     const result = await controller.exportTeamRecords(
       { userId: 'admin-1', teamId: 'team-1', role: 'admin' } as any,
       response,
-      '2026-04-06'
+      { weekKey: '2026-04-06' }
     );
 
     expect(recordsService.exportTeamRecords).toHaveBeenCalledWith(

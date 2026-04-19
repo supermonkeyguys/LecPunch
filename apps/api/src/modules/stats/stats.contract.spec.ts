@@ -42,7 +42,7 @@ describe('StatsController contract', () => {
       }
     ]);
 
-    const result = await controller.teamCurrentWeek({ teamId: 'team-1', enrollYear: 2024 } as any);
+    const result = await controller.teamCurrentWeek({ teamId: 'team-1', enrollYear: 2024 } as any, {});
 
     expect(result).toMatchObject({
       items: [
