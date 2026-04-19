@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NotificationItem } from '@lecpunch/shared';
 import { acknowledgeNotification, connectNotificationStream, getMyNotifications, type NotificationStreamEvent } from './notifications.api';
 import { STREAM_RETRY_DELAY_MS } from '@/shared/constants/timing';
+import { useAsyncData } from '@/shared/hooks/useAsyncData';
 import { getApiErrorMessage } from '@/shared/lib/api-error';
 import { showToast } from '@/shared/ui/toast';
 
@@ -16,8 +17,7 @@ const upsertNotification = (items: NotificationItem[], incoming: NotificationIte
 
 export const useDashboardNotifications = (token: string | null) => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const [streamRetryToken, setStreamRetryToken] = useState(0);
   const notificationsRef = useRef<NotificationItem[]>([]);
@@ -36,40 +36,34 @@ export const useDashboardNotifications = (token: string | null) => {
     []
   );
 
+  const fetchNotifications = useCallback(
+    async (_signal: AbortSignal) => {
+      if (!token) {
+        return [] as NotificationItem[];
+      }
+
+      const items = await getMyNotifications({ status: 'unacked', limit: 20 });
+      return sortNotifications(items);
+    },
+    [token]
+  );
+  const {
+    data: loadedNotifications,
+    loading: initialLoading,
+    error: initialLoadError
+  } = useAsyncData(fetchNotifications, [token], {
+    initialData: [] as NotificationItem[]
+  });
+
   useEffect(() => {
     if (!token) {
       setNotifications([]);
-      setLoading(false);
-      setError(null);
+      setStreamError(null);
       return;
     }
 
-    let cancelled = false;
-
-    const loadNotifications = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const items = await getMyNotifications({ status: 'unacked', limit: 20 });
-        if (!cancelled) {
-          setNotifications(sortNotifications(items));
-          setLoading(false);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setLoading(false);
-          setError(getApiErrorMessage(error, '加载通知失败，请稍后重试'));
-        }
-      }
-    };
-
-    void loadNotifications();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+    setNotifications(loadedNotifications);
+  }, [loadedNotifications, token]);
 
   useEffect(() => {
     if (!token) {
@@ -82,7 +76,7 @@ export const useDashboardNotifications = (token: string | null) => {
         return;
       }
 
-      setError(message);
+      setStreamError(message);
 
       if (retryTimeoutRef.current !== null) {
         window.clearTimeout(retryTimeoutRef.current);
@@ -100,7 +94,7 @@ export const useDashboardNotifications = (token: string | null) => {
           window.clearTimeout(retryTimeoutRef.current);
           retryTimeoutRef.current = null;
         }
-        setError(null);
+        setStreamError(null);
         return;
       }
 
@@ -152,8 +146,10 @@ export const useDashboardNotifications = (token: string | null) => {
 
   return {
     notifications,
-    loading,
-    error,
+    loading: token ? initialLoading : false,
+    error:
+      streamError ??
+      (initialLoadError ? getApiErrorMessage(initialLoadError, '加载通知失败，请稍后重试') : null),
     pendingIds,
     acknowledge
   };
