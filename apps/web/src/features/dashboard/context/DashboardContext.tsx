@@ -1,10 +1,14 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AttendancePauseReason } from '@lecpunch/shared';
+import type { AttendancePauseReason, TeamActiveAttendanceItem, TeamWeeklyStatItem } from '@lecpunch/shared';
+import type { AttendanceRecordItem } from '@/features/records/records.api';
 
 export interface DashboardContextValue {
   loading: boolean;
   weekLabel: string;
   isCurrentWeek: boolean;
+  teamStats: TeamWeeklyStatItem[];
+  activeMembers: TeamActiveAttendanceItem[];
+  records: AttendanceRecordItem[];
   isCheckedIn: boolean;
   isPaused: boolean;
   pauseReason?: AttendancePauseReason;
@@ -16,6 +20,9 @@ export interface DashboardContextValue {
   isWarning: boolean;
   isNearLimit: boolean;
   onAttendanceAction: () => void;
+  onOpenMember: (member: TeamWeeklyStatItem) => void;
+  onOpenActiveMember: (member: TeamActiveAttendanceItem) => void;
+  onOpenMembers: () => void;
 }
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);

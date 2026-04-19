@@ -319,6 +319,9 @@ export const DashboardPage = () => {
       loading,
       weekLabel,
       isCurrentWeek,
+      teamStats,
+      activeMembers,
+      records,
       isCheckedIn,
       isPaused: sessionPaused,
       pauseReason,
@@ -330,11 +333,17 @@ export const DashboardPage = () => {
       isWarning,
       isNearLimit,
       onAttendanceAction: handleAttendanceAction,
+      onOpenMember: openMemberRecords,
+      onOpenActiveMember: openActiveMemberRecords,
+      onOpenMembers: () => navigate('/members', { state: { scope: 'same-grade' } }),
     }),
     [
       loading,
       weekLabel,
       isCurrentWeek,
+      teamStats,
+      activeMembers,
+      records,
       isCheckedIn,
       sessionPaused,
       pauseReason,
@@ -346,6 +355,9 @@ export const DashboardPage = () => {
       isWarning,
       isNearLimit,
       handleAttendanceAction,
+      openMemberRecords,
+      openActiveMemberRecords,
+      navigate,
     ]
   );
 
@@ -465,30 +477,20 @@ export const DashboardPage = () => {
           />
         </PageSection>
       ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="space-y-6 xl:col-span-2">
-              <DashboardContextProvider value={dashboardContextValue}>
+        <DashboardContextProvider value={dashboardContextValue}>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+              <div className="space-y-6 xl:col-span-2">
                 <DashboardAttendanceWidget />
-              </DashboardContextProvider>
-              <DashboardHeatmapWidget loading={loading} records={records} />
+                <DashboardHeatmapWidget />
+              </div>
+
+              <DashboardTeamWidget />
             </div>
 
-            <DashboardTeamWidget
-              loading={loading}
-              teamStats={teamStats}
-              isCurrentWeek={isCurrentWeek}
-              onOpenMember={openMemberRecords}
-              onOpenMembers={() => navigate('/members', { state: { scope: 'same-grade' } })}
-            />
+            <DashboardActiveMembersWidget />
           </div>
-
-          <DashboardActiveMembersWidget
-            loading={loading}
-            activeMembers={activeMembers}
-            onOpenMember={openActiveMemberRecords}
-          />
-        </div>
+        </DashboardContextProvider>
       )}
     </div>
   );

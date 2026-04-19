@@ -2,22 +2,14 @@ import { memo, useState } from 'react';
 import { Activity, Clock3, Radio, Users } from 'lucide-react';
 import type { TeamActiveAttendanceItem } from '@lecpunch/shared';
 import { Avatar, Badge } from '@lecpunch/ui';
+import { useDashboardContext } from '@/features/dashboard/context/DashboardContext';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
 import { formatDateTime, formatDuration } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
-interface DashboardActiveMembersWidgetProps {
-  loading: boolean;
-  activeMembers: TeamActiveAttendanceItem[];
-  onOpenMember: (member: TeamActiveAttendanceItem) => void;
-}
-
-const DashboardActiveMembersWidgetComponent = ({
-  loading,
-  activeMembers,
-  onOpenMember
-}: DashboardActiveMembersWidgetProps) => {
+const DashboardActiveMembersWidgetComponent = () => {
+  const { loading, activeMembers, onOpenActiveMember } = useDashboardContext();
   const [, setTick] = useState(0);
 
   useSecondsTicker(() => {
@@ -65,7 +57,7 @@ const DashboardActiveMembersWidgetComponent = ({
               <button
                 key={member.memberKey}
                 type="button"
-                onClick={() => onOpenMember(member)}
+                onClick={() => onOpenActiveMember(member)}
                 className="rounded-2xl border border-gray-200 bg-white p-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50/40"
               >
                 <div className="flex items-start justify-between gap-3">

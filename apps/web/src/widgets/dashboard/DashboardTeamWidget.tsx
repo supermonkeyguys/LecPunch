@@ -1,26 +1,13 @@
 import { memo } from 'react';
 import { Users } from 'lucide-react';
-import type { TeamWeeklyStatItem } from '@lecpunch/shared';
 import { Avatar, Badge, Button } from '@lecpunch/ui';
+import { useDashboardContext } from '@/features/dashboard/context/DashboardContext';
 import { formatDuration } from '@/shared/lib/time';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 
-interface DashboardTeamWidgetProps {
-  loading: boolean;
-  teamStats: TeamWeeklyStatItem[];
-  isCurrentWeek: boolean;
-  onOpenMember: (member: TeamWeeklyStatItem) => void;
-  onOpenMembers: () => void;
-}
-
-const DashboardTeamWidgetComponent = ({
-  loading,
-  teamStats,
-  isCurrentWeek,
-  onOpenMember,
-  onOpenMembers
-}: DashboardTeamWidgetProps) => {
+const DashboardTeamWidgetComponent = () => {
+  const { loading, teamStats, isCurrentWeek, onOpenMember, onOpenMembers } = useDashboardContext();
   return (
     <PageSection className="flex max-h-[calc(100vh-12rem)] flex-col">
       <div className="flex items-center justify-between border-b border-gray-100 p-5">

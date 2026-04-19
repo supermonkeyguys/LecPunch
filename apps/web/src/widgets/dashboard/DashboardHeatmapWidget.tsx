@@ -1,16 +1,12 @@
 import { memo, useMemo, useState } from 'react';
 import { History } from 'lucide-react';
-import type { AttendanceRecordItem } from '@/features/records/records.api';
+import { useDashboardContext } from '@/features/dashboard/context/DashboardContext';
 import { PageSection } from '@/shared/ui/PageSection';
 import { PageState } from '@/shared/ui/PageState';
 import { buildHeatmap, cellDate, getMonday, HEATMAP_WEEKS, type HeatmapCell } from './dashboard.lib';
 
-interface DashboardHeatmapWidgetProps {
-  loading: boolean;
-  records: AttendanceRecordItem[];
-}
-
-const DashboardHeatmapWidgetComponent = ({ loading, records }: DashboardHeatmapWidgetProps) => {
+const DashboardHeatmapWidgetComponent = () => {
+  const { loading, records } = useDashboardContext();
   const [hoveredCell, setHoveredCell] = useState<{
     dateStr: string;
     cell: HeatmapCell;
