@@ -267,6 +267,7 @@ export const AdminNetworkPolicyPage = () => {
                   render={({ field }) => (
                     <textarea
                       aria-label="允许的公网 IP"
+                      aria-describedby="allowed-public-ips-help"
                       rows={8}
                       value={field.value}
                       disabled={allowAnyNetwork}
@@ -276,7 +277,9 @@ export const AdminNetworkPolicyPage = () => {
                     />
                   )}
                 />
-                <span className="mt-2 block text-sm text-gray-500">每行一个 IP，也支持逗号分隔。</span>
+                <span id="allowed-public-ips-help" className="mt-2 block text-sm text-gray-500">
+                  每行一个 IP，也支持逗号分隔。
+                </span>
               </label>
 
               <label className="block">
@@ -287,6 +290,7 @@ export const AdminNetworkPolicyPage = () => {
                   render={({ field }) => (
                     <textarea
                       aria-label="允许的 CIDR 网段"
+                      aria-describedby="allowed-cidrs-help"
                       rows={8}
                       value={field.value}
                       disabled={allowAnyNetwork}
@@ -296,7 +300,9 @@ export const AdminNetworkPolicyPage = () => {
                     />
                   )}
                 />
-                <span className="mt-2 block text-sm text-gray-500">用于办公 LAN、VPN 或宿舍网段白名单。</span>
+                <span id="allowed-cidrs-help" className="mt-2 block text-sm text-gray-500">
+                  用于办公 LAN、VPN 或宿舍网段白名单。
+                </span>
               </label>
             </div>
 
@@ -332,6 +338,12 @@ export const AdminNetworkPolicyPage = () => {
                     <input
                       type="number"
                       aria-label="受信任代理层数"
+                      aria-describedby={
+                        errors.trustedProxyHops?.message
+                          ? 'trusted-proxy-hops-help trusted-proxy-hops-error'
+                          : 'trusted-proxy-hops-help'
+                      }
+                      aria-invalid={errors.trustedProxyHops?.message ? true : undefined}
                       min={1}
                       value={field.value}
                       onChange={(event) => field.onChange(Math.max(1, Number(event.target.value) || 1))}
@@ -339,8 +351,13 @@ export const AdminNetworkPolicyPage = () => {
                     />
                   )}
                 />
+                <span id="trusted-proxy-hops-help" className="mt-2 block text-xs text-gray-500">
+                  仅在启用“信任反向代理”时生效。
+                </span>
                 {errors.trustedProxyHops?.message ? (
-                  <span className="mt-2 block text-xs text-red-600">{errors.trustedProxyHops.message}</span>
+                  <span id="trusted-proxy-hops-error" className="mt-2 block text-xs text-red-600">
+                    {errors.trustedProxyHops.message}
+                  </span>
                 ) : null}
               </label>
             </div>
