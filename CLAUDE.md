@@ -66,6 +66,9 @@ Keep these boundaries intact unless the user explicitly changes them:
 Admin users currently have these routes:
 
 - `/admin/members`
+- `/admin/member-eligibility`
+- `/admin/events`
+- `/admin/ledger`
 - `/admin/network-policy`
 - `/admin/records-export`
 
@@ -73,6 +76,20 @@ Related API surface:
 
 - `GET /users/admin/members`
 - `PATCH /users/admin/members/:userId`
+- `GET /member-eligibility/admin/entries`
+- `POST /member-eligibility/admin/entries`
+- `PATCH /member-eligibility/admin/entries/:entryId`
+- `DELETE /member-eligibility/admin/entries/:entryId`
+- `GET /team-events/events`
+- `GET /team-events/admin/events`
+- `POST /team-events/admin/events`
+- `PATCH /team-events/admin/events/:eventId`
+- `GET /team-ledger/admin/entries`
+- `POST /team-ledger/admin/entries`
+- `PATCH /team-ledger/admin/entries/:entryId/void`
+- `POST /team-ledger/admin/entries/:entryId/reversal`
+- `GET /team-ledger/admin/summary`
+- `GET /team-ledger/admin/export`
 - `GET /network-policy/admin/current`
 - `PATCH /network-policy/admin/current`
 - `GET /records/admin/export`
