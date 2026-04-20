@@ -453,3 +453,8 @@ P1 完成标准：
   - 预留导出契约：`GET /team-ledger/admin/export`（`status: not_implemented` + acceptedQuery）
   - 路由已接入 `admin` 权限校验与 team 范围隔离
   - 新增 controller/service 测试覆盖管理端核心行为与成员越权拒绝
+- 2026-04-20: [x] Phase D3（前端子任务：管理端流水页面）
+  - 新增 feature API：`features/team-ledger/team-ledger.api.ts`
+  - 新增页面：`/admin/ledger`（列表、汇总卡、按月筛选、创建流水、作废、冲正）
+  - 侧边栏新增“团费流水”入口，路由接入 `AdminRoute` 保护
+  - 新增页面测试：覆盖加载汇总与新增流水（元转分）
