@@ -430,4 +430,8 @@ P1 完成标准：
   - 路由已接入 `admin` 权限校验，非管理员访问返回 403
   - service 新增 `updateEvent(teamId, eventId, input)`，并通过 team 归属校验阻止跨团队更新
   - 新增 DTO 与 controller/service 测试，覆盖查询筛选、创建更新、越权拒绝
-  - Phase C2 前端页面部分待下一步接入（`/admin/events`）
+- 2026-04-20: [x] Phase C2（前端子任务：管理端团队日程页面）
+  - 新增 feature API：`features/team-events/team-events.api.ts`
+  - 新增页面：`/admin/events`（按月加载、状态筛选、关键字搜索、创建、编辑、状态切换）
+  - 侧边栏新增“团队日程”入口，路由接入 `AdminRoute` 保护
+  - 新增页面测试：覆盖加载筛选、创建活动、状态切换

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Clock, LayoutDashboard, Users, History, CalendarDays, LogOut, Shield, Wifi, Download, UserCheck } from 'lucide-react';
+import { Clock, LayoutDashboard, Users, History, CalendarDays, CalendarClock, LogOut, Shield, Wifi, Download, UserCheck } from 'lucide-react';
 import { Button } from '@lecpunch/ui';
 import { useAuthStore } from '../store/auth-store';
 
@@ -87,6 +87,19 @@ export const Sidebar = () => {
             >
               <UserCheck className="w-5 h-5 mr-3 flex-shrink-0" />
               准入名单
+            </NavLink>
+            <NavLink
+              to="/admin/events"
+              className={({ isActive }) =>
+                `w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <CalendarClock className="w-5 h-5 mr-3 flex-shrink-0" />
+              团队日程
             </NavLink>
             <NavLink
               to="/admin/records-export"
