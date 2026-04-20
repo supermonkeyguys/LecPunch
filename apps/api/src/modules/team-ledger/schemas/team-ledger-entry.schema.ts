@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { TeamLedgerType } from '@lecpunch/shared';
+import { TeamLedgerEntryStatus, TeamLedgerType } from '@lecpunch/shared';
 import { HydratedDocument } from 'mongoose';
 
 @Schema({ timestamps: true, collection: 'team_ledger_entries' })
@@ -12,6 +12,9 @@ export class TeamLedgerEntry {
 
   @Prop({ required: true, type: String, enum: ['income', 'expense'] })
   type!: TeamLedgerType;
+
+  @Prop({ required: true, type: String, enum: ['active', 'voided'], default: 'active' })
+  status!: TeamLedgerEntryStatus;
 
   @Prop({ required: true, type: Number, min: 1 })
   amountCents!: number;
@@ -28,6 +31,18 @@ export class TeamLedgerEntry {
   @Prop({ required: true, type: String })
   createdBy!: string;
 
+  @Prop({ type: String, index: true })
+  reversalOfEntryId?: string;
+
+  @Prop({ type: Date })
+  voidedAt?: Date;
+
+  @Prop({ type: String })
+  voidedBy?: string;
+
+  @Prop({ type: String })
+  voidReason?: string;
+
   @Prop({ type: Date })
   createdAt?: Date;
 
@@ -39,5 +54,6 @@ export type TeamLedgerEntryDocument = HydratedDocument<TeamLedgerEntry>;
 export const TeamLedgerEntrySchema = SchemaFactory.createForClass(TeamLedgerEntry);
 
 TeamLedgerEntrySchema.index({ teamId: 1, occurredAt: -1 });
+TeamLedgerEntrySchema.index({ teamId: 1, status: 1, occurredAt: -1 });
 TeamLedgerEntrySchema.index({ teamId: 1, type: 1, occurredAt: -1 });
 TeamLedgerEntrySchema.index({ teamId: 1, category: 1, occurredAt: -1 });

@@ -441,3 +441,9 @@ P1 完成标准：
   - `team_ledger_entries` schema 字段已落地：`teamId`、`occurredAt`、`type`、`amountCents`、`category`、`counterparty`、`note`、`createdBy`
   - 索引已落地：`{ teamId: 1, occurredAt: -1 }`、`{ teamId: 1, type: 1, occurredAt: -1 }`、`{ teamId: 1, category: 1, occurredAt: -1 }`
   - service 已支持按时间范围、类型、分类筛选：`listEntries(teamId, { from, to, type, category, limit })`
+- 2026-04-20: [x] Phase D2（账务操作策略）
+  - `team-ledger` 默认采用追加式记账，不提供硬删除
+  - 新增作废能力：`voidEntry(teamId, entryId, { voidedBy, reason })`，保留 `voidedAt/voidedBy/voidReason` 审计字段
+  - 新增冲正能力：`createReversal(teamId, entryId, { createdBy, note, occurredAt })`，写入 `reversalOfEntryId` 追踪来源
+  - 列表默认仅返回 `active`，可通过 `status=all|voided` 回看历史变更
+  - 新增服务测试覆盖：作废、冲正、跨 team 越权拒绝
