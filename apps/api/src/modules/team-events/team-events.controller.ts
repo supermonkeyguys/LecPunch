@@ -3,12 +3,19 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/types/auth-user.type';
 import { CreateTeamEventDto, ListTeamEventsQueryDto, UpdateTeamEventDto } from './dto/team-events-admin.dto';
+import { ListTeamEventsMemberQueryDto } from './dto/team-events-member.dto';
 import { TeamEventsService } from './team-events.service';
 
 @Controller('team-events')
 @UseGuards(JwtAuthGuard)
 export class TeamEventsController {
   constructor(private readonly teamEventsService: TeamEventsService) {}
+
+  @Get('events')
+  async listMemberEvents(@CurrentUser() user: AuthUser, @Query() query: ListTeamEventsMemberQueryDto) {
+    const items = await this.teamEventsService.listEvents(user.teamId, query);
+    return { items: items.map((item) => this.mapEvent(item)) };
+  }
 
   @Get('admin/events')
   async listEvents(@CurrentUser() user: AuthUser, @Query() query: ListTeamEventsQueryDto) {

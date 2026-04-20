@@ -435,6 +435,11 @@ P1 完成标准：
   - 新增页面：`/admin/events`（按月加载、状态筛选、关键字搜索、创建、编辑、状态切换）
   - 侧边栏新增“团队日程”入口，路由接入 `AdminRoute` 保护
   - 新增页面测试：覆盖加载筛选、创建活动、状态切换
+- 2026-04-20: [x] Phase C3（成员端只读活动）
+  - 新增成员只读接口：`GET /team-events/events`（登录即可，按当前 `teamId` 读取）
+  - 新增成员页面：`/events`，支持状态筛选与关键字检索
+  - 主菜单新增“团队活动”入口，无写操作入口
+  - 新增页面测试：覆盖加载与状态筛选
 - 2026-04-20: [x] Phase D1（团费流水领域模型）
   - 新增共享类型：`TeamLedgerType`、`TeamLedgerEntry`（`packages/shared/src/types/team-ledger.ts`）
   - 新增后端模块：`apps/api/src/modules/team-ledger/`（schema + service + module）

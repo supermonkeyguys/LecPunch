@@ -12,6 +12,7 @@ import { RecordsPage } from '@/pages/records/RecordsPage';
 import { MembersPage } from '@/pages/members/MembersPage';
 import { MemberRecordsPage } from '@/pages/member-records/MemberRecordsPage';
 import { WeeklyHistoryPage } from '@/pages/weekly-history/WeeklyHistoryPage';
+import { EventsPage } from '@/pages/events/EventsPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { AdminMembersPage } from '@/pages/admin-members/AdminMembersPage';
 import { AdminNetworkPolicyPage } from '@/pages/admin-network-policy/AdminNetworkPolicyPage';
@@ -54,6 +55,7 @@ const router = createBrowserRouter([
               { path: 'members', element: <MembersPage /> },
               { path: 'members/:memberKey/records', element: <MemberRecordsPage /> },
               { path: 'weekly-history', element: <WeeklyHistoryPage /> },
+              { path: 'events', element: <EventsPage /> },
               { path: 'profile', element: <ProfilePage /> },
               {
                 path: 'admin',

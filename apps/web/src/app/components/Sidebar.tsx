@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/auth-store';
 
 const navItems = [
   { label: '工作台', to: '/', icon: LayoutDashboard },
+  { label: '团队活动', to: '/events', icon: CalendarClock },
   { label: '团队成员', to: '/members', icon: Users },
   { label: '我的记录', to: '/records', icon: History },
   { label: '周历史', to: '/weekly-history', icon: CalendarDays }

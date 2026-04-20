@@ -8,6 +8,11 @@ export interface GetAdminTeamEventsQuery {
   limit?: number;
 }
 
+export interface GetTeamEventsQuery {
+  status?: TeamEventStatus;
+  limit?: number;
+}
+
 export interface UpsertAdminTeamEventInput {
   title: string;
   description?: string;
@@ -24,6 +29,13 @@ export interface UpdateAdminTeamEventInput {
 
 export const getAdminTeamEvents = async (query: GetAdminTeamEventsQuery = {}): Promise<TeamEvent[]> => {
   const response = await apiClient.get<{ items: TeamEvent[] }>('/team-events/admin/events', {
+    params: query
+  });
+  return response.data.items;
+};
+
+export const getTeamEvents = async (query: GetTeamEventsQuery = {}): Promise<TeamEvent[]> => {
+  const response = await apiClient.get<{ items: TeamEvent[] }>('/team-events/events', {
     params: query
   });
   return response.data.items;

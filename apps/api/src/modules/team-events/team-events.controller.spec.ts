@@ -72,6 +72,33 @@ describe('TeamEventsController', () => {
     });
   });
 
+  it('allows members to read team events without admin permissions', async () => {
+    teamEventsService.listEvents.mockResolvedValue([
+      {
+        id: 'event-1',
+        teamId: 'team-1',
+        title: 'Weekly Meeting',
+        eventAt: new Date('2026-05-01T10:00:00.000Z'),
+        status: 'planned',
+        createdBy: 'admin-1',
+        updatedBy: 'admin-1',
+        createdAt: new Date('2026-04-20T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-20T00:00:00.000Z')
+      }
+    ]);
+
+    const result = await controller.listMemberEvents(memberUser, {
+      status: 'planned',
+      limit: 10
+    });
+
+    expect(teamEventsService.listEvents).toHaveBeenCalledWith('team-1', {
+      status: 'planned',
+      limit: 10
+    });
+    expect(result.items).toHaveLength(1);
+  });
+
   it('creates and updates events scoped to the admin team', async () => {
     teamEventsService.createEvent.mockResolvedValue({
       id: 'event-1',
