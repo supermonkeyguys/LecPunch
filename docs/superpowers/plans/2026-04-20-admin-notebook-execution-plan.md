@@ -425,3 +425,9 @@ P1 完成标准：
   - `team_events` schema 已落地字段：`teamId`、`title`、`description`、`eventAt`、`status`、`createdBy`、`updatedBy`
   - 索引已落地：`{ teamId: 1, eventAt: -1 }` 与 `{ teamId: 1, status: 1, eventAt: -1 }`
   - service 已支持按时间范围与状态筛选：`listEvents(teamId, { status, from, to, limit })`
+- 2026-04-20: [x] Phase C2（后端子任务：管理端日程 API）
+  - 新增路由：`GET/POST/PATCH /team-events/admin/events`
+  - 路由已接入 `admin` 权限校验，非管理员访问返回 403
+  - service 新增 `updateEvent(teamId, eventId, input)`，并通过 team 归属校验阻止跨团队更新
+  - 新增 DTO 与 controller/service 测试，覆盖查询筛选、创建更新、越权拒绝
+  - Phase C2 前端页面部分待下一步接入（`/admin/events`）

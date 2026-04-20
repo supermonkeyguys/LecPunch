@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { TeamEventStatus } from '@lecpunch/shared';
+import { ERROR_CODES, TeamEventStatus } from '@lecpunch/shared';
 import { Model } from 'mongoose';
 import { TeamEvent, TeamEventDocument } from './schemas/team-event.schema';
 
@@ -18,6 +18,14 @@ export interface CreateTeamEventInput {
   eventAt: string | Date;
   status?: TeamEventStatus;
   createdBy: string;
+}
+
+export interface UpdateTeamEventInput {
+  title?: string;
+  description?: string;
+  eventAt?: string | Date;
+  status?: TeamEventStatus;
+  updatedBy: string;
 }
 
 @Injectable()
@@ -61,5 +69,44 @@ export class TeamEventsService {
     const limit = Math.min(Math.max(query.limit ?? 100, 1), 500);
 
     return this.teamEventModel.find(filter).sort({ eventAt: -1, createdAt: -1 }).limit(limit).exec();
+  }
+
+  async updateEvent(teamId: string, eventId: string, input: UpdateTeamEventInput) {
+    await this.assertTeamOwnership(teamId, eventId);
+
+    const set: Record<string, unknown> = { updatedBy: input.updatedBy };
+    if (input.title !== undefined) {
+      set.title = input.title.trim();
+    }
+    if (input.description !== undefined) {
+      set.description = input.description.trim() || undefined;
+    }
+    if (input.eventAt !== undefined) {
+      set.eventAt = input.eventAt instanceof Date ? input.eventAt : new Date(input.eventAt);
+    }
+    if (input.status !== undefined) {
+      set.status = input.status;
+    }
+
+    const updated = await this.teamEventModel.findOneAndUpdate({ _id: eventId, teamId }, { $set: set }, { new: true }).exec();
+    if (!updated) {
+      throw new NotFoundException('Team event not found');
+    }
+
+    return updated;
+  }
+
+  private async assertTeamOwnership(teamId: string, eventId: string) {
+    const event = await this.teamEventModel.findById(eventId).exec();
+    if (!event) {
+      throw new NotFoundException('Team event not found');
+    }
+
+    if (event.teamId !== teamId) {
+      throw new ForbiddenException({
+        code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN,
+        message: 'Cannot access team events from another team'
+      });
+    }
   }
 }

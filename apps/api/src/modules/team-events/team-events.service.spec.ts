@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ForbiddenException } from '@nestjs/common';
+import { ERROR_CODES } from '@lecpunch/shared';
 import { TeamEventsService } from './team-events.service';
 
 const create = vi.fn();
 const find = vi.fn();
+const findById = vi.fn();
+const findOneAndUpdate = vi.fn();
 
 const createService = () =>
   new TeamEventsService({
     create,
-    find
+    find,
+    findById,
+    findOneAndUpdate
   } as any);
 
 describe('TeamEventsService', () => {
@@ -83,5 +89,75 @@ describe('TeamEventsService', () => {
 
     expect(limit).toHaveBeenNthCalledWith(1, 1);
     expect(limit).toHaveBeenNthCalledWith(2, 500);
+  });
+
+  it('updates event fields within the same team', async () => {
+    findById.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'event-1',
+        teamId: 'team-1'
+      })
+    });
+    findOneAndUpdate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'event-1',
+        teamId: 'team-1',
+        title: 'Updated title',
+        description: 'updated desc',
+        status: 'done',
+        updatedBy: 'admin-2'
+      })
+    });
+
+    const service = createService();
+    await service.updateEvent('team-1', 'event-1', {
+      title: '  Updated title  ',
+      description: '  updated desc  ',
+      status: 'done',
+      updatedBy: 'admin-2'
+    });
+
+    expect(findOneAndUpdate).toHaveBeenCalledWith(
+      { _id: 'event-1', teamId: 'team-1' },
+      {
+        $set: {
+          title: 'Updated title',
+          description: 'updated desc',
+          status: 'done',
+          updatedBy: 'admin-2'
+        }
+      },
+      { new: true }
+    );
+  });
+
+  it('rejects cross-team updates', async () => {
+    findById.mockReturnValue({
+      exec: vi.fn().mockResolvedValue({
+        id: 'event-1',
+        teamId: 'team-2'
+      })
+    });
+
+    const service = createService();
+    await expect(
+      service.updateEvent('team-1', 'event-1', {
+        status: 'cancelled',
+        updatedBy: 'admin-1'
+      })
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    try {
+      await service.updateEvent('team-1', 'event-1', {
+        status: 'cancelled',
+        updatedBy: 'admin-1'
+      });
+    } catch (error) {
+      expect(error).toMatchObject({
+        response: {
+          code: ERROR_CODES.ATTENDANCE_CROSS_TEAM_FORBIDDEN
+        }
+      });
+    }
   });
 });
