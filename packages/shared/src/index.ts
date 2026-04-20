@@ -4,6 +4,7 @@ export * from './types/attendance';
 export * from './types/member-eligibility';
 export * from './types/notification';
 export * from './types/stats';
+export * from './types/team-event';
 export * from './constants/time';
 export * from './constants/errors';
 export * from './utils/enroll';

@@ -419,3 +419,9 @@ P1 完成标准：
   - 新增错误映射：`AUTH_REGISTRATION_NOT_ELIGIBLE`、`AUTH_REGISTRATION_REALNAME_MISMATCH`、`AUTH_REGISTRATION_STUDENT_ID_BLOCKED`
   - 注册模式下 `AUTH_UNAUTHORIZED` 显示“当前未开放注册，请联系管理员”，与登录态失效提示分离
   - 新增测试覆盖：`api-error` 注册错误映射 + `LoginPage` 注册模式错误提示
+- 2026-04-20: [x] Phase C1（团队日程领域模型）
+  - 新增共享类型：`TeamEventStatus`、`TeamEvent`（`packages/shared/src/types/team-event.ts`）
+  - 新增后端模块：`apps/api/src/modules/team-events/`（schema + service + module）
+  - `team_events` schema 已落地字段：`teamId`、`title`、`description`、`eventAt`、`status`、`createdBy`、`updatedBy`
+  - 索引已落地：`{ teamId: 1, eventAt: -1 }` 与 `{ teamId: 1, status: 1, eventAt: -1 }`
+  - service 已支持按时间范围与状态筛选：`listEvents(teamId, { status, from, to, limit })`

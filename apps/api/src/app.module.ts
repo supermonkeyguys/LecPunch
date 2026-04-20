@@ -12,6 +12,7 @@ import { DemoSeedModule } from './modules/demo-seed/demo-seed.module';
 import { NetworkPolicyModule } from './modules/network-policy/network-policy.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MemberEligibilityModule } from './modules/member-eligibility/member-eligibility.module';
+import { TeamEventsModule } from './modules/team-events/team-events.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MemberEligibilityModule } from './modules/member-eligibility/member-eli
     AuthModule,
     NetworkPolicyModule,
     MemberEligibilityModule,
+    TeamEventsModule,
     AttendanceModule,
     RecordsModule,
     StatsModule,
