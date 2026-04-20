@@ -14,12 +14,14 @@ import * as bcrypt from 'bcrypt';
 import { ERROR_CODES, UserStatus } from '@lecpunch/shared';
 import { AuthResponse, AuthUserResponse } from './dto/auth-response.dto';
 import { UserDocument } from '../users/schemas/user.schema';
+import { MemberEligibilityService } from '../member-eligibility/member-eligibility.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly teamsService: TeamsService,
+    private readonly memberEligibilityService: MemberEligibilityService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService
   ) {}
@@ -53,6 +55,7 @@ export class AuthService {
     const enrollYear = parseInt(payload.studentId.slice(0, 4), 10);
     const defaultTeamName = this.configService.get<string>('DEFAULT_TEAM_NAME', 'FocusTeam');
     const team = await this.teamsService.ensureDefaultTeam(defaultTeamName);
+    await this.memberEligibilityService.assertEligible(team.id, payload.studentId, payload.realName);
     const passwordHash = await bcrypt.hash(payload.password, 10);
 
     const user = await this.usersService.create({

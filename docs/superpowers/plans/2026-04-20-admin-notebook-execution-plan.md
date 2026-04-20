@@ -396,3 +396,7 @@ P1 完成标准：
   - 索引已落地：`{ teamId: 1, studentId: 1 } unique`
   - service 已提供：`assertEligible`、`listEntries`、`createEntry`、`updateEntry`、`deleteEntry`
   - service 测试已覆盖：allowed、学号不存在、姓名不匹配、blocked、跨 team 修改拒绝
+- 2026-04-20: [x] Phase A3（注册流程接入门禁）
+  - `AuthService.register` 已接入 `assertEligible(teamId, studentId, realName)`
+  - `AuthModule` 已引入 `MemberEligibilityModule`
+  - 新增 `auth.service.spec.ts`，覆盖 4 条场景：双匹配通过、学号不在白名单、姓名不匹配、blocked

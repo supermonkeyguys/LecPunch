@@ -7,11 +7,13 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { MemberEligibilityModule } from '../member-eligibility/member-eligibility.module';
 
 @Module({
   imports: [
     UsersModule,
     TeamsModule,
+    MemberEligibilityModule,
     ConfigModule,
     PassportModule,
     JwtModule.registerAsync({
