@@ -3,6 +3,9 @@ import { ERROR_CODES, type ErrorCode } from '@lecpunch/shared';
 const ERROR_MESSAGE_MAP: Partial<Record<ErrorCode, string>> = {
   [ERROR_CODES.AUTH_INVALID_CREDENTIALS]: '用户名或密码错误',
   [ERROR_CODES.AUTH_UNAUTHORIZED]: '登录已失效，请重新登录',
+  [ERROR_CODES.AUTH_REGISTRATION_NOT_ELIGIBLE]: '当前学号不在准入名单，请联系管理员',
+  [ERROR_CODES.AUTH_REGISTRATION_REALNAME_MISMATCH]: '学号与真实姓名不匹配，请核对后重试',
+  [ERROR_CODES.AUTH_REGISTRATION_STUDENT_ID_BLOCKED]: '当前学号已被禁止注册，请联系管理员',
   [ERROR_CODES.USER_DISABLED]: '当前账号已被禁用',
   [ERROR_CODES.ATTENDANCE_ALREADY_CHECKED_IN]: '您已有进行中的打卡，请勿重复上卡',
   [ERROR_CODES.ATTENDANCE_NO_ACTIVE_SESSION]: '当前没有进行中的打卡',

@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button, Input, Alert } from '@lecpunch/ui';
+import { ERROR_CODES } from '@lecpunch/shared';
 import { useAuthStore } from '@/app/store/auth-store';
 import { login } from '@/features/auth/auth.api';
-import { getApiErrorMessage } from '@/shared/lib/api-error';
+import { getApiErrorCode, getApiErrorMessage } from '@/shared/lib/api-error';
 
 const loginModeSchema = z.enum(['login', 'register']);
 
@@ -98,7 +99,12 @@ export const LoginPage = () => {
       setAuth({ token: payload.accessToken, user: payload.user });
       navigate('/');
     } catch (error) {
-      setError(getApiErrorMessage(error, values.mode === 'login' ? '登录失败，请稍后重试' : '注册失败，请稍后重试'));
+      const errorCode = getApiErrorCode(error);
+      if (values.mode === 'register' && errorCode === ERROR_CODES.AUTH_UNAUTHORIZED) {
+        setError('当前未开放注册，请联系管理员');
+      } else {
+        setError(getApiErrorMessage(error, values.mode === 'login' ? '登录失败，请稍后重试' : '注册失败，请稍后重试'));
+      }
     } finally {
       setSubmitting(false);
     }

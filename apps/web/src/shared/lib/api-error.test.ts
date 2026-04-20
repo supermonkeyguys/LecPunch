@@ -17,6 +17,40 @@ describe('api-error helpers', () => {
     expect(getApiErrorMessage(error)).toBe('用户名或密码错误');
   });
 
+  it('maps registration eligibility error codes to localized messages', () => {
+    const notEligibleError = {
+      response: {
+        status: 403,
+        data: {
+          code: 'AUTH_REGISTRATION_NOT_ELIGIBLE',
+          message: 'raw'
+        }
+      }
+    };
+    const realNameMismatchError = {
+      response: {
+        status: 403,
+        data: {
+          code: 'AUTH_REGISTRATION_REALNAME_MISMATCH',
+          message: 'raw'
+        }
+      }
+    };
+    const blockedError = {
+      response: {
+        status: 403,
+        data: {
+          code: 'AUTH_REGISTRATION_STUDENT_ID_BLOCKED',
+          message: 'raw'
+        }
+      }
+    };
+
+    expect(getApiErrorMessage(notEligibleError)).toBe('当前学号不在准入名单，请联系管理员');
+    expect(getApiErrorMessage(realNameMismatchError)).toBe('学号与真实姓名不匹配，请核对后重试');
+    expect(getApiErrorMessage(blockedError)).toBe('当前学号已被禁止注册，请联系管理员');
+  });
+
   it('returns service-unavailable message for 502/503/504 responses', () => {
     const gatewayError = { response: { status: 502, data: { message: 'Bad Gateway' } } };
     const unavailableError = { response: { status: 503, data: { message: 'Unavailable' } } };

@@ -414,3 +414,8 @@ P1 完成标准：
   - 新增页面：`/admin/member-eligibility`（列表、搜索、状态筛选、创建、编辑、状态切换、删除）
   - 侧边栏新增“准入名单”入口，路由接入 `AdminRoute` 保护
   - 新增页面测试：覆盖加载筛选与新增条目流程
+- 2026-04-20: [x] Phase B3（前端交互与错误反馈）
+  - 注册流程保持字段与提交路径不变，仅按后端错误码细化提示文案
+  - 新增错误映射：`AUTH_REGISTRATION_NOT_ELIGIBLE`、`AUTH_REGISTRATION_REALNAME_MISMATCH`、`AUTH_REGISTRATION_STUDENT_ID_BLOCKED`
+  - 注册模式下 `AUTH_UNAUTHORIZED` 显示“当前未开放注册，请联系管理员”，与登录态失效提示分离
+  - 新增测试覆盖：`api-error` 注册错误映射 + `LoginPage` 注册模式错误提示
