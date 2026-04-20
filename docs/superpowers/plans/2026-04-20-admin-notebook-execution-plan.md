@@ -405,3 +405,7 @@ P1 完成标准：
   - 脚本与 service 共享标准化规则（学号/实名/status/note）
   - 新增运行手册：`docs/superpowers/specs/2026-04-20-member-eligibility-import-runbook.md`
   - 明确了预发环境导入与四类注册样本校验流程
+- 2026-04-20: [x] Phase B1（管理员准入名单 API 路由）
+  - 新增路由：`GET/POST/PATCH/DELETE /member-eligibility/admin/entries`
+  - 所有路由均接入 `admin` 权限校验与 team 范围隔离
+  - 新增 DTO 与控制器测试，覆盖管理员 CRUD 与成员越权拒绝
