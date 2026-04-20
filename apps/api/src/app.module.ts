@@ -13,6 +13,7 @@ import { NetworkPolicyModule } from './modules/network-policy/network-policy.mod
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MemberEligibilityModule } from './modules/member-eligibility/member-eligibility.module';
 import { TeamEventsModule } from './modules/team-events/team-events.module';
+import { TeamLedgerModule } from './modules/team-ledger/team-ledger.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TeamEventsModule } from './modules/team-events/team-events.module';
     NetworkPolicyModule,
     MemberEligibilityModule,
     TeamEventsModule,
+    TeamLedgerModule,
     AttendanceModule,
     RecordsModule,
     StatsModule,

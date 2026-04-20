@@ -435,3 +435,9 @@ P1 完成标准：
   - 新增页面：`/admin/events`（按月加载、状态筛选、关键字搜索、创建、编辑、状态切换）
   - 侧边栏新增“团队日程”入口，路由接入 `AdminRoute` 保护
   - 新增页面测试：覆盖加载筛选、创建活动、状态切换
+- 2026-04-20: [x] Phase D1（团费流水领域模型）
+  - 新增共享类型：`TeamLedgerType`、`TeamLedgerEntry`（`packages/shared/src/types/team-ledger.ts`）
+  - 新增后端模块：`apps/api/src/modules/team-ledger/`（schema + service + module）
+  - `team_ledger_entries` schema 字段已落地：`teamId`、`occurredAt`、`type`、`amountCents`、`category`、`counterparty`、`note`、`createdBy`
+  - 索引已落地：`{ teamId: 1, occurredAt: -1 }`、`{ teamId: 1, type: 1, occurredAt: -1 }`、`{ teamId: 1, category: 1, occurredAt: -1 }`
+  - service 已支持按时间范围、类型、分类筛选：`listEntries(teamId, { from, to, type, category, limit })`
