@@ -16,6 +16,7 @@ import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { AdminMembersPage } from '@/pages/admin-members/AdminMembersPage';
 import { AdminNetworkPolicyPage } from '@/pages/admin-network-policy/AdminNetworkPolicyPage';
 import { AdminRecordsExportPage } from '@/pages/admin-records-export/AdminRecordsExportPage';
+import { AdminMemberEligibilityPage } from '@/pages/admin-member-eligibility/AdminMemberEligibilityPage';
 
 // Root wrapper inside the router context — safe to use useNavigate here
 const Root = () => (
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
                 children: [
                   { index: true, element: <Navigate to="members" replace /> },
                   { path: 'members', element: <AdminMembersPage /> },
+                  { path: 'member-eligibility', element: <AdminMemberEligibilityPage /> },
                   { path: 'network-policy', element: <AdminNetworkPolicyPage /> },
                   { path: 'records-export', element: <AdminRecordsExportPage /> }
                 ]

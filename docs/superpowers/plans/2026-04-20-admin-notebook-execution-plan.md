@@ -409,3 +409,8 @@ P1 完成标准：
   - 新增路由：`GET/POST/PATCH/DELETE /member-eligibility/admin/entries`
   - 所有路由均接入 `admin` 权限校验与 team 范围隔离
   - 新增 DTO 与控制器测试，覆盖管理员 CRUD 与成员越权拒绝
+- 2026-04-20: [x] Phase B2（Web 管理端准入名单页面）
+  - 新增 feature API：`features/member-eligibility/member-eligibility.api.ts`
+  - 新增页面：`/admin/member-eligibility`（列表、搜索、状态筛选、创建、编辑、状态切换、删除）
+  - 侧边栏新增“准入名单”入口，路由接入 `AdminRoute` 保护
+  - 新增页面测试：覆盖加载筛选与新增条目流程
