@@ -467,3 +467,10 @@ P1 完成标准：
   - `CLAUDE.md` 已更新当前后台路由与 API 面清单（准入、日程、流水）
   - 新增运行手册：`docs/superpowers/specs/2026-04-20-admin-notebook-operations-runbook.md`
   - 运行手册已覆盖：白名单导入、后台操作、常见排障、最小回滚策略（禁注册/降级后台入口/数据回滚原则）
+- 2026-04-20: [x] Phase E1（测试矩阵）
+  - API 关键回归：`auth`、`member-eligibility`、`team-events`、`team-ledger` 相关 service/controller 测试通过（31 tests）
+  - Web 关键回归：`login`、`admin-member-eligibility`、`admin-events`、`admin-ledger`、`events` 页面测试通过（14 tests）
+  - 工程校验：`@lecpunch/shared build`、`@lecpunch/api tsc --force`、`@lecpunch/web typecheck` 通过
+- 2026-04-20: [x] Phase E3（发布策略）
+  - 运行手册新增“发布与观测策略”章节，明确上线顺序、发布前检查清单、发布后 24h 观测点
+  - 保持“先 P0 后 P1”的灰度节奏，确保注册门禁稳定后再放量日程与流水模块

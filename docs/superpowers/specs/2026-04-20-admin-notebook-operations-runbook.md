@@ -131,3 +131,26 @@ ALLOW_OPEN_REGISTRATION=false
 1. 日程：优先改状态（`cancelled`）而非删除
 2. 流水：优先“冲正/作废”而非删除
 3. 准入：优先 `blocked` 而非直接删条目
+
+## 7. 发布与观测策略
+
+### 7.1 推荐上线顺序
+
+1. 先发布 P0（准入门禁 + 管理端准入名单）
+2. 观察注册失败率、误拒绝反馈
+3. 再发布团队日程与团费流水页面
+
+### 7.2 发布前最小检查清单
+
+1. API 关键测试通过：auth/member-eligibility/team-events/team-ledger
+2. Web 关键测试通过：login/admin-member-eligibility/admin-events/admin-ledger/events
+3. API/Web typecheck 通过
+4. 管理员账号能访问 `/admin/member-eligibility`、`/admin/events`、`/admin/ledger`
+5. 成员账号能访问 `/events` 且无写操作入口
+
+### 7.3 发布后 24h 观测点
+
+1. 注册拒绝码分布（`NOT_ELIGIBLE` / `REALNAME_MISMATCH` / `STUDENT_ID_BLOCKED`）
+2. 日程操作成功率（创建、状态切换）
+3. 流水操作成功率（创建、作废、冲正）
+4. 管理路由 403 比例（识别越权或角色配置问题）
