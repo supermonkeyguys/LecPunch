@@ -1,6 +1,7 @@
 export * from './types/user';
 export * from './types/team';
 export * from './types/attendance';
+export * from './types/member-eligibility';
 export * from './types/notification';
 export * from './types/stats';
 export * from './constants/time';
