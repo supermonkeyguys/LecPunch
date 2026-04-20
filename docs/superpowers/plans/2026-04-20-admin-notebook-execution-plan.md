@@ -391,3 +391,8 @@ P1 完成标准：
   - 新增 `member-eligibility` 共享类型：`MemberEligibilityStatus`、`MemberEligibilityEntry`
   - 新增错误码：`AUTH_REGISTRATION_NOT_ELIGIBLE`、`AUTH_REGISTRATION_REALNAME_MISMATCH`、`AUTH_REGISTRATION_STUDENT_ID_BLOCKED`
   - 导出已接入 `packages/shared/src/index.ts`
+- 2026-04-20: [x] Phase A2（`api` member-eligibility 模块核心能力）
+  - 新增模块与 schema：`apps/api/src/modules/member-eligibility/`，集合 `member_eligibilities`
+  - 索引已落地：`{ teamId: 1, studentId: 1 } unique`
+  - service 已提供：`assertEligible`、`listEntries`、`createEntry`、`updateEntry`、`deleteEntry`
+  - service 测试已覆盖：allowed、学号不存在、姓名不匹配、blocked、跨 team 修改拒绝
