@@ -447,3 +447,9 @@ P1 完成标准：
   - 新增冲正能力：`createReversal(teamId, entryId, { createdBy, note, occurredAt })`，写入 `reversalOfEntryId` 追踪来源
   - 列表默认仅返回 `active`，可通过 `status=all|voided` 回看历史变更
   - 新增服务测试覆盖：作废、冲正、跨 team 越权拒绝
+- 2026-04-20: [x] Phase D3（后端子任务：管理端流水 API 与汇总）
+  - 新增路由：`GET/POST /team-ledger/admin/entries`、`PATCH /team-ledger/admin/entries/:entryId/void`、`POST /team-ledger/admin/entries/:entryId/reversal`
+  - 新增汇总路由：`GET /team-ledger/admin/summary`（`incomeCents/expenseCents/netCents/entryCount`）
+  - 预留导出契约：`GET /team-ledger/admin/export`（`status: not_implemented` + acceptedQuery）
+  - 路由已接入 `admin` 权限校验与 team 范围隔离
+  - 新增 controller/service 测试覆盖管理端核心行为与成员越权拒绝

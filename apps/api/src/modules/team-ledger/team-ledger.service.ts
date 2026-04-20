@@ -13,6 +13,13 @@ export interface ListTeamLedgerEntriesQuery {
   limit?: number;
 }
 
+export interface TeamLedgerSummary {
+  incomeCents: number;
+  expenseCents: number;
+  netCents: number;
+  entryCount: number;
+}
+
 export interface CreateTeamLedgerEntryInput {
   teamId: string;
   occurredAt: string | Date;
@@ -58,33 +65,44 @@ export class TeamLedgerService {
   }
 
   listEntries(teamId: string, query: ListTeamLedgerEntriesQuery = {}) {
-    const filter: Record<string, unknown> = { teamId };
-
-    if (query.type) {
-      filter.type = query.type;
-    }
-    if (query.status && query.status !== 'all') {
-      filter.status = query.status;
-    } else if (!query.status) {
-      filter.status = 'active';
-    }
-    if (query.category) {
-      filter.category = query.category.trim();
-    }
-    if (query.from || query.to) {
-      const range: Record<string, Date> = {};
-      if (query.from) {
-        range.$gte = query.from instanceof Date ? query.from : new Date(query.from);
-      }
-      if (query.to) {
-        range.$lte = query.to instanceof Date ? query.to : new Date(query.to);
-      }
-      filter.occurredAt = range;
-    }
-
+    const filter = this.buildFilter(teamId, query);
     const limit = Math.min(Math.max(query.limit ?? 100, 1), 500);
 
     return this.teamLedgerEntryModel.find(filter).sort({ occurredAt: -1, createdAt: -1 }).limit(limit).exec();
+  }
+
+  async summarize(teamId: string, query: Pick<ListTeamLedgerEntriesQuery, 'from' | 'to' | 'status'> = {}): Promise<TeamLedgerSummary> {
+    const match = this.buildFilter(teamId, query);
+    const [summary] = await this.teamLedgerEntryModel
+      .aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: null,
+            incomeCents: {
+              $sum: {
+                $cond: [{ $eq: ['$type', 'income'] }, '$amountCents', 0]
+              }
+            },
+            expenseCents: {
+              $sum: {
+                $cond: [{ $eq: ['$type', 'expense'] }, '$amountCents', 0]
+              }
+            },
+            entryCount: { $sum: 1 }
+          }
+        }
+      ])
+      .exec();
+
+    const incomeCents = summary?.incomeCents ?? 0;
+    const expenseCents = summary?.expenseCents ?? 0;
+    return {
+      incomeCents,
+      expenseCents,
+      netCents: incomeCents - expenseCents,
+      entryCount: summary?.entryCount ?? 0
+    };
   }
 
   async voidEntry(teamId: string, entryId: string, input: VoidTeamLedgerEntryInput) {
@@ -152,5 +170,33 @@ export class TeamLedgerService {
     }
 
     return entry;
+  }
+
+  private buildFilter(teamId: string, query: Pick<ListTeamLedgerEntriesQuery, 'from' | 'to' | 'type' | 'status' | 'category'>) {
+    const filter: Record<string, unknown> = { teamId };
+
+    if (query.type) {
+      filter.type = query.type;
+    }
+    if (query.status && query.status !== 'all') {
+      filter.status = query.status;
+    } else if (!query.status) {
+      filter.status = 'active';
+    }
+    if (query.category) {
+      filter.category = query.category.trim();
+    }
+    if (query.from || query.to) {
+      const range: Record<string, Date> = {};
+      if (query.from) {
+        range.$gte = query.from instanceof Date ? query.from : new Date(query.from);
+      }
+      if (query.to) {
+        range.$lte = query.to instanceof Date ? query.to : new Date(query.to);
+      }
+      filter.occurredAt = range;
+    }
+
+    return filter;
   }
 }

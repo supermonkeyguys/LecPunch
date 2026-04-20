@@ -5,6 +5,7 @@ import { TeamLedgerService } from './team-ledger.service';
 
 const create = vi.fn();
 const find = vi.fn();
+const aggregate = vi.fn();
 const findById = vi.fn();
 const findOneAndUpdate = vi.fn();
 
@@ -12,6 +13,7 @@ const createService = () =>
   new TeamLedgerService({
     create,
     find,
+    aggregate,
     findById,
     findOneAndUpdate
   } as any);
@@ -98,6 +100,44 @@ describe('TeamLedgerService', () => {
 
     expect(limit).toHaveBeenNthCalledWith(1, 1);
     expect(limit).toHaveBeenNthCalledWith(2, 500);
+  });
+
+  it('summarizes entries into income/expense/net totals', async () => {
+    const exec = vi.fn().mockResolvedValue([
+      {
+        incomeCents: 30000,
+        expenseCents: 12000,
+        entryCount: 4
+      }
+    ]);
+    aggregate.mockReturnValue({ exec });
+
+    const service = createService();
+    const summary = await service.summarize('team-1', {
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-05-31T23:59:59.000Z'
+    });
+
+    expect(summary).toEqual({
+      incomeCents: 30000,
+      expenseCents: 12000,
+      netCents: 18000,
+      entryCount: 4
+    });
+    expect(aggregate).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          $match: {
+            teamId: 'team-1',
+            status: 'active',
+            occurredAt: {
+              $gte: new Date('2026-05-01T00:00:00.000Z'),
+              $lte: new Date('2026-05-31T23:59:59.000Z')
+            }
+          }
+        }
+      ])
+    );
   });
 
   it('voids entries with trace metadata and keeps operation append-safe', async () => {
