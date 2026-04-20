@@ -8,6 +8,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ERROR_CODES, MemberEligibilityStatus } from '@lecpunch/shared';
 import { Model } from 'mongoose';
 import { MemberEligibility, MemberEligibilityDocument } from './schemas/member-eligibility.schema';
+import {
+  normalizeEligibilityNote,
+  normalizeEligibilityRealName,
+  normalizeEligibilityStudentId
+} from './member-eligibility.normalization';
 
 export interface ListMemberEligibilityQuery {
   keyword?: string;
@@ -38,8 +43,8 @@ export class MemberEligibilityService {
   ) {}
 
   async assertEligible(teamId: string, studentId: string, realName: string): Promise<MemberEligibilityDocument> {
-    const normalizedStudentId = this.normalizeStudentId(studentId);
-    const normalizedRealName = this.normalizeRealName(realName);
+    const normalizedStudentId = normalizeEligibilityStudentId(studentId);
+    const normalizedRealName = normalizeEligibilityRealName(realName);
 
     const entry = await this.memberEligibilityModel
       .findOne({
@@ -100,10 +105,10 @@ export class MemberEligibilityService {
   async createEntry(input: CreateMemberEligibilityInput) {
     const payload = {
       teamId: input.teamId,
-      studentId: this.normalizeStudentId(input.studentId),
-      realName: this.normalizeRealName(input.realName),
+      studentId: normalizeEligibilityStudentId(input.studentId),
+      realName: normalizeEligibilityRealName(input.realName),
       status: input.status ?? 'allowed',
-      note: this.normalizeNote(input.note)
+      note: normalizeEligibilityNote(input.note)
     };
 
     try {
@@ -124,16 +129,16 @@ export class MemberEligibilityService {
 
     const set: Record<string, unknown> = {};
     if (input.studentId !== undefined) {
-      set.studentId = this.normalizeStudentId(input.studentId);
+      set.studentId = normalizeEligibilityStudentId(input.studentId);
     }
     if (input.realName !== undefined) {
-      set.realName = this.normalizeRealName(input.realName);
+      set.realName = normalizeEligibilityRealName(input.realName);
     }
     if (input.status !== undefined) {
       set.status = input.status;
     }
     if (input.note !== undefined) {
-      set.note = this.normalizeNote(input.note);
+      set.note = normalizeEligibilityNote(input.note);
     }
 
     try {
@@ -176,16 +181,4 @@ export class MemberEligibilityService {
     }
   }
 
-  private normalizeStudentId(studentId: string) {
-    return studentId.trim();
-  }
-
-  private normalizeRealName(realName: string) {
-    return realName.trim();
-  }
-
-  private normalizeNote(note?: string | null) {
-    const normalized = note?.trim();
-    return normalized ? normalized : undefined;
-  }
 }

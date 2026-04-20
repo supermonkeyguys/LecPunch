@@ -400,3 +400,8 @@ P1 完成标准：
   - `AuthService.register` 已接入 `assertEligible(teamId, studentId, realName)`
   - `AuthModule` 已引入 `MemberEligibilityModule`
   - 新增 `auth.service.spec.ts`，覆盖 4 条场景：双匹配通过、学号不在白名单、姓名不匹配、blocked
+- 2026-04-20: [x] Phase A4（数据准备与迁移策略）
+  - 新增导入脚本：`pnpm --filter @lecpunch/api import-eligibility -- <csv|json>`
+  - 脚本与 service 共享标准化规则（学号/实名/status/note）
+  - 新增运行手册：`docs/superpowers/specs/2026-04-20-member-eligibility-import-runbook.md`
+  - 明确了预发环境导入与四类注册样本校验流程
