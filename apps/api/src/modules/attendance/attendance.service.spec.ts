@@ -165,16 +165,18 @@ describe('AttendanceService', () => {
 
   it('stops accumulation when keepalive resumes after heartbeat timeout and does not backfill the gap', async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-10T00:02:00.000Z'));
+    const checkInAt = new Date('2026-04-10T00:00:00.000Z');
+    const resumedAt = new Date(checkInAt.getTime() + (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS + 1) * 1000);
+    vi.setSystemTime(resumedAt);
 
     const save = vi.fn().mockResolvedValue(undefined);
     const session = {
       id: 'session-1',
       teamId: 'team-1',
       userId: 'user-1',
-      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
-      lastKeepaliveAt: new Date('2026-04-10T00:00:00.000Z'),
-      lastCreditedAt: new Date('2026-04-10T00:00:00.000Z'),
+      checkInAt,
+      lastKeepaliveAt: checkInAt,
+      lastCreditedAt: checkInAt,
       creditedSeconds: 0,
       status: 'active',
       weekKey: '2026-04-07',
@@ -191,7 +193,7 @@ describe('AttendanceService', () => {
     expect(result.creditedSeconds).toBe(0);
     expect(result.pauseReason).toBeUndefined();
     expect(result.pausedAt).toBeUndefined();
-    expect(result.lastCreditedAt).toEqual(new Date('2026-04-10T00:02:00.000Z'));
+    expect(result.lastCreditedAt).toEqual(resumedAt);
     expect(save).toHaveBeenCalledTimes(1);
   });
 
@@ -229,16 +231,19 @@ describe('AttendanceService', () => {
 
   it('completes check-out with credited seconds even after keepalive timeout pause', async () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-04-10T00:03:00.000Z'));
+    const checkInAt = new Date('2026-04-10T00:00:00.000Z');
+    const lastKeepaliveAt = new Date(checkInAt.getTime() + 10_000);
+    const checkOutAt = new Date(lastKeepaliveAt.getTime() + (ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS + 1) * 1000);
+    vi.setSystemTime(checkOutAt);
 
     const save = vi.fn().mockResolvedValue(undefined);
     const session = {
       id: 'session-1',
       teamId: 'team-1',
       userId: 'user-1',
-      checkInAt: new Date('2026-04-10T00:00:00.000Z'),
-      lastKeepaliveAt: new Date('2026-04-10T00:00:10.000Z'),
-      lastCreditedAt: new Date('2026-04-10T00:00:10.000Z'),
+      checkInAt,
+      lastKeepaliveAt,
+      lastCreditedAt: lastKeepaliveAt,
       creditedSeconds: 600,
       status: 'active',
       weekKey: '2026-04-07',
