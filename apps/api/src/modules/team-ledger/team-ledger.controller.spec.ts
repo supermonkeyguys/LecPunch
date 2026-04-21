@@ -26,7 +26,8 @@ describe('TeamLedgerController', () => {
     createEntry: vi.fn(),
     voidEntry: vi.fn(),
     createReversal: vi.fn(),
-    summarize: vi.fn()
+    summarize: vi.fn(),
+    getTrend: vi.fn()
   };
 
   let controller: TeamLedgerController;
@@ -57,6 +58,15 @@ describe('TeamLedgerController', () => {
       netCents: 10000,
       entryCount: 1
     });
+    teamLedgerService.getTrend.mockResolvedValue([
+      {
+        bucketKey: '2026-05-01',
+        incomeCents: 10000,
+        expenseCents: 0,
+        netCents: 10000,
+        entryCount: 1
+      }
+    ]);
 
     const listResult = await controller.listEntries(adminUser, {
       from: '2026-05-01T00:00:00.000Z',
@@ -67,6 +77,11 @@ describe('TeamLedgerController', () => {
     const summaryResult = await controller.getSummary(adminUser, {
       from: '2026-05-01T00:00:00.000Z',
       to: '2026-05-31T23:59:59.000Z'
+    });
+    const trendResult = await controller.getTrend(adminUser, {
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-05-31T23:59:59.000Z',
+      granularity: 'day'
     });
 
     expect(teamLedgerService.listEntries).toHaveBeenCalledWith('team-1', {
@@ -80,7 +95,13 @@ describe('TeamLedgerController', () => {
       from: '2026-05-01T00:00:00.000Z',
       to: '2026-05-31T23:59:59.000Z'
     });
+    expect(teamLedgerService.getTrend).toHaveBeenCalledWith('team-1', {
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-05-31T23:59:59.000Z',
+      granularity: 'day'
+    });
     expect(summaryResult.netCents).toBe(10000);
+    expect(trendResult.items).toHaveLength(1);
   });
 
   it('creates, voids, and reverses entries for admins', async () => {
@@ -131,6 +152,7 @@ describe('TeamLedgerController', () => {
     await expect(controller.voidEntry(memberUser, 'ledger-1', {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.createReversal(memberUser, 'ledger-1', {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.getSummary(memberUser, {})).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(controller.getTrend(memberUser, {})).rejects.toBeInstanceOf(ForbiddenException);
     await expect(controller.getExportContract(memberUser, { limit: 20 })).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

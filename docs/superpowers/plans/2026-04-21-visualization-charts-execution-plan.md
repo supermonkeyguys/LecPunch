@@ -245,6 +245,9 @@
   - `WeeklyHistoryPage` 新增“周时长趋势”折线图（累计时长 + 周目标）
   - 复用 `shared/lib/chart.ts` 的颜色与格式化约定
   - 更新 `WeeklyHistoryPage.test.tsx` 并通过 web 全量测试
-- 2026-04-21: [ ] Phase 2 团费趋势后端接口
+- 2026-04-21: [x] Phase 2 团费趋势后端接口
+  - `team-ledger` 新增 `GET /team-ledger/admin/trend`（`from/to/status/granularity`）
+  - 服务端按 `Asia/Shanghai` 归桶并返回收入/支出/净额/笔数趋势项
+  - 补充 `team-ledger.service.spec.ts` 趋势聚合测试与 `team-ledger.controller.spec.ts` 权限覆盖
 - 2026-04-21: [ ] Phase 3 团费趋势图
 - 2026-04-21: [ ] Phase 4 交互增强与文档收口

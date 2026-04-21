@@ -20,6 +20,16 @@ export interface TeamLedgerSummary {
   entryCount: number;
 }
 
+export type TeamLedgerTrendGranularity = 'day' | 'week';
+
+export interface TeamLedgerTrendItem {
+  bucketKey: string;
+  incomeCents: number;
+  expenseCents: number;
+  netCents: number;
+  entryCount: number;
+}
+
 export interface CreateTeamLedgerEntryInput {
   teamId: string;
   occurredAt: string | Date;
@@ -103,6 +113,51 @@ export class TeamLedgerService {
       netCents: incomeCents - expenseCents,
       entryCount: summary?.entryCount ?? 0
     };
+  }
+
+  async getTrend(
+    teamId: string,
+    query: Pick<ListTeamLedgerEntriesQuery, 'from' | 'to' | 'status'> & { granularity?: TeamLedgerTrendGranularity } = {}
+  ): Promise<TeamLedgerTrendItem[]> {
+    const match = this.buildFilter(teamId, query);
+    const bucketFormat = query.granularity === 'week' ? '%G-W%V' : '%Y-%m-%d';
+
+    const rows = await this.teamLedgerEntryModel
+      .aggregate([
+        { $match: match },
+        {
+          $group: {
+            _id: {
+              $dateToString: {
+                format: bucketFormat,
+                date: '$occurredAt',
+                timezone: 'Asia/Shanghai'
+              }
+            },
+            incomeCents: {
+              $sum: {
+                $cond: [{ $eq: ['$type', 'income'] }, '$amountCents', 0]
+              }
+            },
+            expenseCents: {
+              $sum: {
+                $cond: [{ $eq: ['$type', 'expense'] }, '$amountCents', 0]
+              }
+            },
+            entryCount: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
+      .exec();
+
+    return rows.map((row) => ({
+      bucketKey: row._id,
+      incomeCents: row.incomeCents ?? 0,
+      expenseCents: row.expenseCents ?? 0,
+      netCents: (row.incomeCents ?? 0) - (row.expenseCents ?? 0),
+      entryCount: row.entryCount ?? 0
+    }));
   }
 
   async voidEntry(teamId: string, entryId: string, input: VoidTeamLedgerEntryInput) {

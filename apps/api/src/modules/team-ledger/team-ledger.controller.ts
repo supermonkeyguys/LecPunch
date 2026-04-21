@@ -6,6 +6,7 @@ import {
   CreateTeamLedgerEntryDto,
   CreateTeamLedgerReversalDto,
   GetTeamLedgerSummaryQueryDto,
+  GetTeamLedgerTrendQueryDto,
   ListTeamLedgerEntriesQueryDto,
   VoidTeamLedgerEntryDto
 } from './dto/team-ledger-admin.dto';
@@ -68,6 +69,13 @@ export class TeamLedgerController {
   async getSummary(@CurrentUser() user: AuthUser, @Query() query: GetTeamLedgerSummaryQueryDto) {
     this.assertAdmin(user);
     return this.teamLedgerService.summarize(user.teamId, query);
+  }
+
+  @Get('admin/trend')
+  async getTrend(@CurrentUser() user: AuthUser, @Query() query: GetTeamLedgerTrendQueryDto) {
+    this.assertAdmin(user);
+    const items = await this.teamLedgerService.getTrend(user.teamId, query);
+    return { items };
   }
 
   @Get('admin/export')

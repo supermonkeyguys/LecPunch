@@ -51,6 +51,24 @@ export class GetTeamLedgerSummaryQueryDto {
   status?: TeamLedgerEntryStatus | 'all';
 }
 
+export class GetTeamLedgerTrendQueryDto {
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
+
+  @IsOptional()
+  @IsIn(['active', 'voided', 'all'])
+  status?: TeamLedgerEntryStatus | 'all';
+
+  @IsOptional()
+  @IsIn(['day', 'week'])
+  granularity: 'day' | 'week' = 'day';
+}
+
 export class CreateTeamLedgerEntryDto {
   @IsISO8601()
   occurredAt!: string;

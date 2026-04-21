@@ -140,6 +140,91 @@ describe('TeamLedgerService', () => {
     );
   });
 
+  it('returns day trend items with net totals using Asia/Shanghai buckets', async () => {
+    const exec = vi.fn().mockResolvedValue([
+      {
+        _id: '2026-05-01',
+        incomeCents: 30000,
+        expenseCents: 12000,
+        entryCount: 4
+      }
+    ]);
+    aggregate.mockReturnValue({ exec });
+
+    const service = createService();
+    const items = await service.getTrend('team-1', {
+      from: '2026-05-01T00:00:00.000Z',
+      to: '2026-05-31T23:59:59.000Z'
+    });
+
+    expect(items).toEqual([
+      {
+        bucketKey: '2026-05-01',
+        incomeCents: 30000,
+        expenseCents: 12000,
+        netCents: 18000,
+        entryCount: 4
+      }
+    ]);
+    expect(aggregate).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          $match: {
+            teamId: 'team-1',
+            status: 'active',
+            occurredAt: {
+              $gte: new Date('2026-05-01T00:00:00.000Z'),
+              $lte: new Date('2026-05-31T23:59:59.000Z')
+            }
+          }
+        },
+        {
+          $group: expect.objectContaining({
+            _id: {
+              $dateToString: {
+                format: '%Y-%m-%d',
+                date: '$occurredAt',
+                timezone: 'Asia/Shanghai'
+              }
+            }
+          })
+        }
+      ])
+    );
+  });
+
+  it('supports week granularity and all status in trend queries', async () => {
+    const exec = vi.fn().mockResolvedValue([]);
+    aggregate.mockReturnValue({ exec });
+
+    const service = createService();
+    await service.getTrend('team-1', {
+      status: 'all',
+      granularity: 'week'
+    });
+
+    expect(aggregate).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        {
+          $match: {
+            teamId: 'team-1'
+          }
+        },
+        {
+          $group: expect.objectContaining({
+            _id: {
+              $dateToString: {
+                format: '%G-W%V',
+                date: '$occurredAt',
+                timezone: 'Asia/Shanghai'
+              }
+            }
+          })
+        }
+      ])
+    );
+  });
+
   it('voids entries with trace metadata and keeps operation append-safe', async () => {
     findById.mockReturnValue({
       exec: vi.fn().mockResolvedValue({
