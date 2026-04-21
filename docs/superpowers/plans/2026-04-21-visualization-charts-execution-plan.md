@@ -253,4 +253,7 @@
   - `AdminLedgerPage` 新增“团费趋势”图表区块（收入/支出/净额三线）
   - 扩展前端 API：`getAdminTeamLedgerTrend` 对接 `/team-ledger/admin/trend`
   - 更新 `AdminLedgerPage.test.tsx` 并通过 web 定向+全量测试与 typecheck
-- 2026-04-21: [ ] Phase 4 交互增强与文档收口
+- 2026-04-21: [x] Phase 4 交互增强与文档收口
+  - 图表 Tooltip 统一金额/时长格式（周趋势与团费趋势）
+  - 管理端团费趋势图支持图例点击显隐（收入/支出/净额）
+  - 执行计划文档同步更新完成状态与实现细节

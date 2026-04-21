@@ -121,6 +121,11 @@ export const AdminLedgerPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [form, setForm] = useState<LedgerFormValues>(emptyForm);
   const [savingEntryId, setSavingEntryId] = useState<string | null>(null);
+  const [hiddenTrendSeries, setHiddenTrendSeries] = useState({
+    incomeCents: false,
+    expenseCents: false,
+    netCents: false
+  });
 
   const fetchData = useCallback(
     async (_signal: AbortSignal): Promise<LedgerPageData> => {
@@ -160,6 +165,17 @@ export const AdminLedgerPage = () => {
 
   const patchForm = (next: Partial<LedgerFormValues>) => {
     setForm((current) => ({ ...current, ...next }));
+  };
+
+  const toggleTrendSeries = (dataKey: unknown) => {
+    if (dataKey !== 'incomeCents' && dataKey !== 'expenseCents' && dataKey !== 'netCents') {
+      return;
+    }
+
+    setHiddenTrendSeries((current) => ({
+      ...current,
+      [dataKey]: !current[dataKey]
+    }));
   };
 
   const submitForm = async () => {
@@ -349,6 +365,7 @@ export const AdminLedgerPage = () => {
           <div>
             <h2 className="text-base font-semibold text-gray-900">团费趋势</h2>
             <p className="mt-1 text-xs text-gray-500">按天归桶展示收入、支出与净额变化（单位：元）</p>
+            <p className="mt-1 text-xs text-gray-400">可点击图例切换折线显示。</p>
           </div>
           <div className="rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700">
             当前筛选净额：<span className="font-semibold">{formatCurrency(data.summary.netCents)}</span>
@@ -383,7 +400,10 @@ export const AdminLedgerPage = () => {
                 formatter={(value) => formatCentsAsYuan(Number(value), 2)}
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.bucketKey ?? ''}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Legend
+                wrapperStyle={{ fontSize: 12 }}
+                onClick={(entry) => toggleTrendSeries(entry?.dataKey)}
+              />
               <Line
                 type="monotone"
                 name="收入"
@@ -392,6 +412,7 @@ export const AdminLedgerPage = () => {
                 strokeWidth={2.5}
                 dot={{ r: 3.5 }}
                 activeDot={{ r: 5 }}
+                hide={hiddenTrendSeries.incomeCents}
               />
               <Line
                 type="monotone"
@@ -401,6 +422,7 @@ export const AdminLedgerPage = () => {
                 strokeWidth={2.5}
                 dot={{ r: 3.5 }}
                 activeDot={{ r: 5 }}
+                hide={hiddenTrendSeries.expenseCents}
               />
               <Line
                 type="monotone"
@@ -410,6 +432,7 @@ export const AdminLedgerPage = () => {
                 strokeWidth={2.5}
                 dot={{ r: 3.5 }}
                 activeDot={{ r: 5 }}
+                hide={hiddenTrendSeries.netCents}
               />
             </LineChart>
           </div>

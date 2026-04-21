@@ -91,6 +91,7 @@ describe('AdminLedgerPage', () => {
     expect(screen.getByText('¥20.00')).toBeInTheDocument();
     expect(screen.getByText('+¥80.00')).toBeInTheDocument();
     expect(screen.getByText('dues')).toBeInTheDocument();
+    expect(screen.getByText('可点击图例切换折线显示。')).toBeInTheDocument();
     expect(screen.getByTestId('admin-ledger-trend-chart')).toBeInTheDocument();
     expect(mocks.getAdminTeamLedgerTrend).toHaveBeenCalledWith(expect.objectContaining({ granularity: 'day' }));
   });
