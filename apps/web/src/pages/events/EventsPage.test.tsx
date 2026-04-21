@@ -57,8 +57,10 @@ describe('EventsPage', () => {
     );
 
     expect(await screen.findByText('周例会')).toBeInTheDocument();
+    expect(mocks.getTeamEvents).toHaveBeenCalledTimes(1);
     await user.selectOptions(screen.getByLabelText('状态筛选'), 'done');
     expect(screen.queryByText('周例会')).not.toBeInTheDocument();
     expect(screen.getByText('月度复盘')).toBeInTheDocument();
+    expect(mocks.getTeamEvents).toHaveBeenCalledTimes(1);
   });
 });

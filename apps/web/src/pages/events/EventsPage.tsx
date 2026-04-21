@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { CalendarClock, Search } from 'lucide-react';
 import { Badge, Button, DataTable, type ColumnDef } from '@lecpunch/ui';
 import type { TeamEvent, TeamEventStatus } from '@lecpunch/shared';
@@ -27,9 +27,9 @@ export const EventsPage = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | TeamEventStatus>('all');
 
-  const fetchEvents = async (_signal: AbortSignal) => {
+  const fetchEvents = useCallback(async (_signal: AbortSignal) => {
     return getTeamEvents({ limit: 100 });
-  };
+  }, []);
   const { data: events, loading, error, refresh } = useAsyncData(fetchEvents, [], {
     initialData: [] as TeamEvent[]
   });
