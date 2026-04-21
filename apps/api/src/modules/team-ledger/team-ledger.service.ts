@@ -38,6 +38,9 @@ export interface CreateTeamLedgerEntryInput {
   category: string;
   counterparty?: string;
   note?: string;
+  proofFileName?: string;
+  proofFileMimeType?: string;
+  proofFileBase64?: string;
   createdBy: string;
 }
 
@@ -70,6 +73,9 @@ export class TeamLedgerService {
       category: input.category.trim(),
       counterparty: input.counterparty?.trim() || undefined,
       note: input.note?.trim() || undefined,
+      proofFileName: input.proofFileName?.trim() || undefined,
+      proofFileMimeType: input.proofFileMimeType?.trim() || undefined,
+      proofFileBase64: input.proofFileBase64 || undefined,
       createdBy: input.createdBy
     });
   }

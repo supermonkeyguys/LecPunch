@@ -35,6 +35,9 @@ export class TeamLedgerController {
       category: dto.category,
       counterparty: dto.counterparty,
       note: dto.note,
+      proofFileName: dto.proofFileName,
+      proofFileMimeType: dto.proofFileMimeType,
+      proofFileBase64: dto.proofFileBase64,
       createdBy: user.userId
     });
     return this.mapEntry(item);
@@ -112,6 +115,9 @@ export class TeamLedgerController {
       category: item.category,
       counterparty: item.counterparty,
       note: item.note,
+      proofFileName: item.proofFileName,
+      proofFileMimeType: item.proofFileMimeType,
+      proofFileBase64: item.proofFileBase64,
       reversalOfEntryId: item.reversalOfEntryId,
       voidedAt: item.voidedAt instanceof Date ? item.voidedAt.toISOString() : item.voidedAt,
       voidedBy: item.voidedBy,

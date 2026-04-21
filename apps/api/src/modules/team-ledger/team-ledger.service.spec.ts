@@ -42,6 +42,9 @@ describe('TeamLedgerService', () => {
       category: '  snacks  ',
       counterparty: '  便利店  ',
       note: '  团队加餐  ',
+      proofFileName: '  invoice.png  ',
+      proofFileMimeType: '  image/png  ',
+      proofFileBase64: 'ZmFrZS1wcm9vZi1iYXNlNjQ=',
       createdBy: 'admin-1'
     });
 
@@ -54,6 +57,9 @@ describe('TeamLedgerService', () => {
         category: 'snacks',
         counterparty: '便利店',
         note: '团队加餐',
+        proofFileName: 'invoice.png',
+        proofFileMimeType: 'image/png',
+        proofFileBase64: 'ZmFrZS1wcm9vZi1iYXNlNjQ=',
         createdBy: 'admin-1'
       })
     );

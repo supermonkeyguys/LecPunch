@@ -17,6 +17,9 @@ export interface CreateAdminTeamLedgerEntryInput {
   category: string;
   counterparty?: string;
   note?: string;
+  proofFileName?: string;
+  proofFileMimeType?: string;
+  proofFileBase64?: string;
 }
 
 export interface TeamLedgerSummary {

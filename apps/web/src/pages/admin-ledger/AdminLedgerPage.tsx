@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { BanknoteArrowDown, BanknoteArrowUp, ReceiptText } from 'lucide-react';
 import { Badge, Button, DataTable, Input, type ColumnDef } from '@lecpunch/ui';
 import type { TeamLedgerEntry, TeamLedgerType } from '@lecpunch/shared';
@@ -38,6 +38,9 @@ type LedgerFormValues = {
   category: string;
   counterparty: string;
   note: string;
+  proofFileName: string;
+  proofFileMimeType: string;
+  proofFileBase64: string;
 };
 
 interface LedgerPageData {
@@ -52,8 +55,14 @@ const emptyForm: LedgerFormValues = {
   amountYuan: '',
   category: '',
   counterparty: '',
-  note: ''
+  note: '',
+  proofFileName: '',
+  proofFileMimeType: '',
+  proofFileBase64: ''
 };
+
+const PROOF_FILE_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const PROOF_FILE_ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
 const emptySummary: TeamLedgerSummary = {
   incomeCents: 0,
@@ -114,6 +123,14 @@ const toDateTimeLocalInput = (isoValue?: string) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('proof_file_read_failed'));
+    reader.readAsDataURL(file);
+  });
+
 export const AdminLedgerPage = () => {
   const [monthFilter, setMonthFilter] = useState(getCurrentMonthValue);
   const [typeFilter, setTypeFilter] = useState<'all' | TeamLedgerType>('all');
@@ -121,11 +138,13 @@ export const AdminLedgerPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [form, setForm] = useState<LedgerFormValues>(emptyForm);
   const [savingEntryId, setSavingEntryId] = useState<string | null>(null);
+  const [proofUploadError, setProofUploadError] = useState<string | null>(null);
   const [hiddenTrendSeries, setHiddenTrendSeries] = useState({
     incomeCents: false,
     expenseCents: false,
     netCents: false
   });
+  const proofFileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(
     async (_signal: AbortSignal): Promise<LedgerPageData> => {
@@ -178,6 +197,57 @@ export const AdminLedgerPage = () => {
     }));
   };
 
+  const clearProofMaterial = () => {
+    patchForm({
+      proofFileName: '',
+      proofFileMimeType: '',
+      proofFileBase64: ''
+    });
+    if (proofFileInputRef.current) {
+      proofFileInputRef.current.value = '';
+    }
+  };
+
+  const handleProofMaterialChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      clearProofMaterial();
+      setProofUploadError(null);
+      return;
+    }
+
+    setProofUploadError(null);
+    if (!PROOF_FILE_ACCEPTED_MIME_TYPES.includes(file.type)) {
+      setProofUploadError('仅支持 JPG / PNG / PDF');
+      clearProofMaterial();
+      return;
+    }
+    if (file.size > PROOF_FILE_MAX_SIZE_BYTES) {
+      setProofUploadError('证明材料大小不能超过 5MB');
+      clearProofMaterial();
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+      if (!base64) {
+        setProofUploadError('证明材料读取失败，请重试');
+        clearProofMaterial();
+        return;
+      }
+
+      patchForm({
+        proofFileName: file.name,
+        proofFileMimeType: file.type,
+        proofFileBase64: base64
+      });
+    } catch {
+      setProofUploadError('证明材料读取失败，请重试');
+      clearProofMaterial();
+    }
+  };
+
   const submitForm = async () => {
     if (!form.occurredAt) {
       showToast('请填写发生时间', 'error');
@@ -211,10 +281,17 @@ export const AdminLedgerPage = () => {
         amountCents,
         category,
         counterparty: form.counterparty.trim() || undefined,
-        note: form.note.trim() || undefined
+        note: form.note.trim() || undefined,
+        proofFileName: form.proofFileName || undefined,
+        proofFileMimeType: form.proofFileMimeType || undefined,
+        proofFileBase64: form.proofFileBase64 || undefined
       });
       showToast('流水已创建');
       setForm(emptyForm);
+      setProofUploadError(null);
+      if (proofFileInputRef.current) {
+        proofFileInputRef.current.value = '';
+      }
       await refresh();
     } catch (error) {
       showToast(getApiErrorMessage(error, '创建流水失败'), 'error');
@@ -298,6 +375,30 @@ export const AdminLedgerPage = () => {
         render: (value) => (value ? <span className="text-sm text-gray-600">{value}</span> : <span className="text-sm text-gray-400">-</span>)
       },
       {
+        key: 'proofFileName',
+        header: '证明材料',
+        render: (_, row) => {
+          if (!row.proofFileBase64) {
+            return <span className="text-sm text-gray-400">-</span>;
+          }
+
+          const proofFileName = row.proofFileName || `proof-${row.id}`;
+          const proofMimeType = row.proofFileMimeType || 'application/octet-stream';
+          const downloadHref = `data:${proofMimeType};base64,${row.proofFileBase64}`;
+          return (
+            <a
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              href={downloadHref}
+              download={proofFileName}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {proofFileName}
+            </a>
+          );
+        }
+      },
+      {
         key: '_actions',
         header: '操作',
         headerClassName: 'text-right',
@@ -360,7 +461,7 @@ export const AdminLedgerPage = () => {
         </PageSection>
       </div>
 
-      <PageSection padded>
+      <PageSection padded className="mb-6">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold text-gray-900">团费趋势</h2>
@@ -499,6 +600,37 @@ export const AdminLedgerPage = () => {
               onChange={(event) => patchForm({ note: event.target.value })}
               placeholder="补充说明"
             />
+          </div>
+
+          <div className="mt-4">
+            <label className="block">
+              <span className="mb-2 block text-sm font-medium text-gray-700">证明材料（可选）</span>
+              <input
+                ref={proofFileInputRef}
+                type="file"
+                aria-label="证明材料"
+                accept=".jpg,.jpeg,.png,.pdf"
+                onChange={(event) => void handleProofMaterialChange(event)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-blue-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </label>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-gray-500">支持 JPG / PNG / PDF，最大 5MB</span>
+              {form.proofFileName ? <span className="rounded bg-green-50 px-2 py-1 text-green-700">已选择：{form.proofFileName}</span> : null}
+              {form.proofFileName ? (
+                <button
+                  type="button"
+                  className="text-blue-600 hover:text-blue-700 hover:underline"
+                  onClick={() => {
+                    clearProofMaterial();
+                    setProofUploadError(null);
+                  }}
+                >
+                  清除
+                </button>
+              ) : null}
+            </div>
+            {proofUploadError ? <p className="mt-1 text-xs text-red-600">{proofUploadError}</p> : null}
           </div>
 
           <div className="mt-5 flex justify-end">

@@ -113,7 +113,10 @@ describe('TeamLedgerController', () => {
       occurredAt: '2026-05-01T10:00:00.000Z',
       type: 'income',
       amountCents: 10000,
-      category: 'dues'
+      category: 'dues',
+      proofFileName: 'receipt.jpg',
+      proofFileMimeType: 'image/jpeg',
+      proofFileBase64: 'cHJvb2Y='
     });
     await controller.voidEntry(adminUser, 'ledger-1', { reason: 'duplicate' });
     await controller.createReversal(adminUser, 'ledger-1', { note: 'refund' });
@@ -126,6 +129,9 @@ describe('TeamLedgerController', () => {
       category: 'dues',
       counterparty: undefined,
       note: undefined,
+      proofFileName: 'receipt.jpg',
+      proofFileMimeType: 'image/jpeg',
+      proofFileBase64: 'cHJvb2Y=',
       createdBy: 'admin-1'
     });
     expect(teamLedgerService.voidEntry).toHaveBeenCalledWith('team-1', 'ledger-1', {

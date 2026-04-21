@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 import { TeamLedgerEntryStatus, TeamLedgerType } from '@lecpunch/shared';
 
 const parseIntegerWithFallback = (value: unknown, fallback: number) => {
@@ -92,6 +92,21 @@ export class CreateTeamLedgerEntryDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  proofFileName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  proofFileMimeType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(7_340_032)
+  proofFileBase64?: string;
 }
 
 export class VoidTeamLedgerEntryDto {

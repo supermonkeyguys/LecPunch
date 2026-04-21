@@ -28,6 +28,15 @@ export class TeamLedgerEntry {
   @Prop({ type: String })
   note?: string;
 
+  @Prop({ type: String })
+  proofFileName?: string;
+
+  @Prop({ type: String })
+  proofFileMimeType?: string;
+
+  @Prop({ type: String })
+  proofFileBase64?: string;
+
   @Prop({ required: true, type: String })
   createdBy!: string;
 
