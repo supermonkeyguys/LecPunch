@@ -31,7 +31,7 @@ describe('WeeklyHistoryPage', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/正在加载/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/正在加载/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows error state when weekly stats request fails', async () => {
@@ -68,6 +68,8 @@ describe('WeeklyHistoryPage', () => {
 
     expect(await screen.findByText('2026-03-31')).toBeInTheDocument();
     expect(screen.queryByText(/统计口径/i)).not.toBeInTheDocument();
+    expect(screen.getByText('周时长趋势')).toBeInTheDocument();
+    expect(screen.getByTestId('weekly-duration-trend-chart')).toBeInTheDocument();
     expect(screen.getByText(/03-31 ~ 04-06/i)).toBeInTheDocument();
     expect(screen.getByText('02:00:00')).toBeInTheDocument();
     expect(screen.getByText(/5% \/ 目标 38:00:00/i)).toBeInTheDocument();

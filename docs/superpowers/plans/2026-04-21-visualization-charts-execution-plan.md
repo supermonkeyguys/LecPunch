@@ -241,7 +241,10 @@
 - 2026-04-21: [x] Phase 0 依赖与脚手架
   - 已安装 `recharts` 与 `react-is`
   - 新增 `apps/web/src/shared/lib/chart.ts` 作为图表主题与格式化约定
-- 2026-04-21: [ ] Phase 1 打卡时长趋势图
+- 2026-04-21: [x] Phase 1 打卡时长趋势图
+  - `WeeklyHistoryPage` 新增“周时长趋势”折线图（累计时长 + 周目标）
+  - 复用 `shared/lib/chart.ts` 的颜色与格式化约定
+  - 更新 `WeeklyHistoryPage.test.tsx` 并通过 web 全量测试
 - 2026-04-21: [ ] Phase 2 团费趋势后端接口
 - 2026-04-21: [ ] Phase 3 团费趋势图
 - 2026-04-21: [ ] Phase 4 交互增强与文档收口
