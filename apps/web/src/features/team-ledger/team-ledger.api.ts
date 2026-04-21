@@ -26,6 +26,21 @@ export interface TeamLedgerSummary {
   entryCount: number;
 }
 
+export interface TeamLedgerTrendItem {
+  bucketKey: string;
+  incomeCents: number;
+  expenseCents: number;
+  netCents: number;
+  entryCount: number;
+}
+
+export interface GetAdminTeamLedgerTrendQuery {
+  from?: string;
+  to?: string;
+  status?: TeamLedgerEntryStatus | 'all';
+  granularity?: 'day' | 'week';
+}
+
 export const getAdminTeamLedgerEntries = async (
   query: GetAdminTeamLedgerEntriesQuery = {}
 ): Promise<TeamLedgerEntry[]> => {
@@ -57,4 +72,13 @@ export const getAdminTeamLedgerSummary = async (query: Pick<GetAdminTeamLedgerEn
     params: query
   });
   return response.data;
+};
+
+export const getAdminTeamLedgerTrend = async (
+  query: GetAdminTeamLedgerTrendQuery = {}
+): Promise<TeamLedgerTrendItem[]> => {
+  const response = await apiClient.get<{ items: TeamLedgerTrendItem[] }>('/team-ledger/admin/trend', {
+    params: query
+  });
+  return response.data.items;
 };

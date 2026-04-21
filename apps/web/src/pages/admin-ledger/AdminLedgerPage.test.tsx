@@ -8,6 +8,7 @@ import { AdminLedgerPage } from './AdminLedgerPage';
 const mocks = vi.hoisted(() => ({
   getAdminTeamLedgerEntries: vi.fn(),
   getAdminTeamLedgerSummary: vi.fn(),
+  getAdminTeamLedgerTrend: vi.fn(),
   createAdminTeamLedgerEntry: vi.fn(),
   voidAdminTeamLedgerEntry: vi.fn(),
   createAdminTeamLedgerReversal: vi.fn()
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/features/team-ledger/team-ledger.api', () => ({
   getAdminTeamLedgerEntries: mocks.getAdminTeamLedgerEntries,
   getAdminTeamLedgerSummary: mocks.getAdminTeamLedgerSummary,
+  getAdminTeamLedgerTrend: mocks.getAdminTeamLedgerTrend,
   createAdminTeamLedgerEntry: mocks.createAdminTeamLedgerEntry,
   voidAdminTeamLedgerEntry: mocks.voidAdminTeamLedgerEntry,
   createAdminTeamLedgerReversal: mocks.createAdminTeamLedgerReversal
@@ -69,6 +71,15 @@ describe('AdminLedgerPage', () => {
       netCents: 8000,
       entryCount: 1
     });
+    mocks.getAdminTeamLedgerTrend.mockResolvedValue([
+      {
+        bucketKey: '2026-05-01',
+        incomeCents: 10000,
+        expenseCents: 2000,
+        netCents: 8000,
+        entryCount: 1
+      }
+    ]);
 
     render(
       <MemoryRouter>
@@ -80,6 +91,8 @@ describe('AdminLedgerPage', () => {
     expect(screen.getByText('¥20.00')).toBeInTheDocument();
     expect(screen.getByText('+¥80.00')).toBeInTheDocument();
     expect(screen.getByText('dues')).toBeInTheDocument();
+    expect(screen.getByTestId('admin-ledger-trend-chart')).toBeInTheDocument();
+    expect(mocks.getAdminTeamLedgerTrend).toHaveBeenCalledWith(expect.objectContaining({ granularity: 'day' }));
   });
 
   it('creates ledger entries with yuan-to-cents conversion', async () => {
@@ -90,6 +103,7 @@ describe('AdminLedgerPage', () => {
       netCents: 0,
       entryCount: 0
     });
+    mocks.getAdminTeamLedgerTrend.mockResolvedValue([]);
     mocks.createAdminTeamLedgerEntry.mockResolvedValue({
       id: 'ledger-new',
       teamId: 'team-1'

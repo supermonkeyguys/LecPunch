@@ -249,5 +249,8 @@
   - `team-ledger` 新增 `GET /team-ledger/admin/trend`（`from/to/status/granularity`）
   - 服务端按 `Asia/Shanghai` 归桶并返回收入/支出/净额/笔数趋势项
   - 补充 `team-ledger.service.spec.ts` 趋势聚合测试与 `team-ledger.controller.spec.ts` 权限覆盖
-- 2026-04-21: [ ] Phase 3 团费趋势图
+- 2026-04-21: [x] Phase 3 团费趋势图
+  - `AdminLedgerPage` 新增“团费趋势”图表区块（收入/支出/净额三线）
+  - 扩展前端 API：`getAdminTeamLedgerTrend` 对接 `/team-ledger/admin/trend`
+  - 更新 `AdminLedgerPage.test.tsx` 并通过 web 定向+全量测试与 typecheck
 - 2026-04-21: [ ] Phase 4 交互增强与文档收口
