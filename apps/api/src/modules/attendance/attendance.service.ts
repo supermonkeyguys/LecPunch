@@ -140,8 +140,9 @@ export class AttendanceService {
       this.creditSlice(session, checkOutAt);
     }
 
+    const durationSeconds = Math.max(0, Math.floor((checkOutAt.getTime() - session.checkInAt.getTime()) / 1000));
     session.status = 'completed';
-    session.durationSeconds = this.getCreditedSeconds(session);
+    session.durationSeconds = durationSeconds;
     session.checkOutAt = checkOutAt;
     session.sourceIpAtCheckOut = clientIp;
     await session.save();

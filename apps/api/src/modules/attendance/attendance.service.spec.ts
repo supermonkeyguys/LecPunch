@@ -229,7 +229,7 @@ describe('AttendanceService', () => {
     expect(save).toHaveBeenCalledTimes(1);
   });
 
-  it('completes check-out with credited seconds even after keepalive timeout pause', async () => {
+  it('completes check-out with wall-clock duration even after keepalive timeout pause', async () => {
     vi.useFakeTimers();
     const checkInAt = new Date('2026-04-10T00:00:00.000Z');
     const lastKeepaliveAt = new Date(checkInAt.getTime() + 10_000);
@@ -256,7 +256,7 @@ describe('AttendanceService', () => {
     const result = await service.checkOut(user, '127.0.0.1');
 
     expect(result.status).toBe('completed');
-    expect(result.durationSeconds).toBe(600);
+    expect(result.durationSeconds).toBe(Math.floor((checkOutAt.getTime() - checkInAt.getTime()) / 1000));
     expect(result.pauseReason).toBe('heartbeat_timeout');
     expect(save).toHaveBeenCalledTimes(1);
   });
