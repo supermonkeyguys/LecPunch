@@ -36,11 +36,6 @@ export const checkInAttendance = async () => {
   return response.data;
 };
 
-export const keepAliveAttendance = async () => {
-  const response = await apiClient.post('/attendance/keepalive');
-  return response.data;
-};
-
 export interface CheckOutResponse {
   status: 'completed' | 'invalidated';
   invalidReason?: string;

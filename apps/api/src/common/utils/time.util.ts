@@ -7,6 +7,27 @@ export function getWeekKey(date: Date) {
   return weekStart.toFormat('yyyy-LL-dd');
 }
 
+export function parseIsoWeekKey(weekKey: string) {
+  const match = /^(\d{4})-W(\d{2})$/.exec(weekKey);
+  if (!match) {
+    return null;
+  }
+
+  const weekYear = Number(match[1]);
+  const weekNumber = Number(match[2]);
+  const monday = DateTime.fromObject({ weekYear, weekNumber, weekday: 1 }, { zone: TIMEZONE }).startOf('day');
+  if (!monday.isValid || monday.weekYear !== weekYear || monday.weekNumber !== weekNumber) {
+    return null;
+  }
+
+  return monday;
+}
+
+export function getIsoWeekKey(date: Date) {
+  const dt = DateTime.fromJSDate(date, { zone: TIMEZONE });
+  return `${dt.weekYear}-W${String(dt.weekNumber).padStart(2, '0')}`;
+}
+
 export function getShanghaiDateRange(startDate?: string, endDate?: string) {
   const range: { $gte?: Date; $lte?: Date } = {};
 

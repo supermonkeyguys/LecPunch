@@ -1,0 +1,20 @@
+{
+  "scene": "keyboard",
+  "label": "默认键盘小猫",
+  "backgroundFile": "resources/keyboard-transparent.png",
+  "canvas": { "width": 780, "height": 520 },
+  "stage": { "left": 60, "bottom": 80, "width": 640, "height": 370 },
+  "model": { "left": 80, "bottom": 20, "width": 480, "height": 278, "renderScale": 1, "renderOffsetX": 0, "renderOffsetY": 0 },
+  "menu": {
+    "anchorX": 320, "anchorY": 350, "scaleOffsetX": -60, "scaleOffsetY": -145,
+    "actionOffsets": [{ "x": -71, "y": 65 }, { "x": -126, "y": 12 }, { "x": -130, "y": -55 }, { "x": -79, "y": -108 }, { "x": -8, "y": -129 }],
+    "spacing": 1,
+    "bubbleSize": 44
+  },
+  "orbit": { "right": 112, "bottom": 62 },
+  "message": { "left": 320, "top": 12 },
+  "keys": {
+    "leftOverlays": ["Alt", "AltGr", "BackQuote", "Backspace", "CapsLock", "Control", "ControlLeft", "ControlRight", "Delete", "Escape", "Fn", "Meta", "Return", "Shift", "ShiftLeft", "ShiftRight", "Slash", "Space", "Tab", "KeyA", "KeyB", "KeyC", "KeyD", "KeyE", "KeyF", "KeyG", "KeyH", "KeyI", "KeyJ", "KeyK", "KeyL", "KeyM", "KeyN", "KeyO", "KeyP", "KeyQ", "KeyR", "KeyS", "KeyT", "KeyU", "KeyV", "KeyW", "KeyX", "KeyY", "KeyZ", "Num0", "Num1", "Num2", "Num3", "Num4", "Num5", "Num6", "Num7", "Num8", "Num9"],
+    "rightOverlays": ["UpArrow", "DownArrow", "LeftArrow", "RightArrow"]
+  }
+}

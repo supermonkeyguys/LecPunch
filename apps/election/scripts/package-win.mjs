@@ -14,6 +14,9 @@ const run = (file, args, options = {}) => new Promise((resolve, reject) => {
 const builderHome = path.join(os.tmpdir(), 'lecpunch-electron-builder');
 const builderCli = path.join(builderHome, 'node_modules', 'electron-builder', 'out', 'cli', 'cli.js');
 const outputDirectory = process.env.LECPUNCH_ELECTION_OUTPUT_DIR || path.join(os.homedir(), 'Downloads', 'LecPunch-Election-Installer');
+// Reuse Electron installed by this workspace. Besides making packaging faster, this
+// avoids a second runtime download that can stall behind a restricted network.
+const localElectronDist = path.join(process.cwd(), 'node_modules', 'electron', 'dist');
 
 await run(command('pnpm'), ['build']);
 
@@ -28,6 +31,7 @@ await run(process.execPath, [
   '--win',
   'nsis',
   '--x64',
+  ...(existsSync(localElectronDist) ? [`--config.electronDist=${localElectronDist}`] : []),
   `--config.directories.output=${outputDirectory}`
 ], {
   env: {

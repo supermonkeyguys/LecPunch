@@ -1,0 +1,21 @@
+{
+  "scene": "keyboard",
+  "label": "逍遥散人键盘小猫",
+  "backgroundFile": "resources/background.png",
+  "canvas": { "width": 780, "height": 520 },
+  "stage": { "left": 60, "bottom": 80, "width": 640, "height": 370 },
+  "model": { "left": 170, "bottom": -8, "width": 320, "height": 355, "renderScale": 0.76, "renderOffsetX": 0, "renderOffsetY": 18 },
+  "menu": {
+    "anchorX": 330, "anchorY": 330, "scaleOffsetX": -45, "scaleOffsetY": -130,
+    "actionOffsets": [{ "x": -71, "y": 65 }, { "x": -126, "y": 12 }, { "x": -130, "y": -55 }, { "x": -79, "y": -108 }, { "x": -8, "y": -129 }],
+    "spacing": 1,
+    "bubbleSize": 44
+  },
+  "orbit": { "right": 138, "bottom": 70 },
+  "message": { "left": 330, "top": 12 },
+  "keys": {
+    "aliases": { "ShiftLeft": "Shift", "ShiftRight": "Shift" },
+    "leftOverlays": ["KeyP", "KeyQ", "KeyR", "KeyS", "KeyZ", "Shift"],
+    "rightOverlays": ["UpArrow", "DownArrow", "LeftArrow", "RightArrow"]
+  }
+}

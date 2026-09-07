@@ -39,20 +39,27 @@ cp deploy/mongo.env.example deploy/mongo.env
 
 Edit both files before the first boot.
 
-## 3. Recommended first boot settings
+## 3. Network gateway and LAN-only check-in
 
-Use these settings for the first internal test:
+The public site can remain accessible at `http://<server-public-ip>/`, while
+the API independently decides whether a user is allowed to **check in**. This
+is deliberately not an nginx IP block: administrators must still be able to
+log in and repair a network rule if an office network changes.
+
+Use these settings before the first production boot:
 
 - keep `ALLOW_OPEN_REGISTRATION=true` only if you want regular users to self-register
-- keep `ALLOW_ANY_NETWORK=true` for the first boot to avoid locking yourself out
 - set `AUTH_SECRET` to a long random secret
 - keep `TRUST_PROXY=true`
+- leave `ALLOW_ANY_NETWORK=false` (the template default), then replace its placeholder `127.0.0.1` allowlist entry with your actual campus/router/VPN egress IP before inviting members
 
-After you confirm the actual client public IP, switch to a stricter network policy from the admin page:
+After logging in as an admin, open:
 
 - `http://<server-public-ip>/admin/network-policy`
 
-That admin policy is stored in MongoDB and overrides the environment fallback.
+The page shows the IP recognized by the server. Add that value under “允许的公网 IP”, or add a real LAN/VPN CIDR only when the server can directly see those private addresses. For a public Tencent Cloud server, every client normally appears as the router/campus **public egress IP**, so `192.168.x.x` is not sufficient.
+
+Save the policy with “允许任意网络” disabled. It is stored in MongoDB and overrides the environment fallback immediately. The nginx gateway overwrites any browser-supplied forwarding header with its real client address and preserves the notification SSE stream; do not expose the API or MongoDB ports directly.
 
 ## 4. Build and start
 
@@ -99,9 +106,26 @@ Open:
 http://<server-public-ip>/
 ```
 
-Then log in with the bootstrapped admin account and finish the network policy setup.
+Then log in with the bootstrapped admin account and finish the network policy setup. Administrators land on `/admin`, which is a dedicated control page for account migration, gateway policy, eligibility, activities, ledger, and exports.
 
-## 7. Suggested next step after the test
+## 7. Restore the server backup safely
+
+The backup archive is sensitive: it includes account password hashes, real-name/student data, source IPs, attendance records, and the admin role. Do not add it to Git or copy it into the repository.
+
+On the server, copy the archive to a protected path, stop the API while keeping Mongo running, then run the restore helper. The helper creates a rollback archive in `./backups/` before it replaces only `lecpunch.*` collections.
+
+```bash
+docker compose -f docker-compose.prod.yml stop api
+bash deploy/restore-mongo-archive.sh /protected/lecpunch-mongo-20260831.archive.gz --apply
+docker compose -f docker-compose.prod.yml run --rm api node dist/scripts/reconcile-active-attendance-sessions.js --apply
+docker compose -f docker-compose.prod.yml up -d api web
+```
+
+The reconciliation command keeps the newest active session for each user, invalidates only older duplicate active sessions, and creates the database unique index that prevents concurrent browser tabs from creating two active check-ins. Run it without `--apply` first if you want a read-only duplicate report.
+
+Because the archived `users` collection already contains role and password-hash data, existing administrators migrate with the snapshot. Use the bootstrap command only if you need to promote or recover a separate admin account.
+
+## 8. Suggested next step after the test
 
 After the small-scale test is stable, move to:
 

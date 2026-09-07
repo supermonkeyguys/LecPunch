@@ -1,6 +1,6 @@
 {
   "name": "@lecpunch/election",
-  "version": "0.1.17",
+  "version": "0.1.25",
   "private": true,
   "main": ".electron/main.js",
   "scripts": {
@@ -33,6 +33,7 @@
     "vite": "^8.0.3"
   },
   "build": {
+    "beforeBuild": "./scripts/electron-before-build.mjs",
     "appId": "org.lecpunch.election",
     "productName": "LecPunch Election",
     "directories": {
@@ -46,7 +47,6 @@
       "node_modules/node-gyp-build/**/*"
     ],
     "asar": true,
-    "npmRebuild": false,
     "asarUnpack": [
       "node_modules/uiohook-napi/**/*"
     ],
@@ -54,6 +54,14 @@
       {
         "from": "resources/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "node_modules/uiohook-napi",
+        "to": "native-modules/node_modules/uiohook-napi"
+      },
+      {
+        "from": "../../node_modules/.pnpm/node-gyp-build@4.8.4/node_modules/node-gyp-build",
+        "to": "native-modules/node_modules/node-gyp-build"
       }
     ],
     "win": {

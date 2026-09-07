@@ -4,7 +4,8 @@ import { StatsService } from './stats.service';
 describe('StatsService', () => {
   const aggregate = vi.fn();
   const attendanceService = {
-    getModel: vi.fn()
+    getModel: vi.fn(),
+    getManualAdjustmentSummaries: vi.fn()
   };
   const usersService = {
     findById: vi.fn(),
@@ -21,6 +22,7 @@ describe('StatsService', () => {
     vi.clearAllMocks();
     vi.useRealTimers();
     attendanceService.getModel.mockReturnValue({ aggregate });
+    attendanceService.getManualAdjustmentSummaries.mockResolvedValue(new Map());
     service = new StatsService(attendanceService as any, usersService as any);
   });
 
@@ -41,6 +43,9 @@ describe('StatsService', () => {
       {
         memberKey: 'key-user-1',
         totalDurationSeconds: 7200,
+        recordedDurationSeconds: 7200,
+        manualAdjustmentSeconds: 0,
+        adjustmentsCount: 0,
         sessionsCount: 2,
         displayName: 'Alice',
         realName: 'Alice Zhang',
@@ -51,6 +56,9 @@ describe('StatsService', () => {
       {
         memberKey: 'key-user-2',
         totalDurationSeconds: 0,
+        recordedDurationSeconds: 0,
+        manualAdjustmentSeconds: 0,
+        adjustmentsCount: 0,
         sessionsCount: 0,
         displayName: 'Bob',
         role: 'member',
@@ -89,8 +97,8 @@ describe('StatsService', () => {
       }
     ]);
     expect(result).toEqual([
-      expect.objectContaining({ displayName: 'Alice', enrollYear: 2024, totalDurationSeconds: 0, sessionsCount: 0 }),
-      expect.objectContaining({ displayName: 'Bob', enrollYear: 2024, totalDurationSeconds: 0, sessionsCount: 0 })
+      expect.objectContaining({ displayName: 'Alice', enrollYear: 2024, totalDurationSeconds: 0, manualAdjustmentSeconds: 0, adjustmentsCount: 0, sessionsCount: 0 }),
+      expect.objectContaining({ displayName: 'Bob', enrollYear: 2024, totalDurationSeconds: 0, manualAdjustmentSeconds: 0, adjustmentsCount: 0, sessionsCount: 0 })
     ]);
   });
 
@@ -135,12 +143,15 @@ describe('StatsService', () => {
       ])
     });
 
-    const result = await service.getMyWeeklyStats('user-1', 2024);
+    const result = await service.getMyWeeklyStats('team-1', 'user-1', 2024);
 
     expect(result).toEqual([
       {
         weekKey: '2026-04-07',
         totalDurationSeconds: 5400,
+        recordedDurationSeconds: 5400,
+        manualAdjustmentSeconds: 0,
+        adjustmentsCount: 0,
         sessionsCount: 3,
         weeklyGoalSeconds: 38 * 3600
       }
@@ -152,15 +163,61 @@ describe('StatsService', () => {
       exec: vi.fn().mockResolvedValue([{ _id: '2026-04-07', totalDurationSeconds: 5400, sessionsCount: 3 }])
     });
 
-    const result = await service.getMyWeeklyStats('user-1', 2025);
+    const result = await service.getMyWeeklyStats('team-1', 'user-1', 2025);
 
     expect(result).toEqual([
       {
         weekKey: '2026-04-07',
         totalDurationSeconds: 5400,
+        recordedDurationSeconds: 5400,
+        manualAdjustmentSeconds: 0,
+        adjustmentsCount: 0,
         sessionsCount: 3,
         weeklyGoalSeconds: 28 * 3600
       }
+    ]);
+  });
+
+  it('applies signed manual adjustments to the displayed ranking without changing session counts', async () => {
+    aggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([{ _id: 'user-1', totalDurationSeconds: 7_200, sessionsCount: 2 }])
+    });
+    attendanceService.getManualAdjustmentSummaries.mockResolvedValue(
+      new Map([['user-1:2026-08-31', { manualAdjustmentSeconds: -1_800, adjustmentsCount: 1 }]])
+    );
+    usersService.listTeamMembers.mockResolvedValue([
+      { id: 'user-1', displayName: 'Alice', role: 'member', enrollYear: 2024 }
+    ]);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-02T04:00:00.000Z'));
+
+    await expect(service.getTeamCurrentWeekStats('team-1')).resolves.toEqual([
+      expect.objectContaining({
+        totalDurationSeconds: 5_400,
+        recordedDurationSeconds: 7_200,
+        manualAdjustmentSeconds: -1_800,
+        sessionsCount: 2
+      })
+    ]);
+  });
+
+  it('does not apply an adjustment from a different week to weekly history', async () => {
+    aggregate.mockReturnValue({
+      exec: vi.fn().mockResolvedValue([
+        { _id: '2026-08-24', totalDurationSeconds: 3_600, sessionsCount: 1 },
+        { _id: '2026-08-31', totalDurationSeconds: 7_200, sessionsCount: 2 }
+      ])
+    });
+    attendanceService.getManualAdjustmentSummaries.mockResolvedValue(
+      new Map([
+        ['user-1:2026-08-24', { manualAdjustmentSeconds: -600, adjustmentsCount: 1 }],
+        ['user-1:2026-08-31', { manualAdjustmentSeconds: 1_200, adjustmentsCount: 1 }]
+      ])
+    );
+
+    await expect(service.getMyWeeklyStats('team-1', 'user-1', 2024)).resolves.toMatchObject([
+      { weekKey: '2026-08-31', totalDurationSeconds: 8_400, manualAdjustmentSeconds: 1_200 },
+      { weekKey: '2026-08-24', totalDurationSeconds: 3_000, manualAdjustmentSeconds: -600 }
     ]);
   });
 });

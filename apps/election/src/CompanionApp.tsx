@@ -9,6 +9,7 @@ export const CompanionApp = () => {
   const [catScale, setCatScale] = useState(1);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [replyTemplate, setReplyTemplate] = useState('{username} {message}');
+  const [catSkinId, setCatSkinId] = useState('standard-default');
   const [userName, setUserName] = useState('同学');
   const [catMessage, setCatMessage] = useState<{ id: number; message: string } | null>(null);
   const messageTimerRef = useRef<number | null>(null);
@@ -28,12 +29,18 @@ export const CompanionApp = () => {
     void window.lecpunchDesktop?.getCompanionSettings().then((settings) => {
       setCatScale(settings.scale);
       setReplyTemplate(settings.replyTemplate);
+      setCatSkinId(settings.skinId);
     });
     void fetchCurrentUser().then((user) => setUserName(user.displayName)).catch(() => undefined);
     const stopMessages = window.lecpunchDesktop?.onBongoMessage(({ message }) => {
       if (messageTimerRef.current) window.clearTimeout(messageTimerRef.current);
       setCatMessage({ id: Date.now(), message });
-      messageTimerRef.current = window.setTimeout(() => setCatMessage(null), 2000);
+      messageTimerRef.current = window.setTimeout(() => setCatMessage(null), 5000);
+    });
+    const stopSettings = window.lecpunchDesktop?.onBongoSettingsChanged((settings) => {
+      setCatScale(settings.scale);
+      setReplyTemplate(settings.replyTemplate);
+      setCatSkinId(settings.skinId);
     });
     const timer = window.setInterval(() => void refreshAttendance(), 30_000);
     return () => {
@@ -41,6 +48,7 @@ export const CompanionApp = () => {
       document.body.classList.remove('companion-body');
       window.clearInterval(timer);
       stopMessages?.();
+      stopSettings?.();
       if (messageTimerRef.current) window.clearTimeout(messageTimerRef.current);
     };
   }, []);
@@ -92,5 +100,5 @@ export const CompanionApp = () => {
     message: replyTemplate.split('{username}').join(userName || '同学').split('{message}').join(catMessage.message)
   } : null;
 
-  return <main className="companion-shell" style={{ '--cat-scale': catScale } as CSSProperties}><BongoCatCompanion desktop attendanceActive={Boolean(attendance?.hasActiveSession)} immersive={immersive} catScale={catScale} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((open) => !open)} onSetCatScale={(scale) => void updateCatScale(scale)} onSetVisible={(visible) => { if (!visible) void hideCat(); }} onOpenFocusAssist={() => void window.lecpunchDesktop?.openFocusAssist()} onAttendance={() => void toggleAttendance()} onToggleImmersive={toggleImmersive} onOpenSchedule={() => window.lecpunchDesktop?.showMain('schedule')} onOpenShop={() => window.lecpunchDesktop?.showMain('shop')} replyTemplate={replyTemplate} onSetReplyTemplate={(template) => void updateReplyTemplate(template)} catMessage={formattedCatMessage} /></main>;
+  return <main className="companion-shell" style={{ '--cat-scale': catScale } as CSSProperties}><BongoCatCompanion desktop attendanceActive={Boolean(attendance?.hasActiveSession)} immersive={immersive} catScale={catScale} settingsOpen={settingsOpen} onToggleSettings={() => setSettingsOpen((open) => !open)} onSetCatScale={(scale) => void updateCatScale(scale)} onSetVisible={(visible) => { if (!visible) void hideCat(); }} onOpenFocusAssist={() => void window.lecpunchDesktop?.openFocusAssist()} onOpenLayoutEditor={() => { setSettingsOpen(false); void window.lecpunchDesktop?.showMain('profile'); }} onAttendance={() => void toggleAttendance()} onToggleImmersive={toggleImmersive} onOpenSchedule={() => window.lecpunchDesktop?.showMain('schedule')} onOpenShop={() => window.lecpunchDesktop?.showMain('shop')} replyTemplate={replyTemplate} onSetReplyTemplate={(template) => void updateReplyTemplate(template)} catMessage={formattedCatMessage} catSkinId={catSkinId} /></main>;
 };

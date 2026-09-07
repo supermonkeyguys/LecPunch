@@ -7,6 +7,7 @@
     "build": "nest build",
     "start": "node dist/main.js",
     "bootstrap-admin": "ts-node src/scripts/bootstrap-admin.ts",
+    "reconcile-active-sessions": "ts-node src/scripts/reconcile-active-attendance-sessions.ts",
     "import-eligibility": "ts-node src/scripts/import-member-eligibility.ts",
     "seed": "ts-node src/scripts/seed-demo.ts",
     "lint": "eslint \"src/**/*.ts\"",
@@ -30,6 +31,7 @@
     "joi": "^18.1.2",
     "luxon": "^3.7.2",
     "mongoose": "^9.3.3",
+    "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1"
   },
@@ -38,6 +40,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/luxon": "^3.7.1",
+    "@types/multer": "^2.0.0",
     "@types/node": "^25.5.0",
     "@types/passport-jwt": "^4.0.1",
     "ts-node": "^10.9.2",

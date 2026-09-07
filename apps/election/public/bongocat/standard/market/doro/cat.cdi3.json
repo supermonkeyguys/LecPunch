@@ -1,0 +1,159 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "",
+			"Name": "角度 X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "",
+			"Name": "角度 Y"
+		},
+		{
+			"Id": "ParamMouseX",
+			"GroupId": "",
+			"Name": "鼠标x"
+		},
+		{
+			"Id": "ParamMouseY",
+			"GroupId": "",
+			"Name": "鼠标y"
+		},
+		{
+			"Id": "ParamMouseLeftDown",
+			"GroupId": "",
+			"Name": "右键"
+		},
+		{
+			"Id": "ParamMouseRightDown",
+			"GroupId": "",
+			"Name": "左键"
+		},
+		{
+			"Id": "CatParamLeftHandDown",
+			"GroupId": "",
+			"Name": "键盘"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "",
+			"Name": "左眼 开闭"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "",
+			"Name": "呼吸"
+		},
+		{
+			"Id": "Param4",
+			"GroupId": "ParamGroup",
+			"Name": "表情0"
+		},
+		{
+			"Id": "Param",
+			"GroupId": "ParamGroup",
+			"Name": "表情1"
+		},
+		{
+			"Id": "Param2",
+			"GroupId": "ParamGroup",
+			"Name": "表情2"
+		},
+		{
+			"Id": "Param3",
+			"GroupId": "ParamGroup",
+			"Name": "表情3"
+		},
+		{
+			"Id": "Param5",
+			"GroupId": "ParamGroup",
+			"Name": "表情4"
+		},
+		{
+			"Id": "ParamHairBack",
+			"GroupId": "ParamGroup2",
+			"Name": "F1fd"
+		},
+		{
+			"Id": "ParamHairSide",
+			"GroupId": "ParamGroup2",
+			"Name": "F23"
+		},
+		{
+			"Id": "ParamHairFront",
+			"GroupId": "ParamGroup2",
+			"Name": "F34"
+		},
+		{
+			"Id": "ParamHairFront2",
+			"GroupId": "ParamGroup2",
+			"Name": "F6"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "表情"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "F"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "Part",
+			"Name": "墨镜"
+		},
+		{
+			"Id": "F",
+			"Name": "F"
+		},
+		{
+			"Id": "Part3",
+			"Name": "脸"
+		},
+		{
+			"Id": "Part4",
+			"Name": "键盘"
+		},
+		{
+			"Id": "Part5",
+			"Name": "键盘手"
+		},
+		{
+			"Id": "Part7",
+			"Name": "鼠标手1"
+		},
+		{
+			"Id": "Part8",
+			"Name": "鼠标垫1"
+		},
+		{
+			"Id": "Part2",
+			"Name": "眼"
+		},
+		{
+			"Id": "Part6",
+			"Name": "按下"
+		},
+		{
+			"Id": "YY1",
+			"Name": "YY1"
+		},
+		{
+			"Id": "YY2",
+			"Name": "YY2"
+		}
+	],
+	"CombinedParameters": [
+		[
+			"ParamAngleX",
+			"ParamAngleY"
+		]
+	]
+}

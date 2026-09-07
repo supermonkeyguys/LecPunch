@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { Activity, Clock3, Radio, Users } from 'lucide-react';
-import type { TeamActiveAttendanceItem } from '@lecpunch/shared';
+import { ATTENDANCE_MAX_SECONDS, type TeamActiveAttendanceItem } from '@lecpunch/shared';
 import { Avatar, Badge } from '@lecpunch/ui';
 import { useDashboardContext } from '@/features/dashboard/context/DashboardContext';
 import { useSecondsTicker } from '@/shared/hooks/useSecondsTicker';
@@ -18,6 +18,7 @@ const DashboardActiveMembersWidgetComponent = () => {
 
   const readElapsedSeconds = (member: TeamActiveAttendanceItem) =>
     Math.max(0, Math.floor((Date.now() - new Date(member.checkInAt).getTime()) / 1000));
+  const displayedMembers = activeMembers.filter((member) => readElapsedSeconds(member) < ATTENDANCE_MAX_SECONDS);
 
   return (
     <PageSection className="overflow-hidden">
@@ -25,10 +26,10 @@ const DashboardActiveMembersWidgetComponent = () => {
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-emerald-600" />
-            <h3 className="text-lg font-semibold text-gray-900">当前在线打卡成员</h3>
-            <Badge variant={activeMembers.length > 0 ? 'success' : 'gray'}>
+            <h3 className="text-lg font-semibold text-gray-900">当前打卡中成员</h3>
+            <Badge variant={displayedMembers.length > 0 ? 'success' : 'gray'}>
               <Radio className="mr-1 h-3 w-3" />
-              实时
+              打卡状态
             </Badge>
           </div>
         </div>
@@ -36,24 +37,24 @@ const DashboardActiveMembersWidgetComponent = () => {
         <div className="flex items-center gap-2">
           <Badge variant="gray">
             <Users className="mr-1 h-3.5 w-3.5" />
-            {activeMembers.length} 人在线
+            {displayedMembers.length} 人打卡中
           </Badge>
         </div>
       </div>
 
       <div className="p-6">
-        {loading && activeMembers.length === 0 ? (
-          <PageState tone="loading" title="正在同步在线打卡成员..." className="px-0 py-10" />
-        ) : activeMembers.length === 0 ? (
+        {loading && displayedMembers.length === 0 ? (
+          <PageState tone="loading" title="正在同步打卡状态..." className="px-0 py-10" />
+        ) : displayedMembers.length === 0 ? (
           <PageState
             tone="empty"
-            title="当前没有在线打卡成员"
-            description="成员签到后，这里会实时显示仍在打卡中的人员。"
+            title="当前没有打卡中成员"
+            description="成员上卡后，会显示在这里，直到下卡或达到五小时上限。"
             className="px-0 py-10"
           />
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
-            {activeMembers.map((member) => (
+            {displayedMembers.map((member) => (
               <button
                 key={member.memberKey}
                 type="button"
@@ -79,7 +80,7 @@ const DashboardActiveMembersWidgetComponent = () => {
                     </div>
                   </div>
 
-                  <Badge variant="success">在线中</Badge>
+                  <Badge variant="success">打卡中</Badge>
                 </div>
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -95,7 +96,7 @@ const DashboardActiveMembersWidgetComponent = () => {
                   <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2">
                     <div className="flex items-center gap-1 text-xs text-emerald-700">
                       <Radio className="h-3.5 w-3.5" />
-                      当前在线时长
+                      当前打卡时长
                     </div>
                     <div className="mt-1 font-mono text-sm font-semibold text-emerald-800">
                       {formatDuration(readElapsedSeconds(member))}

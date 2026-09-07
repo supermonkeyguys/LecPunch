@@ -11,10 +11,11 @@ const DashboardAttendanceWidgetComponent = () => {
     weekLabel,
     isCurrentWeek,
     isCheckedIn,
-    isPaused,
-    pauseReason,
     currentDuration,
     selectedWeekDuration,
+    selectedWeekRecordedDuration,
+    selectedWeekManualAdjustment,
+    selectedWeekAdjustmentsCount,
     selectedWeekSessionsCount,
     weeklyGoalSeconds,
     submitting,
@@ -22,13 +23,6 @@ const DashboardAttendanceWidgetComponent = () => {
     isNearLimit,
     onAttendanceAction
   } = useDashboardContext();
-
-  const pauseReasonText =
-    pauseReason === 'network_not_allowed'
-      ? '网络不在允许范围'
-      : pauseReason === 'client_offline'
-        ? '设备离线'
-        : 'keepalive 超时';
 
   const spotlightSeconds = isCurrentWeek ? currentDuration : selectedWeekDuration;
   const completedSeconds = selectedWeekDuration + (isCurrentWeek && isCheckedIn ? currentDuration : 0);
@@ -44,9 +38,7 @@ const DashboardAttendanceWidgetComponent = () => {
     ? '正在加载...'
     : isCurrentWeek
       ? isCheckedIn
-        ? isPaused
-          ? '当前已暂停累计，请恢复网络或返回页面'
-          : '正在记录有效时长...'
+        ? '正在记录打卡时长...'
         : '当前未打卡，开始今天的努力吧！'
       : `${weekLabel}累计有效时长`;
 
@@ -72,7 +64,7 @@ const DashboardAttendanceWidgetComponent = () => {
 
         <div className="mb-4 flex flex-wrap gap-3 text-sm">
           <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-            <p className="text-xs text-gray-500">{weekLabel}有效累计</p>
+            <p className="text-xs text-gray-500">{weekLabel}调整后累计</p>
             <p className="mt-1 font-mono text-lg font-semibold text-gray-900">
               {formatDuration(selectedWeekDuration)}
             </p>
@@ -82,6 +74,16 @@ const DashboardAttendanceWidgetComponent = () => {
             <p className="mt-1 text-lg font-semibold text-gray-900">{selectedWeekSessionsCount} 次</p>
           </div>
         </div>
+
+        {selectedWeekAdjustmentsCount > 0 ? (
+          <p className="mb-4 text-xs text-slate-500">
+            原始打卡 {formatDuration(selectedWeekRecordedDuration)}，管理员调整
+            <span className={selectedWeekManualAdjustment > 0 ? 'ml-1 font-semibold text-emerald-700' : 'ml-1 font-semibold text-rose-700'}>
+              {selectedWeekManualAdjustment >= 0 ? '+' : '-'}{formatDuration(Math.abs(selectedWeekManualAdjustment))}
+            </span>
+            （{selectedWeekAdjustmentsCount} 条）。积分仍按原始打卡计算。
+          </p>
+        ) : null}
 
         {weeklyGoalSeconds > 0 ? (
           <div className="mb-4 max-w-md rounded-xl border border-slate-100 bg-slate-50 p-3">
@@ -103,12 +105,6 @@ const DashboardAttendanceWidgetComponent = () => {
           </div>
         ) : null}
 
-        {isCurrentWeek && isCheckedIn && isPaused ? (
-          <p className="mb-4 rounded-md bg-amber-50 p-2 text-sm text-amber-700">
-            当前打卡处于暂停累计状态（{pauseReasonText}）。
-          </p>
-        ) : null}
-
         {isCurrentWeek && isCheckedIn ? (
           <div className="max-w-md">
             <div className="mb-1.5 flex justify-between text-xs">
@@ -124,7 +120,7 @@ const DashboardAttendanceWidgetComponent = () => {
             {isWarning ? (
               <p className="mt-2 flex items-center rounded-md bg-red-50 p-2 text-sm text-red-600">
                 <AlertTriangle className="mr-2 h-4 w-4 flex-shrink-0" />
-                {isNearLimit ? '警告：即将超过 5 小时上限，请及时下卡！' : '接近 5 小时上限，请注意打卡时长'}
+                {isNearLimit ? '还剩 15 分钟将达到 5 小时上限，请及时下卡。' : '接近 5 小时上限，请注意打卡时长'}
               </p>
             ) : null}
           </div>

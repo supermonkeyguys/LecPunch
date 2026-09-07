@@ -1,0 +1,286 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "ParamMouseX",
+			"GroupId": "ParamGroup",
+			"Name": "鼠标X"
+		},
+		{
+			"Id": "ParamMouseY",
+			"GroupId": "ParamGroup",
+			"Name": "鼠标Y"
+		},
+		{
+			"Id": "ParamMouseLeftDown",
+			"GroupId": "ParamGroup",
+			"Name": "鼠标左键按下"
+		},
+		{
+			"Id": "ParamMouseRightDown",
+			"GroupId": "ParamGroup",
+			"Name": "鼠标右键按下"
+		},
+		{
+			"Id": "CatParamLeftHandDown",
+			"GroupId": "ParamGroup",
+			"Name": "键盘按下"
+		},
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "ParamGroup",
+			"Name": "角度 X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "ParamGroup",
+			"Name": "角度 Y"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "ParamGroup",
+			"Name": "左眼　开闭"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "ParamGroup",
+			"Name": "右眼   开闭"
+		},
+		{
+			"Id": "zhayao",
+			"GroupId": "ParamGroup3",
+			"Name": "药"
+		},
+		{
+			"Id": "mao",
+			"GroupId": "ParamGroup3",
+			"Name": "猫猫"
+		},
+		{
+			"Id": "Param",
+			"GroupId": "ParamGroup5",
+			"Name": "手L"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "ParamGroup2",
+			"Name": "眼球 X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "ParamGroup2",
+			"Name": "眼球 Y"
+		},
+		{
+			"Id": "ParamHairBack",
+			"GroupId": "ParamGroup2",
+			"Name": "摇动　后发"
+		},
+		{
+			"Id": "ParamHairSide",
+			"GroupId": "ParamGroup2",
+			"Name": "摇动　侧发"
+		},
+		{
+			"Id": "ParamHairFront",
+			"GroupId": "ParamGroup2",
+			"Name": "摇动　前发"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "ParamGroup2",
+			"Name": "呼吸"
+		},
+		{
+			"Id": "ParamBodyAngleZ",
+			"GroupId": "ParamGroup2",
+			"Name": "身体旋转　Z"
+		},
+		{
+			"Id": "ParamBodyAngleY",
+			"GroupId": "ParamGroup2",
+			"Name": "身体旋转　Y"
+		},
+		{
+			"Id": "ParamBodyAngleX",
+			"GroupId": "ParamGroup2",
+			"Name": "身体旋转　X"
+		},
+		{
+			"Id": "ParamCheek",
+			"GroupId": "ParamGroup2",
+			"Name": "脸颊"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "ParamGroup2",
+			"Name": "嘴巴　张开和闭合"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "ParamGroup2",
+			"Name": "嘴部　变形"
+		},
+		{
+			"Id": "ParamBrowRForm",
+			"GroupId": "ParamGroup2",
+			"Name": "右眉　変形"
+		},
+		{
+			"Id": "ParamBrowLForm",
+			"GroupId": "ParamGroup2",
+			"Name": "左眉　変形"
+		},
+		{
+			"Id": "ParamBrowRAngle",
+			"GroupId": "ParamGroup2",
+			"Name": "右眉　角度"
+		},
+		{
+			"Id": "ParamBrowLAngle",
+			"GroupId": "ParamGroup2",
+			"Name": "左眉　角度"
+		},
+		{
+			"Id": "ParamBrowRX",
+			"GroupId": "ParamGroup2",
+			"Name": "右眉　左右"
+		},
+		{
+			"Id": "ParamBrowLX",
+			"GroupId": "ParamGroup2",
+			"Name": "左眉　左右"
+		},
+		{
+			"Id": "ParamBrowRY",
+			"GroupId": "ParamGroup2",
+			"Name": "右眉　上下"
+		},
+		{
+			"Id": "ParamBrowLY",
+			"GroupId": "ParamGroup2",
+			"Name": "左眉上下"
+		},
+		{
+			"Id": "ParamEyeRSmile",
+			"GroupId": "ParamGroup2",
+			"Name": "右眼　微笑"
+		},
+		{
+			"Id": "ParamEyeLSmile",
+			"GroupId": "ParamGroup2",
+			"Name": "左眼　微笑"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "ParamGroup2",
+			"Name": "角度 Z"
+		},
+		{
+			"Id": "Param_Angle_Rotation_1_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[0]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_2_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[1]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_3_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[2]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_4_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[3]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_5_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[4]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_6_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[5]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_7_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[6]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_8_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[7]wei"
+		},
+		{
+			"Id": "Param_Angle_Rotation_9_wei",
+			"GroupId": "ParamGroup4",
+			"Name": "[8]wei"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "cat"
+		},
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "表情"
+		},
+		{
+			"Id": "ParamGroup5",
+			"GroupId": "",
+			"Name": "物理"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "Folder 2"
+		},
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "wei"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "hand",
+			"Name": "hand"
+		},
+		{
+			"Id": "keyboard",
+			"Name": "keyboard"
+		},
+		{
+			"Id": "wuguan",
+			"Name": "wuguan"
+		},
+		{
+			"Id": "shu",
+			"Name": "shu"
+		},
+		{
+			"Id": "wei_Skinning",
+			"Name": "wei(蒙皮)"
+		},
+		{
+			"Id": "Part",
+			"Name": "wei(回转)"
+		},
+		{
+			"Id": "zhuo",
+			"Name": "zhuo"
+		},
+		{
+			"Id": "jian",
+			"Name": "jian"
+		}
+	]
+}

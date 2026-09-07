@@ -3,7 +3,9 @@ import { validationSchema } from './env.validation';
 
 const baseEnv = {
   MONGODB_URI: 'mongodb://localhost:27017/lecpunch',
-  AUTH_SECRET: '1234567890abcdef'
+  AUTH_SECRET: 'a'.repeat(64),
+  MEET_JWT_APP_ID: 'lecpunch-lan-meet',
+  MEET_JWT_SECRET: 'f'.repeat(64)
 };
 
 describe('validationSchema', () => {
@@ -64,5 +66,14 @@ describe('validationSchema', () => {
 
     expect(error).toBeUndefined();
     expect(value.ATTENDANCE_BALANCED_ACCOUNTING_ENABLED).toBe(true);
+  });
+
+  it('rejects a meeting secret reused from the application JWT secret', () => {
+    const { error } = validationSchema.validate({
+      ...baseEnv,
+      MEET_JWT_SECRET: baseEnv.AUTH_SECRET
+    });
+
+    expect(error?.message).toContain('MEET_JWT_SECRET must differ from AUTH_SECRET');
   });
 });

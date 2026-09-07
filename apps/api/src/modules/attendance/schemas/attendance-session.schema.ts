@@ -7,7 +7,7 @@ export class AttendanceSession {
   @Prop({ required: true, type: String, index: true })
   teamId!: string;
 
-  @Prop({ required: true, type: String, index: true })
+  @Prop({ required: true, type: String })
   userId!: string;
 
   @Prop({ required: true, type: Date })
@@ -63,6 +63,17 @@ export type AttendanceSessionDocument = HydratedDocument<AttendanceSession>;
 export const AttendanceSessionSchema = SchemaFactory.createForClass(AttendanceSession);
 
 AttendanceSessionSchema.index({ userId: 1, status: 1 });
+// This is the database-level guard for concurrent requests from multiple browser
+// tabs/devices. The service check is helpful for the normal path, but only this
+// partial unique index can make creating two active sessions impossible.
+AttendanceSessionSchema.index(
+  { userId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: 'active' },
+    name: 'unique_active_attendance_session_per_user'
+  }
+);
 AttendanceSessionSchema.index({ teamId: 1, weekKey: 1, userId: 1 });
 AttendanceSessionSchema.index({ userId: 1, checkInAt: -1 });
 AttendanceSessionSchema.index({ teamId: 1, checkInAt: -1 });

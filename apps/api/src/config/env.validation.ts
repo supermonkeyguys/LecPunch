@@ -48,6 +48,8 @@ export const validationSchema = Joi.object({
   PORT: Joi.number().default(4000),
   MONGODB_URI: Joi.string().uri().required(),
   AUTH_SECRET: Joi.string().min(16).required(),
+  MEET_JWT_APP_ID: Joi.string().pattern(/^[A-Za-z0-9][A-Za-z0-9_-]{2,63}$/).required(),
+  MEET_JWT_SECRET: Joi.string().min(32).required(),
   DEFAULT_TEAM_NAME: Joi.string().default('FocusTeam'),
   ALLOW_OPEN_REGISTRATION: Joi.boolean().truthy('true').falsy('false').default(true),
   ATTENDANCE_BALANCED_ACCOUNTING_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
@@ -55,7 +57,10 @@ export const validationSchema = Joi.object({
   ALLOWED_PUBLIC_IPS: ipListSchema,
   ALLOWED_CIDRS: cidrListSchema,
   TRUST_PROXY: Joi.boolean().truthy('true').falsy('false').default(false),
-  TRUSTED_PROXY_HOPS: Joi.number().min(1).default(1)
+  TRUSTED_PROXY_HOPS: Joi.number().min(1).default(1),
+  REPORT_IMAGES_DIR: Joi.string().min(1).default('./data/report-images'),
+  REPORT_IMAGE_RETENTION_HOURS: Joi.number().integer().min(1).max(24).default(3),
+  REPORT_IMAGE_MAX_BYTES: Joi.number().integer().min(1_024).max(3 * 1024 * 1024).default(3 * 1024 * 1024)
 })
   .custom((value, helpers) => {
     const hasAllowedIps = csvToArray(value.ALLOWED_PUBLIC_IPS).length > 0;
@@ -65,9 +70,14 @@ export const validationSchema = Joi.object({
       return helpers.error('network.allowlistRequired');
     }
 
+    if (value.MEET_JWT_SECRET === value.AUTH_SECRET) {
+      return helpers.error('meet.secretMustDiffer');
+    }
+
     return value;
   })
   .messages({
     'network.allowlistRequired':
-      'ALLOWED_PUBLIC_IPS or ALLOWED_CIDRS must be configured when ALLOW_ANY_NETWORK=false'
+      'ALLOWED_PUBLIC_IPS or ALLOWED_CIDRS must be configured when ALLOW_ANY_NETWORK=false',
+    'meet.secretMustDiffer': 'MEET_JWT_SECRET must differ from AUTH_SECRET'
   });

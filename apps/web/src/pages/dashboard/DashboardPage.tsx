@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BellRing, Clock3 } from 'lucide-react';
 import {
-  ATTENDANCE_KEEPALIVE_INTERVAL_SECONDS,
-  ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS,
   ATTENDANCE_MAX_SECONDS,
   ERROR_CODES,
   WARNING_THRESHOLD_SECONDS,
-  type AttendancePauseReason,
   type TeamActiveAttendanceItem,
   type TeamWeeklyStatItem
 } from '@lecpunch/shared';
@@ -15,7 +12,7 @@ import { Alert, Badge, Button } from '@lecpunch/ui';
 import { WeekSelector } from '@/app/components/WeekSelector';
 import { useAuthStore } from '@/app/store/auth-store';
 import { useUIStore } from '@/app/store/ui-store';
-import { checkInAttendance, checkOutAttendance, keepAliveAttendance } from '@/features/attendance/attendance.api';
+import { checkInAttendance, checkOutAttendance } from '@/features/attendance/attendance.api';
 import { DashboardContextProvider } from '@/features/dashboard/context/DashboardContext';
 import { useDashboardData } from '@/features/dashboard/useDashboardData';
 import { useDashboardNotifications } from '@/features/notifications/useDashboardNotifications';
@@ -31,7 +28,6 @@ import { DashboardHeatmapWidget } from '@/widgets/dashboard/DashboardHeatmapWidg
 import { DashboardTeamWidget } from '@/widgets/dashboard/DashboardTeamWidget';
 import { WEEK_LABELS } from '@/widgets/dashboard/dashboard.lib';
 
-const KEEPALIVE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000] as const;
 export const DashboardPage = () => {
   const navigate = useNavigate();
   const selectedWeek = useUIStore((state) => state.selectedWeek);
@@ -39,13 +35,7 @@ export const DashboardPage = () => {
   const token = useAuthStore((state) => state.auth.token);
   const [actionError, setActionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [creditedSeconds, setCreditedSeconds] = useState(0);
-  const [liveSliceSeconds, setLiveSliceSeconds] = useState(0);
-  const [sessionPaused, setSessionPaused] = useState(false);
-  const [pauseReason, setPauseReason] = useState<AttendancePauseReason | undefined>(undefined);
-  const [lastKeepaliveSyncAtMs, setLastKeepaliveSyncAtMs] = useState<number | null>(null);
-  const [keepaliveNotice, setKeepaliveNotice] = useState<string | null>(null);
-  const keepaliveInFlightRef = useRef(false);
+  const [liveElapsedSeconds, setLiveElapsedSeconds] = useState(0);
 
   const {
     attendance,
@@ -73,193 +63,28 @@ export const DashboardPage = () => {
   const selectedWeekDuration =
     selectedWeekStat?.totalDurationSeconds ??
     selectedWeekRecords.reduce((sum, record) => sum + (record.durationSeconds ?? 0), 0);
+  const selectedWeekRecordedDuration =
+    selectedWeekStat?.recordedDurationSeconds ??
+    selectedWeekRecords.reduce((sum, record) => sum + (record.durationSeconds ?? 0), 0);
+  const selectedWeekManualAdjustment = selectedWeekStat?.manualAdjustmentSeconds ?? 0;
+  const selectedWeekAdjustmentsCount = selectedWeekStat?.adjustmentsCount ?? 0;
   const selectedWeekSessionsCount = selectedWeekStat?.sessionsCount ?? selectedWeekRecords.length;
 
   useEffect(() => {
-    const nextCreditedSeconds = currentSession?.creditedSeconds ?? 0;
-    const nextPaused = Boolean(currentSession?.isPaused);
-    const serverElapsedSeconds = currentSession?.elapsedSeconds ?? nextCreditedSeconds;
-    const nextLiveSliceSeconds = nextPaused ? 0 : Math.max(0, serverElapsedSeconds - nextCreditedSeconds);
+    setLiveElapsedSeconds(currentSession?.elapsedSeconds ?? 0);
+  }, [currentSession?.id, currentSession?.elapsedSeconds]);
 
-    setCreditedSeconds(nextCreditedSeconds);
-    setLiveSliceSeconds(nextLiveSliceSeconds);
-    setSessionPaused(nextPaused);
-    setPauseReason(currentSession?.pauseReason as AttendancePauseReason | undefined);
-    setKeepaliveNotice(null);
-    if (currentSession) {
-      const syncAt = currentSession.lastKeepaliveAt ? new Date(currentSession.lastKeepaliveAt).getTime() : Date.now();
-      setLastKeepaliveSyncAtMs(syncAt);
-    } else {
-      setLastKeepaliveSyncAtMs(null);
-    }
-  }, [
-    currentSession?.id,
-    currentSession?.creditedSeconds,
-    currentSession?.elapsedSeconds,
-    currentSession?.isPaused,
-    currentSession?.pauseReason
-  ]);
-
-  useSecondsTicker(() => {
-    const now = Date.now();
-    const timeoutMs = ATTENDANCE_KEEPALIVE_TIMEOUT_SECONDS * 1000;
-    if (lastKeepaliveSyncAtMs !== null && now - lastKeepaliveSyncAtMs > timeoutMs) {
-      setSessionPaused(true);
-      setPauseReason('heartbeat_timeout');
-      setActionError((current) => current ?? '续记账中断，已暂停累计，请检查网络后重试。');
-      return;
-    }
-
-    setLiveSliceSeconds((value) => value + 1);
-  }, isCurrentWeek && isCheckedIn && !sessionPaused);
+  useSecondsTicker(() => setLiveElapsedSeconds((value) => value + 1), isCurrentWeek && isCheckedIn);
 
   useEffect(() => {
-    if (!isCurrentWeek || !isCheckedIn) {
-      return;
-    }
-
-    let cancelled = false;
-    const setIntervalFn =
-      typeof globalThis.setInterval === 'function' ? globalThis.setInterval : window.setInterval.bind(window);
-    const clearIntervalFn =
-      typeof globalThis.clearInterval === 'function' ? globalThis.clearInterval : window.clearInterval.bind(window);
-
-    const waitFor = async (ms: number) =>
-      new Promise<void>((resolve) => {
-        const timeout = setTimeout(() => {
-          resolve();
-        }, ms);
-
-        if (cancelled) {
-          clearTimeout(timeout);
-          resolve();
-        }
-      });
-
-    const handleKeepaliveTerminalError = (error: unknown, errorCode?: string) => {
-      const resolvedErrorCode = errorCode ?? getApiErrorCode(error);
-
-      if (resolvedErrorCode === ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED) {
-        setActionError(getApiErrorMessage(error, '当前打卡已失效，请重新上卡'));
-        refresh();
-        return;
-      }
-
-      if (resolvedErrorCode === ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED) {
-        setSessionPaused(true);
-        setPauseReason('network_not_allowed');
-        setLiveSliceSeconds(0);
-        setActionError('当前网络不在允许范围内，已暂停累计，请切换网络后重试。');
-        return;
-      }
-
-      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-        setSessionPaused(true);
-        setPauseReason('client_offline');
-        setLiveSliceSeconds(0);
-        setActionError('当前设备离线，已暂停累计，恢复联网后会继续。');
-        return;
-      }
-
-      setSessionPaused(true);
-      setPauseReason('heartbeat_timeout');
-      setActionError(getApiErrorMessage(error, '续记账失败，已暂停累计，请检查网络后重试。'));
-    };
-
-    const syncKeepAlive = async () => {
-      if (keepaliveInFlightRef.current) {
-        return;
-      }
-
-      keepaliveInFlightRef.current = true;
-
-      try {
-        for (let attempt = 0; attempt <= KEEPALIVE_RETRY_DELAYS_MS.length; attempt += 1) {
-          if (cancelled) {
-            return;
-          }
-
-          if (attempt > 0) {
-            setKeepaliveNotice(`网络波动，正在尝试恢复连接（${attempt}/${KEEPALIVE_RETRY_DELAYS_MS.length}）...`);
-            await waitFor(KEEPALIVE_RETRY_DELAYS_MS[attempt - 1]);
-            if (cancelled) {
-              return;
-            }
-          }
-
-          try {
-            const keepalive = await keepAliveAttendance();
-            if (cancelled) {
-              return;
-            }
-
-            const nextCreditedSeconds = keepalive?.creditedSeconds ?? 0;
-            const nextPaused = Boolean(keepalive?.isPaused);
-            setCreditedSeconds(nextCreditedSeconds);
-            setLiveSliceSeconds(0);
-            setSessionPaused(nextPaused);
-            setPauseReason(keepalive?.pauseReason as AttendancePauseReason | undefined);
-            setLastKeepaliveSyncAtMs(
-              keepalive?.lastKeepaliveAt ? new Date(keepalive.lastKeepaliveAt).getTime() : Date.now()
-            );
-            setKeepaliveNotice(null);
-
-            if (!nextPaused) {
-              setActionError((current) => (current?.includes('暂停累计') ? null : current));
-            }
-
-            return;
-          } catch (error) {
-            if (cancelled) {
-              return;
-            }
-
-            const errorCode = getApiErrorCode(error);
-            const shouldRetry =
-              errorCode !== ERROR_CODES.ATTENDANCE_SESSION_INVALIDATED &&
-              errorCode !== ERROR_CODES.ATTENDANCE_NETWORK_NOT_ALLOWED &&
-              attempt < KEEPALIVE_RETRY_DELAYS_MS.length;
-
-            if (shouldRetry) {
-              continue;
-            }
-
-            setKeepaliveNotice(null);
-            handleKeepaliveTerminalError(error, errorCode);
-            return;
-          }
-        }
-      } finally {
-        keepaliveInFlightRef.current = false;
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        void syncKeepAlive();
-      }
-    };
-
-    const interval = setIntervalFn(() => {
-      void syncKeepAlive();
-    }, ATTENDANCE_KEEPALIVE_INTERVAL_SECONDS * 1000);
-
-    if (typeof document !== 'undefined') {
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
-
-    return () => {
-      cancelled = true;
-      clearIntervalFn(interval);
-      if (typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      }
-    };
+    if (!isCurrentWeek || !isCheckedIn) return;
+    const timer = window.setInterval(() => void refresh(), 30_000);
+    return () => window.clearInterval(timer);
   }, [isCheckedIn, isCurrentWeek, refresh]);
 
-  const currentDuration = currentSession ? creditedSeconds + (sessionPaused ? 0 : liveSliceSeconds) : 0;
+  const currentDuration = currentSession ? liveElapsedSeconds : 0;
   const isWarning = currentDuration >= WARNING_THRESHOLD_SECONDS;
-  const isNearLimit = currentDuration >= ATTENDANCE_MAX_SECONDS - 360;
+  const isNearLimit = currentDuration >= WARNING_THRESHOLD_SECONDS;
 
   const handleAttendanceAction = async () => {
     if (!isCurrentWeek) {
@@ -285,7 +110,16 @@ export const DashboardPage = () => {
 
       refresh();
     } catch (error) {
-      setActionError(getApiErrorMessage(error, '操作失败，请稍后重试'));
+      const errorCode = getApiErrorCode(error);
+      if (
+        errorCode === ERROR_CODES.ATTENDANCE_ALREADY_CHECKED_IN ||
+        errorCode === ERROR_CODES.ATTENDANCE_NO_ACTIVE_SESSION
+      ) {
+        refresh();
+        setActionError('打卡状态已在其他页面或设备发生变化，已开始同步最新状态。');
+      } else {
+        setActionError(getApiErrorMessage(error, '操作失败，请稍后重试'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -323,10 +157,11 @@ export const DashboardPage = () => {
       activeMembers,
       records,
       isCheckedIn,
-      isPaused: sessionPaused,
-      pauseReason,
       currentDuration,
       selectedWeekDuration,
+      selectedWeekRecordedDuration,
+      selectedWeekManualAdjustment,
+      selectedWeekAdjustmentsCount,
       selectedWeekSessionsCount,
       weeklyGoalSeconds,
       submitting,
@@ -345,10 +180,11 @@ export const DashboardPage = () => {
       activeMembers,
       records,
       isCheckedIn,
-      sessionPaused,
-      pauseReason,
       currentDuration,
       selectedWeekDuration,
+      selectedWeekRecordedDuration,
+      selectedWeekManualAdjustment,
+      selectedWeekAdjustmentsCount,
       selectedWeekSessionsCount,
       weeklyGoalSeconds,
       submitting,
@@ -370,12 +206,6 @@ export const DashboardPage = () => {
           onClose={() => setActionError(null)}
         >
           {actionError}
-        </Alert>
-      ) : null}
-
-      {keepaliveNotice ? (
-        <Alert variant="info" icon={<Clock3 className="h-4 w-4" />}>
-          {keepaliveNotice}
         </Alert>
       ) : null}
 

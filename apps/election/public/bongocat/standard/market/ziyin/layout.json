@@ -1,0 +1,79 @@
+{
+  "scene": "standard",
+  "label": "子音",
+  "backgroundFile": "resources/background.png",
+  "canvas": {
+    "width": 780,
+    "height": 520
+  },
+  "stage": {
+    "left": 0,
+    "bottom": 0,
+    "width": 780,
+    "height": 520
+  },
+  "model": {
+    "left": 84,
+    "bottom": 58,
+    "width": 612,
+    "height": 354
+  },
+  "menu": {
+    "anchorX": 630,
+    "anchorY": 180,
+    "scaleOffsetX": 0,
+    "scaleOffsetY": 0,
+    "actionOffsets": [
+      {
+        "x": -71,
+        "y": 65
+      },
+      {
+        "x": -126,
+        "y": 12
+      },
+      {
+        "x": -130,
+        "y": -55
+      },
+      {
+        "x": -79,
+        "y": -108
+      },
+      {
+        "x": -8,
+        "y": -129
+      }
+    ],
+    "spacing": 1,
+    "bubbleSize": 44
+  },
+  "orbit": {
+    "right": 130,
+    "bottom": 92
+  },
+  "message": {
+    "left": 340,
+    "top": 10
+  },
+  "keys": {
+    "leftOverlays": [
+      "KeyA",
+      "KeyD",
+      "KeyE",
+      "KeyQ",
+      "KeyR",
+      "KeyS",
+      "KeyW",
+      "Num1",
+      "Num2",
+      "Num3",
+      "Num4",
+      "Num5",
+      "Num6",
+      "Num7",
+      "Space"
+    ],
+    "rightOverlays": []
+  }
+}

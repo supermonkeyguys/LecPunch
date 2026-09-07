@@ -1,8 +1,9 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { PointsService } from './points.service';
+import { MyPointsQueryDto } from './dto/my-points-query.dto';
 
 @Controller('points')
 @UseGuards(JwtAuthGuard)
@@ -10,7 +11,7 @@ export class PointsController {
   constructor(private readonly pointsService: PointsService) {}
 
   @Get('me')
-  getMyPoints(@CurrentUser() user: AuthUser) {
-    return this.pointsService.getUserPoints(user.teamId, user.userId);
+  getMine(@CurrentUser() user: AuthUser, @Query() query: MyPointsQueryDto) {
+    return this.pointsService.getMyPoints(user, query.week);
   }
 }

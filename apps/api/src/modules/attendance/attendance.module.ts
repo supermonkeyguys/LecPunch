@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AttendanceSession, AttendanceSessionSchema } from './schemas/attendance-session.schema';
+import {
+  AttendanceDurationAdjustment,
+  AttendanceDurationAdjustmentSchema
+} from './schemas/attendance-duration-adjustment.schema';
 import { AttendanceService } from './attendance.service';
 import { AttendanceController } from './attendance.controller';
 import { NetworkPolicyModule } from '../network-policy/network-policy.module';
@@ -12,7 +16,10 @@ import { PointsModule } from '../points/points.module';
     NetworkPolicyModule,
     UsersModule,
     PointsModule,
-    MongooseModule.forFeature([{ name: AttendanceSession.name, schema: AttendanceSessionSchema }])
+    MongooseModule.forFeature([
+      { name: AttendanceSession.name, schema: AttendanceSessionSchema },
+      { name: AttendanceDurationAdjustment.name, schema: AttendanceDurationAdjustmentSchema }
+    ])
   ],
   providers: [AttendanceService],
   controllers: [AttendanceController],

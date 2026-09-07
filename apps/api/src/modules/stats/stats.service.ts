@@ -11,7 +11,7 @@ export class StatsService {
     private readonly usersService: UsersService
   ) {}
 
-  async getMyWeeklyStats(userId: string, enrollYear: number, limit = 6) {
+  async getMyWeeklyStats(teamId: string, userId: string, enrollYear: number, limit = 6) {
     const model = this.attendanceService.getModel();
     const rows = await model
       .aggregate([
@@ -24,17 +24,37 @@ export class StatsService {
             weeklyGoalSecondsSnapshot: { $max: '$weeklyGoalSecondsSnapshot' }
           }
         },
-        { $sort: { _id: -1 } },
-        { $limit: limit }
+        { $sort: { _id: -1 } }
       ])
       .exec();
 
-    return rows.map((row) => ({
-      weekKey: row._id,
-      totalDurationSeconds: row.totalDurationSeconds,
-      sessionsCount: row.sessionsCount,
-      weeklyGoalSeconds: row.weeklyGoalSecondsSnapshot ?? weeklyGoalSeconds(enrollYear)
-    }));
+    const adjustmentSummaries = await this.attendanceService.getManualAdjustmentSummaries(teamId, [userId]);
+
+    const rowsByWeek = new Map(rows.map((row) => [row._id, row]));
+    for (const key of adjustmentSummaries.keys()) {
+      const [adjustmentUserId, weekKey] = key.split(':');
+      if (adjustmentUserId === userId && !rowsByWeek.has(weekKey)) {
+        rowsByWeek.set(weekKey, { _id: weekKey, totalDurationSeconds: 0, sessionsCount: 0 });
+      }
+    }
+
+    return [...rowsByWeek.values()]
+      .sort((left, right) => right._id.localeCompare(left._id))
+      .slice(0, limit)
+      .map((row) => {
+      const recordedDurationSeconds = row.totalDurationSeconds ?? 0;
+      const adjustmentSummary = adjustmentSummaries.get(`${userId}:${row._id}`);
+      const manualAdjustmentSeconds = adjustmentSummary?.manualAdjustmentSeconds ?? 0;
+      return {
+        weekKey: row._id,
+        totalDurationSeconds: Math.max(0, recordedDurationSeconds + manualAdjustmentSeconds),
+        recordedDurationSeconds,
+        manualAdjustmentSeconds,
+        adjustmentsCount: adjustmentSummary?.adjustmentsCount ?? 0,
+        sessionsCount: row.sessionsCount,
+        weeklyGoalSeconds: row.weeklyGoalSecondsSnapshot ?? weeklyGoalSeconds(enrollYear)
+      };
+    });
   }
 
   async getTeamCurrentWeekStats(teamId: string, enrollYear?: number) {
@@ -71,14 +91,23 @@ export class StatsService {
       ])
       .exec();
 
+    const [adjustmentSummaries] = await Promise.all([
+      this.attendanceService.getManualAdjustmentSummaries(teamId, memberIds)
+    ]);
     const statsByUserId = new Map(rows.map((row) => [row._id, row]));
 
     return members
       .map((member) => {
         const stats = statsByUserId.get(member.id);
+        const recordedDurationSeconds = stats?.totalDurationSeconds ?? 0;
+        const adjustmentSummary = adjustmentSummaries.get(`${member.id}:${weekKey}`);
+        const manualAdjustmentSeconds = adjustmentSummary?.manualAdjustmentSeconds ?? 0;
         return {
           memberKey: this.usersService.getMemberKey(member.id),
-          totalDurationSeconds: stats?.totalDurationSeconds ?? 0,
+          totalDurationSeconds: Math.max(0, recordedDurationSeconds + manualAdjustmentSeconds),
+          recordedDurationSeconds,
+          manualAdjustmentSeconds,
+          adjustmentsCount: adjustmentSummary?.adjustmentsCount ?? 0,
           sessionsCount: stats?.sessionsCount ?? 0,
           displayName: member.displayName,
           realName: member.realName,
@@ -110,7 +139,7 @@ export class StatsService {
       });
     }
 
-    const items = await this.getMyWeeklyStats(member.id, member.enrollYear, limit);
+    const items = await this.getMyWeeklyStats(currentUserTeamId, member.id, member.enrollYear, limit);
     return {
       member: {
         memberKey,

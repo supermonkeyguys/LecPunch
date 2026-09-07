@@ -73,6 +73,14 @@ export class UsersService {
       .exec();
   }
 
+  async findActiveAdminIds(teamId: string) {
+    const admins = await this.userModel
+      .find({ teamId, role: 'admin', status: 'active' })
+      .select({ _id: 1 })
+      .exec();
+    return admins.map((admin) => admin.id);
+  }
+
   getMemberKey(userId: string) {
     const payload = Buffer.from(userId, 'utf8').toString('base64url');
     const signature = this.signMemberKeyPayload(payload);

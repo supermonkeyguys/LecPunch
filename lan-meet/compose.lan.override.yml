@@ -1,0 +1,78 @@
+# Applied after the pinned official docker-jitsi-meet compose file.
+# Docker Compose v2.24.4+ is required for the !override tag.
+services:
+  web:
+    ports: !override
+      - '${LAN_BIND_IP}:${HTTPS_PORT}:8443/tcp'
+    volumes:
+      - '${TLS_CERT_PATH}:/config/keys/cert.crt:ro'
+      - '${TLS_KEY_PATH}:/config/keys/cert.key:ro'
+    environment:
+      PUBLIC_URL: '${PUBLIC_URL}'
+      DISABLE_HTTPS: '0'
+      ENABLE_HTTP_REDIRECT: '0'
+      ENABLE_LETSENCRYPT: '0'
+      ENABLE_AUTH: '1'
+      AUTH_TYPE: 'jwt'
+      ENABLE_GUESTS: '0'
+      ENABLE_AUTO_LOGIN: '0'
+      JWT_APP_ID: '${MEET_JWT_APP_ID}'
+      JWT_APP_SECRET: '${MEET_JWT_SECRET}'
+      JWT_ACCEPTED_ISSUERS: '${MEET_JWT_APP_ID}'
+      JWT_ACCEPTED_AUDIENCES: '${MEET_JWT_APP_ID}'
+      JWT_ALLOW_EMPTY: '1'
+      JWT_SIGN_TYPE: 'HS256'
+      ENABLE_P2P: '0'
+      P2P_STUN_SERVERS: ''
+      RTCSTATS_ENABLED: 'false'
+      RTCSTATS_STORE_LOGS: 'false'
+      RTCSTATS_SEND_SDP: 'false'
+      ENABLE_TRACING: '0'
+      ENABLE_JAAS_COMPONENTS: '0'
+      ENABLE_RECORDING: '0'
+      ENABLE_LIVESTREAMING: '0'
+      JICOFO_SENTRY_DSN: '0'
+      JVB_SENTRY_DSN: '0'
+
+  prosody:
+    # Windows bind mounts do not preserve the Unix ownership Prosody needs for
+    # its generated internal XMPP certificates. Keep that state in Docker.
+    volumes:
+      - 'prosody-data:/var/lib/prosody'
+    environment:
+      ENABLE_AUTH: '1'
+      AUTH_TYPE: 'jwt'
+      ENABLE_GUESTS: '0'
+      JWT_APP_ID: '${MEET_JWT_APP_ID}'
+      JWT_APP_SECRET: '${MEET_JWT_SECRET}'
+      JWT_ACCEPTED_ISSUERS: '${MEET_JWT_APP_ID}'
+      JWT_ACCEPTED_AUDIENCES: '${MEET_JWT_APP_ID}'
+      JWT_ALLOW_EMPTY: '1'
+      ENABLE_TRACING: '0'
+      TURN_HOST: ''
+      TURNS_HOST: ''
+      STUN_HOST: ''
+
+  jicofo:
+    ports: !reset []
+    environment:
+      ENABLE_AUTH: '1'
+      AUTH_TYPE: 'jwt'
+      ENABLE_RECORDING: '0'
+      ENABLE_TRACING: '0'
+      JICOFO_SENTRY_DSN: '0'
+
+  jvb:
+    ports: !override
+      - '${LAN_BIND_IP}:${JVB_PORT}:${JVB_PORT}/udp'
+    environment:
+      JVB_PORT: '${JVB_PORT}'
+      JVB_ADVERTISE_IPS: '${LAN_BIND_IP}'
+      JVB_DISABLE_STUN: '1'
+      JVB_STUN_SERVERS: ''
+      ENABLE_OCTO: '0'
+      ENABLE_TRACING: '0'
+      JVB_SENTRY_DSN: '0'
+
+volumes:
+  prosody-data:

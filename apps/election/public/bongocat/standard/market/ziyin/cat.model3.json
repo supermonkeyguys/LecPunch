@@ -1,0 +1,28 @@
+{
+  "Version": 3,
+  "FileReferences": {
+    "Moc": "demomodel.moc3",
+    "Textures": [
+      "demomodel.1024/texture_00.png",
+      "demomodel.1024/texture_01.png",
+      "demomodel.1024/texture_02.png"
+    ],
+    "DisplayInfo": "demomodel.cdi3.json"
+  },
+  "Groups": [
+    {
+      "Target": "Parameter",
+      "Name": "EyeBlink",
+      "Ids": [
+        "ParamEyeLOpen",
+        "ParamEyeROpen"
+      ]
+    },
+    {
+      "Target": "Parameter",
+      "Name": "LipSync",
+      "Ids": []
+    }
+  ],
+  "HitAreas": []
+}

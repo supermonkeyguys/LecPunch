@@ -9,17 +9,23 @@ export class PointLedgerEntry {
   @Prop({ required: true, type: String, index: true })
   userId!: string;
 
-  @Prop({ required: true, type: String, enum: ['attendance'], default: 'attendance' })
-  sourceType!: 'attendance';
+  @Prop({ required: true, type: String, index: true })
+  weekKey!: string;
 
+  @Prop({ required: true, type: String, enum: ['attendance', 'skin_unlock'], default: 'attendance' })
+  sourceType!: 'attendance' | 'skin_unlock';
+
+  // Kept under its original persisted field name for backward compatibility.
+  // Non-attendance entries store their immutable source reference here too.
   @Prop({ required: true, type: String, unique: true })
   sourceAttendanceSessionId!: string;
 
-  @Prop({ required: true, type: Number, min: 0, default: 0 })
+  // Attendance earns positive points; auditable shop purchases spend negative points.
+  @Prop({ required: true, type: Number, default: 0 })
   points!: number;
 }
 
 export type PointLedgerEntryDocument = HydratedDocument<PointLedgerEntry>;
 export const PointLedgerEntrySchema = SchemaFactory.createForClass(PointLedgerEntry);
 
-PointLedgerEntrySchema.index({ userId: 1, teamId: 1, createdAt: -1 });
+PointLedgerEntrySchema.index({ userId: 1, teamId: 1, weekKey: 1 });

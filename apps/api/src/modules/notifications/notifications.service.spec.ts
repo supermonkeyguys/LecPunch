@@ -70,6 +70,45 @@ describe('NotificationsService', () => {
     );
   });
 
+  it('creates and streams a report notification to every active admin', async () => {
+    const subscriber = vi.fn();
+    const unsubscribe = service.subscribe('admin-1', subscriber);
+    create.mockImplementation(async (input: any) => ({
+      ...input,
+      id: `notification-${input.userId}`,
+      createdAt: input.createdAt ?? new Date('2026-04-16T00:00:00.000Z')
+    }));
+
+    const result = await service.createForReportSubmitted({
+      teamId: 'team-1',
+      adminUserIds: ['admin-1', 'admin-2'],
+      reportId: 'report-1',
+      reporterUserId: 'member-1',
+      reporterDisplayName: '成员甲',
+      imageCount: 2,
+      imagesExpireAt: new Date('2026-04-16T03:00:00.000Z')
+    });
+
+    expect(result).toHaveLength(2);
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'admin-1',
+        type: 'report.submitted',
+        sourceType: 'report',
+        sourceId: 'report-1',
+        payload: expect.objectContaining({ imageCount: 2 })
+      })
+    );
+    expect(subscriber).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'notification.created',
+        data: expect.objectContaining({ type: 'report.submitted' })
+      })
+    );
+    unsubscribe();
+  });
+
   it('lists unacknowledged notifications by default', async () => {
     const exec = vi.fn().mockResolvedValue([
       {

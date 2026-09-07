@@ -4,8 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1020" />
+    <!-- Renderer images are either bundled, data/blob previews, or the
+         allow-listed local asset protocol. In particular, a chosen backdrop
+         can never turn a remote URL into a renderer request. -->
+    <meta http-equiv="Content-Security-Policy" content="img-src 'self' data: blob: lecpunch-assets:;" />
     <title>LecPunch Election</title>
     <script src="./bongocat/live2dcubismcore.min.js"></script>
+    <!-- The upstream BongoCat runtime loads both Cubism Core and its legacy
+         Live2D bridge before the renderer module. Keep that load order. -->
+    <script src="./bongocat/live2d.min.js"></script>
   </head>
   <body>
     <div id="root"></div>

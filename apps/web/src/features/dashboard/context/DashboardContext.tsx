@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import type { AttendancePauseReason, TeamActiveAttendanceItem, TeamWeeklyStatItem } from '@lecpunch/shared';
+import type { TeamActiveAttendanceItem, TeamWeeklyStatItem } from '@lecpunch/shared';
 import type { AttendanceRecordItem } from '@/features/records/records.api';
 
 export interface DashboardContextValue {
@@ -10,10 +10,11 @@ export interface DashboardContextValue {
   activeMembers: TeamActiveAttendanceItem[];
   records: AttendanceRecordItem[];
   isCheckedIn: boolean;
-  isPaused: boolean;
-  pauseReason?: AttendancePauseReason;
   currentDuration: number;
   selectedWeekDuration: number;
+  selectedWeekRecordedDuration: number;
+  selectedWeekManualAdjustment: number;
+  selectedWeekAdjustmentsCount: number;
   selectedWeekSessionsCount: number;
   weeklyGoalSeconds: number;
   submitting: boolean;

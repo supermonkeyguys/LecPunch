@@ -12,7 +12,7 @@ export class StatsController {
 
   @Get('me/weekly')
   async myWeeklyStats(@CurrentUser() user: AuthUser) {
-    const items = await this.statsService.getMyWeeklyStats(user.userId, user.enrollYear);
+    const items = await this.statsService.getMyWeeklyStats(user.teamId, user.userId, user.enrollYear);
     return { items, weeklyGoalSeconds: this.statsService.getWeeklyGoalSeconds(user.enrollYear) };
   }
 

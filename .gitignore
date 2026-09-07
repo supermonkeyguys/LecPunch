@@ -22,6 +22,22 @@ pnpm-debug.log*
 !.env.example
 deploy/*.env
 
+# Captain-machine Jitsi runtime. The tracked templates live in lan-meet/.
+lan-meet/.env
+lan-meet/.upstream/
+lan-meet/.runtime/
+lan-meet/certs/
+
+# Turbo caches and local debug artifacts
+.turbo/
+*.tsbuildinfo
+apps/election/.local-electron-user-data/
+apps/election/.local-test-electron-profile/
+apps/election/.local-test-logs/
+apps/election/.local-test-window.jsonl
+release-candidates/
+tools/
+
 # Editor
 .vscode/
 .idea/

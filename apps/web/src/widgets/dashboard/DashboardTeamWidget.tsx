@@ -41,7 +41,10 @@ const DashboardTeamWidgetComponent = () => {
                     avatarBase64={member.avatarBase64}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-bold text-gray-900">{member.displayName}</div>
+                    <div className="flex items-center gap-1.5 truncate text-sm font-bold text-gray-900">
+                      <span className="truncate">{member.displayName}</span>
+                      {member.adjustmentsCount > 0 ? <Badge variant="warning">含调整</Badge> : null}
+                    </div>
                     <div className="mt-0.5 text-xs text-gray-500">周累计：{formatDuration(member.totalDurationSeconds)}</div>
                   </div>
                   <div className="flex-shrink-0 text-right">

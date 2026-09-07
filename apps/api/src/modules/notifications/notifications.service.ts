@@ -30,6 +30,16 @@ export interface CreateAttendanceRecordMarkedNotificationInput {
   createdBy: string;
 }
 
+export interface CreateReportSubmittedNotificationsInput {
+  teamId: string;
+  adminUserIds: string[];
+  reportId: string;
+  reporterUserId: string;
+  reporterDisplayName: string;
+  imageCount: number;
+  imagesExpireAt: Date | null;
+}
+
 export type NotificationStreamEventName = 'connected' | 'notification.created' | 'heartbeat';
 
 export interface NotificationStreamEvent {
@@ -78,6 +88,42 @@ export class NotificationsService {
     });
 
     return item;
+  }
+
+  async createForReportSubmitted(input: CreateReportSubmittedNotificationsInput) {
+    const createdAt = new Date();
+    const notifications = await Promise.all(
+      input.adminUserIds.map(async (adminUserId) => {
+        const notification = await this.notificationModel.create({
+          teamId: input.teamId,
+          userId: adminUserId,
+          type: 'report.submitted',
+          title: '收到新的举报',
+          message: `${input.reporterDisplayName} 提交了一条举报，请在图片过期前查看。`,
+          payload: {
+            reportId: input.reportId,
+            reporterUserId: input.reporterUserId,
+            reporterDisplayName: input.reporterDisplayName,
+            imageCount: input.imageCount,
+            imagesExpireAt: input.imagesExpireAt?.toISOString() ?? null
+          },
+          sourceType: 'report',
+          sourceId: input.reportId,
+          createdBy: input.reporterUserId,
+          acknowledgedAt: null,
+          createdAt
+        });
+
+        const item = this.toNotificationItem(notification);
+        this.publishToUser(adminUserId, {
+          event: 'notification.created',
+          data: item
+        });
+        return item;
+      })
+    );
+
+    return notifications;
   }
 
   async listForUser(teamId: string, userId: string, options: ListNotificationsOptions = {}) {
@@ -168,6 +214,6 @@ export class NotificationsService {
       createdBy: document.createdBy,
       createdAt: document.createdAt.toISOString(),
       acknowledgedAt: document.acknowledgedAt?.toISOString() ?? null
-    };
+    } as NotificationItem;
   }
 }

@@ -13,7 +13,7 @@ export class Notification {
   @Prop({ required: true, type: String, index: true })
   userId!: string;
 
-  @Prop({ required: true, type: String, enum: ['attendance.record_marked'] })
+  @Prop({ required: true, type: String, enum: ['attendance.record_marked', 'report.submitted'] })
   type!: NotificationType;
 
   @Prop({ required: true, type: String })
@@ -25,7 +25,7 @@ export class Notification {
   @Prop({ required: true, type: SchemaTypes.Mixed })
   payload!: NotificationPayload;
 
-  @Prop({ required: true, type: String, enum: ['attendance_record'] })
+  @Prop({ required: true, type: String, enum: ['attendance_record', 'report'] })
   sourceType!: NotificationSourceType;
 
   @Prop({ required: true, type: String })

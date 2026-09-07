@@ -51,7 +51,8 @@ export const Sidebar = () => {
           <>
             <div className="mt-6 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400">管理</div>
             <NavLink
-              to="/admin/members"
+              to="/admin"
+              end
               className={({ isActive }) =>
                 `w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
@@ -61,6 +62,19 @@ export const Sidebar = () => {
               }
             >
               <Shield className="w-5 h-5 mr-3 flex-shrink-0" />
+              管理总览
+            </NavLink>
+            <NavLink
+              to="/admin/members"
+              className={({ isActive }) =>
+                `w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <Users className="w-5 h-5 mr-3 flex-shrink-0" />
               成员管理
             </NavLink>
             <NavLink

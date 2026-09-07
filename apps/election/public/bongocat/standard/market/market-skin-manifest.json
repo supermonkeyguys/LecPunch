@@ -1,0 +1,130 @@
+[
+  {
+    "id": "aixiya",
+    "label": "艾瑟雅",
+    "author": "网友艾瑟雅",
+    "sourceDirectory": "艾瑟雅 · 标准模式",
+    "modelSha256": "e21fa32a7051db9c7d42421dafe06f4ce548dae36524b889562060aadeb7f45b",
+    "files": 37
+  },
+  {
+    "id": "ailixiya",
+    "label": "爱莉希雅",
+    "author": "宇痕冫",
+    "sourceDirectory": "爱莉希雅 · 标准模式",
+    "modelSha256": "32aa28f1a9d179e97c761188a169bd1c02b7249134019e57a595a4120b74aa0e",
+    "files": 36
+  },
+  {
+    "id": "power-cat",
+    "label": "动力小猫",
+    "author": "松露酱酱",
+    "sourceDirectory": "动力小猫 · 标准模式",
+    "modelSha256": "0f9a3ece95c1448cf8bb8540ae90abd155137f65dc03d519a14932140cab7230",
+    "files": 26
+  },
+  {
+    "id": "feibi",
+    "label": "菲比",
+    "author": "宇痕冫",
+    "sourceDirectory": "菲比 · 标准模式",
+    "modelSha256": "dc7083bda4a8ce4aba00fd6abd885ba193a4ca2901d58e11c428c4f443705ca6",
+    "files": 36
+  },
+  {
+    "id": "keli",
+    "label": "可莉",
+    "author": "喵小爷驾到",
+    "sourceDirectory": "可莉 · 标准模式",
+    "modelSha256": "fca14ea96553243c5a6e56ab2c754d4f2a09f89cfaa516063980bf2b7bbc845f",
+    "files": 25
+  },
+  {
+    "id": "liuying",
+    "label": "流萤",
+    "author": "宇痕冫",
+    "sourceDirectory": "流萤 · 标准模式",
+    "modelSha256": "3717ac965210b7f0eed0aef9f76fbb715d61749ec3b10ffeaf75752b574e7d87",
+    "files": 32
+  },
+  {
+    "id": "luoxiaohei",
+    "label": "罗小黑",
+    "author": "源尘迷途",
+    "sourceDirectory": "罗小黑 · 标准模式",
+    "modelSha256": "6a725b3662f18c2a661b413bec1d898c0ff0e84c6a825f22e8bb2d0fbcff37e3",
+    "files": 51
+  },
+  {
+    "id": "nailin",
+    "label": "乃琳",
+    "author": "奶淇琳周报",
+    "sourceDirectory": "乃琳 · 标准模式",
+    "modelSha256": "14db20d272a5cc8df3ed18b1d66126a6384474a42e1de9345614315acc27ad48",
+    "files": 21
+  },
+  {
+    "id": "pidan",
+    "label": "皮蛋",
+    "author": "不要舔我耳朵啊喂",
+    "sourceDirectory": "皮蛋 · 标准模式",
+    "modelSha256": "476a571880123391b70ae7986e59988ad7604bc9bde2bcdb14d382ada05526c3",
+    "files": 31
+  },
+  {
+    "id": "sangonomiya-kokomi",
+    "label": "珊瑚宫心海",
+    "author": "宇痕冫",
+    "sourceDirectory": "珊瑚宫心海 · 标准模式",
+    "modelSha256": "0f9a3ece95c1448cf8bb8540ae90abd155137f65dc03d519a14932140cab7230",
+    "files": 22
+  },
+  {
+    "id": "xiaoyao-sanren",
+    "label": "逍遥散人",
+    "author": "ST 咸猫",
+    "sourceDirectory": "逍遥散人 · 标准模式",
+    "modelSha256": "e9f4cdb6ea377b9ad77fb205ce41bb9164bdea49f848e51816254ef5e09852b5",
+    "files": 39
+  },
+  {
+    "id": "red-panda-haohao",
+    "label": "小熊猫昊昊",
+    "author": "猫猫虫有啥坏心思呢",
+    "sourceDirectory": "小熊猫昊昊 · 标准模式",
+    "modelSha256": "5af66acabd27ce745e670a45a990a66313b546be275a1743e63c668bb6b0c3b1",
+    "files": 19
+  },
+  {
+    "id": "oyama-mahiru",
+    "label": "绪山真寻",
+    "author": "水無蝉羽",
+    "sourceDirectory": "绪山真寻 · 标准模式",
+    "modelSha256": "e0b7af6c49caef157ba13bd2b70f531264612c3b92140a7a10074536be957d2c",
+    "files": 34
+  },
+  {
+    "id": "zimin",
+    "label": "籽岷",
+    "author": "是阿蚩哟",
+    "sourceDirectory": "籽岷 · 标准模式",
+    "modelSha256": "099a2bc0aa52a96cb6277cf5a305453284d953baa55d7161ed6dfeddc1c27ffe",
+    "files": 27
+  },
+  {
+    "id": "ziyin",
+    "label": "子音",
+    "author": "是阿蚩哟",
+    "sourceDirectory": "子音 · 标准模式",
+    "modelSha256": "099a2bc0aa52a96cb6277cf5a305453284d953baa55d7161ed6dfeddc1c27ffe",
+    "files": 27
+  },
+  {
+    "id": "doro",
+    "label": "doro",
+    "author": "我是千秋秋",
+    "sourceDirectory": "doro - 标准模式",
+    "modelSha256": "ac1af3971181bc4dc00b0728a1386d81592c05ef4b5135d1ce297e1905648bfd",
+    "files": 36
+  }
+]

@@ -14,7 +14,12 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { MemberEligibilityModule } from './modules/member-eligibility/member-eligibility.module';
 import { TeamEventsModule } from './modules/team-events/team-events.module';
 import { TeamLedgerModule } from './modules/team-ledger/team-ledger.module';
+import { ReportsModule } from './modules/reports/reports.module';
+import { GitHubSourcesModule } from './modules/github-sources/github-sources.module';
+import { WeeklyReportsModule } from './modules/weekly-reports/weekly-reports.module';
 import { PointsModule } from './modules/points/points.module';
+import { MeetModule } from './modules/meet/meet.module';
+import { ShopModule } from './modules/shop/shop.module';
 
 @Module({
   imports: [
@@ -31,7 +36,12 @@ import { PointsModule } from './modules/points/points.module';
     MemberEligibilityModule,
     TeamEventsModule,
     TeamLedgerModule,
+    ReportsModule,
+    GitHubSourcesModule,
+    WeeklyReportsModule,
     PointsModule,
+    ShopModule,
+    MeetModule,
     AttendanceModule,
     RecordsModule,
     StatsModule,
